@@ -33,29 +33,30 @@ function createRooms(): void {
     private readonly classNameCustom: string;
 
     public static includesDict: { [deviceType: string]: string } = {
-      ZigbeeAquaraVibra: 'hoffmation-base',
-      HmIpBewegung: 'hoffmation-base',
-      HmIpGriff: 'hoffmation-base',
-      HmIpHeizgruppe: 'hoffmation-base',
-      HmIpHeizung: 'hoffmation-base',
-      HmIpLampe: 'hoffmation-base',
-      HmIpPraezenz: 'hoffmation-base',
-      HmIpRoll: 'hoffmation-base',
-      HmIpTaster: 'hoffmation-base',
-      HmIpTherm: 'hoffmation-base',
-      HmIpTuer: 'hoffmation-base',
-      HmIpWippe: 'hoffmation-base',
-      ZigbeeIkeaFernbedienung: 'hoffmation-base',
-      ZigbeeIkeaSteckdose: 'hoffmation-base',
-      ZigbeeIlluDimmer: 'hoffmation-base',
-      ZigbeeIlluLampe: 'hoffmation-base',
-      ZigbeeIlluActuator: 'hoffmation-base',
-      ZigbeeIlluLedRGBCCT: 'hoffmation-base',
-      Fenster: 'hoffmation-base',
-      Sonos: 'hoffmation-base',
-      ZigbeeHeimanSmoke: 'hoffmation-base',
-      ZigbeeAquaraWater: 'hoffmation-base',
-      ZigbeeBlitzShp: 'hoffmation-base',
+      HmIpBewegung: 'hoffmation-base/lib',
+      HmIpGriff: 'hoffmation-base/lib',
+      HmIpHeizgruppe: 'hoffmation-base/lib',
+      HmIpHeizung: 'hoffmation-base/lib',
+      HmIpLampe: 'hoffmation-base/lib',
+      HmIpPraezenz: 'hoffmation-base/lib',
+      HmIpRoll: 'hoffmation-base/lib',
+      HmIpTaster: 'hoffmation-base/lib',
+      HmIpTherm: 'hoffmation-base/lib',
+      HmIpTuer: 'hoffmation-base/lib',
+      HmIpWippe: 'hoffmation-base/lib',
+      Fenster: 'hoffmation-base/lib',
+      Sonos: 'hoffmation-base/lib',
+      ZigbeeAquaraVibra: 'hoffmation-base/lib',
+      ZigbeeAquaraWater: 'hoffmation-base/lib',
+      ZigbeeBlitzShp: 'hoffmation-base/lib',
+      ZigbeeHeimanSmoke: 'hoffmation-base/lib',
+      ZigbeeIkeaFernbedienung: 'hoffmation-base/lib',
+      ZigbeeIkeaSteckdose: 'hoffmation-base/lib',
+      ZigbeeIlluActuator: 'hoffmation-base/lib',
+      ZigbeeIlluDimmer: 'hoffmation-base/lib',
+      ZigbeeIlluLampe: 'hoffmation-base/lib',
+      ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
+      ZigbeeIlluShutter: 'hoffmation-base/lib',
     };
 
     public constructor(row: string) {
@@ -143,18 +144,18 @@ function createRooms(): void {
     }
 
     private createImports(): void {
-      this.fileBuilder.push(`import { Devices } from 'hoffmation-base';
-import { RoomSettings, RoomInitializationSettings, RoomDeviceAddingSettings } from 'hoffmation-base';
-import { RoomBase } from 'hoffmation-base';
-import { DeviceType } from 'hoffmation-base';
-import { FensterGroup } from 'hoffmation-base';
-import { LampenGroup } from 'hoffmation-base';
-import { PraesenzGroup } from 'hoffmation-base';
-import { TasterGroup } from 'hoffmation-base';
-import { SmokeGroup } from 'hoffmation-base';
-import { WaterGroup } from 'hoffmation-base';
-import { HeatGroup } from 'hoffmation-base';
-import { SonosGroup } from 'hoffmation-base';`);
+      this.fileBuilder.push(`import { Devices } from 'hoffmation-base/lib';
+import { RoomSettings, RoomInitializationSettings, RoomDeviceAddingSettings } from 'hoffmation-base/lib';
+import { RoomBase } from 'hoffmation-base/lib';
+import { DeviceType } from 'hoffmation-base/lib';
+import { FensterGroup } from 'hoffmation-base/lib';
+import { LampenGroup } from 'hoffmation-base/lib';
+import { PraesenzGroup } from 'hoffmation-base/lib';
+import { TasterGroup } from 'hoffmation-base/lib';
+import { SmokeGroup } from 'hoffmation-base/lib';
+import { WaterGroup } from 'hoffmation-base/lib';
+import { HeatGroup } from 'hoffmation-base/lib';
+import { SonosGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
         if (type !== 'Sonos') {
@@ -162,7 +163,7 @@ import { SonosGroup } from 'hoffmation-base';`);
         } else {
           this.fileBuilder.push(
             `import { OwnSonosDevice } from '${Room.includesDict[type]}';
-import { OwnSonosDevices } from 'hoffmation-base';`,
+import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           );
         }
       }
@@ -448,6 +449,7 @@ import { OwnSonosDevices } from 'hoffmation-base';`,
           this.isTaster = true;
           break;
         case 'HmIpRoll':
+        case 'ZigbeeIlluShutter':
           this.isRollo = true;
           break;
         case 'HmIpGriff':
@@ -537,8 +539,8 @@ import { OwnSonosDevices } from 'hoffmation-base';`,
 
     createFiles() {
       const roomEnforcerImport: string[] = [
-        `import { iRoomImportEnforcer } from 'hoffmation-base';
-import { ioBrokerMain } from 'hoffmation-base';`,
+        `import { iRoomImportEnforcer } from 'hoffmation-base/lib';
+import { ioBrokerMain } from 'hoffmation-base/lib';`,
       ];
       const roomEnforcerContent: string[] = [
         `
