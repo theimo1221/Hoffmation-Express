@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-
 const fs = require('fs');
 
 function createRooms(): void {
@@ -57,6 +56,7 @@ function createRooms(): void {
       ZigbeeIlluLampe: 'hoffmation-base/lib',
       ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
       ZigbeeIlluShutter: 'hoffmation-base/lib',
+      ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
     };
 
     public constructor(row: string) {
