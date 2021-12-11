@@ -1,13 +1,71 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
+import config from '../config/private/roomConfig.json';
 const fs = require('fs');
+
+const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
+  Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
+  HmIpBewegung: { name: 'Bewegungsmelder', deviceClass: 'HmIP' },
+  HmIpGriff: { name: 'Griff', deviceClass: 'HmIP' },
+  HmIpHeizgruppe: { name: 'Heizgruppe', deviceClass: 'HmIP' },
+  HmIpHeizung: { name: 'Heizung', deviceClass: 'HmIP' },
+  HmIpLampe: { name: 'Lampe', deviceClass: 'HmIP' },
+  HmIpPraezenz: { name: 'Praesenzmelder', deviceClass: 'HmIP' },
+  HmIpRoll: { name: 'Rollo', deviceClass: 'HmIP' },
+  HmIpTaster: { name: 'Taster', deviceClass: 'HmIP' },
+  HmIpTherm: { name: 'Thermostat', deviceClass: 'HmIP' },
+  HmIpTuer: { name: 'Türkontakt', deviceClass: 'HmIP' },
+  HmIpWippe: { name: 'Wippschalter', deviceClass: 'HmIP' },
+  MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
+  Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
+  ZigbeeAquaraVibra: { name: 'Vibrationssensor', deviceClass: 'Zigbee' },
+  ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
+  ZigbeeBlitzShp: { name: 'Stecker', deviceClass: 'Zigbee' },
+  ZigbeeHeimanSmoke: { name: 'Rauchmelder', deviceClass: 'Zigbee' },
+  ZigbeeIkeaFernbedienung: { name: 'Fernbedienung', deviceClass: 'Zigbee' },
+  ZigbeeIkeaSteckdose: { name: 'Stecker', deviceClass: 'Zigbee' },
+  ZigbeeIlluActuator: { name: 'Aktuator', deviceClass: 'Zigbee' },
+  ZigbeeIlluDimmer: { name: 'Dimmer', deviceClass: 'Zigbee' },
+  ZigbeeIlluLampe: { name: 'Lampe', deviceClass: 'Zigbee' },
+  ZigbeeIlluLedRGBCCT: { name: 'LED Leiste', deviceClass: 'Zigbee' },
+  ZigbeeIlluShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
+};
+
+interface RoomModel {
+  nameShort: string;
+  nameLong: string;
+  etage: number;
+  rolloOffsetSunRise?: number;
+  rolloOffsetSunSet?: number;
+  lampOffsetSunRise?: number;
+  lampOffsetSunSet?: number;
+}
+
+interface FensterParams {
+  noRolloOnSunrise?: boolean;
+}
+
+interface MotionParams {
+  nightAlarmExclude?: boolean;
+}
+
+interface DeviceModel {
+  room: string;
+  deviceType: string;
+  indexInRoom: number;
+  customName?: string;
+  fensterID?: number;
+  includeInGroup: boolean;
+  additionalParams?: FensterParams | MotionParams;
+}
+
+interface RoomConfigModel {
+  rooms: RoomModel[];
+  devices: DeviceModel[];
+}
 
 function createRooms(): void {
   console.log('Starte Room Creation');
-
-  class RoomConfigs {
-    roomDefinitions: string[] = [];
-    deviceDefinitions: string[] = [];
-  }
 
   class Room {
     public nameShort: string;
@@ -59,19 +117,15 @@ function createRooms(): void {
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
     };
 
-    public constructor(row: string) {
-      const data = row.split(';');
-      if (data.length < 8) {
-        throw new Error(`Invalid Room definition Row: "${row}"`);
-      }
-      this.nameShort = data[0];
-      this.nameLong = data[1];
-      this.etage = parseInt(data[2], 10);
-      this.fileName = data[3];
-      this.rolloOffsetSunR = parseInt(data[4], 10);
-      this.rolloOffsetSunS = parseInt(data[5], 10);
-      this.lampOffsetSunR = parseInt(data[6], 10);
-      this.lampOffsetSunS = parseInt(data[7], 10);
+    public constructor(roomDefinition: RoomModel) {
+      this.nameShort = roomDefinition.nameShort;
+      this.nameLong = roomDefinition.nameLong;
+      this.etage = roomDefinition.etage;
+      this.fileName = `${this.etage}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
+      this.rolloOffsetSunR = roomDefinition.rolloOffsetSunRise ?? 0;
+      this.rolloOffsetSunS = roomDefinition.rolloOffsetSunSet ?? 0;
+      this.lampOffsetSunR = roomDefinition.lampOffsetSunRise ?? 0;
+      this.lampOffsetSunS = roomDefinition.lampOffsetSunSet ?? 0;
 
       this.noRolloOnSunrise = this.rolloOffsetSunR === -1;
       this.folderName = this.fileName.replace('.ts', '');
@@ -167,9 +221,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           );
         }
       }
-      this.fileBuilder.push(
-        `import { ${this.classNameCustom} } from './${this.fileNameCustom.replace('.ts', '')}';`,
-      );
+      this.fileBuilder.push(`import { ${this.classNameCustom} } from './${this.fileNameCustom.replace('.ts', '')}';`);
     }
 
     private createClassAndEnd() {
@@ -366,10 +418,10 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
   }
 
   class Device {
-    public id: number;
     public idName: string;
     public setIdName: string;
     public room: string;
+    public customName: string | undefined;
     public deviceType: string;
     public deviceClass: string;
     public roomIndex: number;
@@ -392,26 +444,33 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public isHeater: boolean = false;
     public fensterNoRolloOnSunrise?: boolean = false;
     public excludeFromNightAlarm: boolean = false;
-    public fensterID: number;
+    public fensterID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string = '';
-    public zusatzParams: string = '';
+    public zusatzParams: undefined | FensterParams | MotionParams;
+    private defaultName: string;
 
-    public constructor(row: string) {
-      const data = row.split(';');
-      if (data.length < 12) {
-        throw new Error(`Invalid Device definition Row: "${row}"`);
+    public constructor(deviceDefinition: DeviceModel) {
+      this.room = deviceDefinition.room;
+      this.deviceType = deviceDefinition.deviceType;
+      const translatedDeviceType: { name: string; deviceClass: string } | undefined = DEVICE_TYPE[this.deviceType];
+      if (translatedDeviceType === undefined) {
+        throw new Error(`Invalid/Unsuported Device type "${this.deviceType}"`);
       }
-      this.id = parseInt(data[0], 10);
-      this.room = data[1];
-      this.deviceType = data[2];
-      this.deviceClass = data[3];
-      this.roomIndex = parseInt(data[4], 10);
-      this.nameShort = data[7].replace('.', '_');
-      this.nameLong = data[8];
-      this.fensterID = parseInt(data[9], 10);
-      this.includeInGroup = data[10] === '1';
-      this.zusatzParams = data[11];
+
+      this.deviceClass = translatedDeviceType.deviceClass;
+      this.roomIndex = deviceDefinition.indexInRoom;
+      this.defaultName = translatedDeviceType.name;
+      if (this.roomIndex > 1) {
+        this.defaultName += `_${this.roomIndex}`;
+      }
+      this.customName = deviceDefinition.customName;
+      this.nameShort = (this.customName ? this.customName : this.defaultName).replace(/\./g, '_').replace(/ /g, '');
+
+      this.nameLong = `${this.room} ${this.customName !== '' ? this.customName : this.defaultName}`.replace(/_/g, ' ');
+      this.fensterID = deviceDefinition.fensterID;
+      this.includeInGroup = deviceDefinition.includeInGroup;
+      this.zusatzParams = deviceDefinition.additionalParams;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
@@ -421,13 +480,13 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'HmIP':
           this.isIoBrokerDevice = true;
-          if (this.zusatzParams.indexOf('nightAlarmExclude') >= 0) {
+          if (this.zusatzParams !== undefined && (this.zusatzParams as MotionParams).nightAlarmExclude) {
             this.excludeFromNightAlarm = true;
           }
           break;
         case 'Fenster':
           this.isFenster = true;
-          if (this.zusatzParams.indexOf('noRolloOnSunrise') >= 0) {
+          if (this.zusatzParams !== undefined && (this.zusatzParams as FensterParams).noRolloOnSunrise) {
             this.fensterNoRolloOnSunrise = true;
           }
           break;
@@ -480,7 +539,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
       }
 
-      if (this.fensterID > 0) {
+      if (this.fensterID !== undefined && this.fensterID > 0) {
         this.groupN = `Fenster_${this.fensterID}`;
       } else if (this.includeInGroup) {
         if (this.isBeweg) {
@@ -512,12 +571,11 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public rooms: { [id: string]: Room } = {};
     private readonly roomEnforcerPath: string = './src/OwnRooms/RoomImportEnforcer.ts';
 
-    public addDevices(deviceDefinitions: string[]): void {
-      for (let i = 0; i < deviceDefinitions.length; i++) {
-        const row: string = deviceDefinitions[i];
-        const device: Device = new Device(row);
+    public addDevices(deviceModels: DeviceModel[]): void {
+      for (let i = 0; i < deviceModels.length; i++) {
+        const device: Device = new Device(deviceModels[i]);
         if (this.rooms[device.room] === undefined) {
-          throw new Error(`Unknown Room ("${device.room}") within device: ${row}`);
+          throw new Error(`Unknown Room ("${device.room}") within device: ${device.nameLong}`);
         }
         this.rooms[device.room].addDevice(device);
       }
@@ -529,10 +587,10 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       }
     }
 
-    constructor(roomDefinitions: string[]) {
+    constructor(roomDefinitions: RoomModel[]) {
       for (let i = 0; i < roomDefinitions.length; i++) {
-        const row: string = roomDefinitions[i];
-        const room: Room = new Room(row);
+        const roomDefinition: RoomModel = roomDefinitions[i];
+        const room = new Room(roomDefinition);
         this.rooms[room.nameLong] = room;
       }
     }
@@ -550,9 +608,7 @@ export class RoomImportEnforcer implements iRoomImportEnforcer {
       for (const roomName in this.rooms) {
         const room: Room = this.rooms[roomName];
         room.createFile();
-        roomEnforcerImport.push(
-          `import { ${room.className} } from './${room.folderName}/${room.folderName}';`,
-        );
+        roomEnforcerImport.push(`import { ${room.className} } from './${room.folderName}/${room.folderName}';`);
         roomEnforcerContent.push(`    ioBrokerMain.addRoomConstructor(${room.className}.roomName, ${room.className});`);
       }
 
@@ -561,66 +617,13 @@ export class RoomImportEnforcer implements iRoomImportEnforcer {
     }
   }
 
-  function loadContent() {
-    const path = './config/private/RoomConfig.txt';
-    if (fs.existsSync(path)) {
-      return fs.readFileSync(path).toString();
-    }
-    return '';
-  }
-
-  function getConfigs(content: string): RoomConfigs {
-    const rows = content.split('\n');
-    const config: RoomConfigs = new RoomConfigs();
-    console.log(`Detected ${rows.length} Rows`);
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i] === undefined || rows[i] === '') {
-        continue;
-      }
-      const rowSplit = rows[i].replace('\r', '').split('###');
-      switch (rowSplit[0]) {
-        case 'RoomDefintion':
-          config.roomDefinitions.push(rowSplit[1]);
-          break;
-        case 'DeviceDefintion':
-          config.deviceDefinitions.push(rowSplit[1]);
-          break;
-        default:
-          console.warn(`Unknown Config Type: ${rowSplit[0]} abort`);
-          throw new Error(`Unknown Config Type: ${rowSplit[0]} abort`);
-      }
-    }
-    return config;
-  }
-
   function main() {
-    // Load Config
-    let contentLoaded = false;
-    let content = '';
-    try {
-      content = loadContent();
-      contentLoaded = content.length > 0;
-    } catch (e) {}
-
-    // Warn if Config empty
-    if (!contentLoaded) {
-      console.warn(
-        'No config file within "/server/config/private/RoomConfig.txt" found. Please add config and rerun this task.',
-      );
-      return;
-    }
-
-    console.log(`Recieved a file with ${content.length} Chars.`);
-
-    const configs: RoomConfigs = getConfigs(content);
-    console.log(
-      `Detected ${configs.roomDefinitions.length} Rooms, with a total of ${configs.deviceDefinitions.length} devices`,
-    );
+    const roomConfig: RoomConfigModel = config as RoomConfigModel;
     // Create Rooms
-    const rooms: Rooms = new Rooms(configs.roomDefinitions);
+    const rooms: Rooms = new Rooms(roomConfig.rooms);
 
     // Add Devices To Rooms
-    rooms.addDevices(configs.deviceDefinitions);
+    rooms.addDevices(roomConfig.devices);
     console.log(`Devices added to Rooms, starting file preparation now...`);
 
     // Generate code for File

@@ -20,6 +20,7 @@
   "scripts": {
     "lint-fix-all": "eslint ./src/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-rooms": "eslint ./src/OwnRooms/**/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
+    "lint-fix-createRooms": "eslint ./RoomCreation/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "build": "tsc",
     "start": "node lib/src/index.js",
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms"
