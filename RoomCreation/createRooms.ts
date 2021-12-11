@@ -54,7 +54,7 @@ interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   customName?: string;
-  fensterID?: number;
+  windowID?: number;
   includeInGroup: boolean;
   additionalParams?: FensterParams | MotionParams;
 }
@@ -444,7 +444,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public isHeater: boolean = false;
     public fensterNoRolloOnSunrise?: boolean = false;
     public excludeFromNightAlarm: boolean = false;
-    public fensterID: number | undefined;
+    public windowID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string = '';
     public zusatzParams: undefined | FensterParams | MotionParams;
@@ -468,7 +468,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       this.nameShort = (this.customName ? this.customName : this.defaultName).replace(/\./g, '_').replace(/ /g, '');
 
       this.nameLong = `${this.room} ${this.customName !== '' ? this.customName : this.defaultName}`.replace(/_/g, ' ');
-      this.fensterID = deviceDefinition.fensterID;
+      this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
       this.zusatzParams = deviceDefinition.additionalParams;
 
@@ -539,8 +539,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
       }
 
-      if (this.fensterID !== undefined && this.fensterID > 0) {
-        this.groupN = `Fenster_${this.fensterID}`;
+      if (this.windowID !== undefined && this.windowID > 0) {
+        this.groupN = `Fenster_${this.windowID}`;
       } else if (this.includeInGroup) {
         if (this.isBeweg) {
           this.groupN = `Beweg`;
