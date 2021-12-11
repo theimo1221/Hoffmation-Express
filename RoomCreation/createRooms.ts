@@ -39,6 +39,7 @@ interface RoomModel {
   rolloOffsetSunSet?: number;
   lampOffsetSunRise?: number;
   lampOffsetSunSet?: number;
+  devices: DeviceModel[];
 }
 
 interface FensterParams {
@@ -61,7 +62,6 @@ interface DeviceModel {
 
 interface RoomConfigModel {
   rooms: RoomModel[];
-  devices: DeviceModel[];
 }
 
 function createRooms(): void {
@@ -167,7 +167,7 @@ function createRooms(): void {
 
     public createFile(): void {
       if (!fs.existsSync(this.folderPath)) {
-        fs.mkdirSync(this.folderPath);
+        fs.mkdirSync(this.folderPath, { recursive: true });
       }
 
       fs.writeFileSync(`${this.folderPath}/${this.fileName}`, this.fileContent);
@@ -571,16 +571,6 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public rooms: { [id: string]: Room } = {};
     private readonly roomEnforcerPath: string = './src/OwnRooms/RoomImportEnforcer.ts';
 
-    public addDevices(deviceModels: DeviceModel[]): void {
-      for (let i = 0; i < deviceModels.length; i++) {
-        const device: Device = new Device(deviceModels[i]);
-        if (this.rooms[device.room] === undefined) {
-          throw new Error(`Unknown Room ("${device.room}") within device: ${device.nameLong}`);
-        }
-        this.rooms[device.room].addDevice(device);
-      }
-    }
-
     public prepareRooms(): void {
       for (const roomName in this.rooms) {
         this.rooms[roomName].prepare();
@@ -592,6 +582,19 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         const roomDefinition: RoomModel = roomDefinitions[i];
         const room = new Room(roomDefinition);
         this.rooms[room.nameLong] = room;
+        
+        // Add Devices To Room
+        this.addDevices(room.nameLong, roomDefinition.devices);
+      }
+    }
+
+    addDevices(roomKey: string,deviceModels: DeviceModel[]): void {
+      for (let i = 0; i < deviceModels.length; i++) {
+        const device: Device = new Device(deviceModels[i]);
+        if (this.rooms[roomKey] === undefined) {
+          throw new Error(`Unknown Room ("${roomKey}") within device: ${device.nameLong}`);
+        }
+        this.rooms[roomKey].addDevice(device);
       }
     }
 
@@ -621,9 +624,6 @@ export class RoomImportEnforcer implements iRoomImportEnforcer {
     const roomConfig: RoomConfigModel = config as RoomConfigModel;
     // Create Rooms
     const rooms: Rooms = new Rooms(roomConfig.rooms);
-
-    // Add Devices To Rooms
-    rooms.addDevices(roomConfig.devices);
     console.log(`Devices added to Rooms, starting file preparation now...`);
 
     // Generate code for File
