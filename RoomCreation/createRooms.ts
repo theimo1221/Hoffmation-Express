@@ -34,7 +34,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
 interface RoomModel {
   nameShort: string;
   nameLong: string;
-  etage: number;
+  floor: number;
   rolloOffsetSunRise?: number;
   rolloOffsetSunSet?: number;
   lampOffsetSunRise?: number;
@@ -70,7 +70,7 @@ function createRooms(): void {
   class Room {
     public nameShort: string;
     public nameLong: string;
-    public etage: number;
+    public floor: number;
     public fileName: string;
     public devices: { [deviceType: string]: Device[] } = {};
     public groups: { [groupName: string]: Device[] } = {};
@@ -120,8 +120,8 @@ function createRooms(): void {
     public constructor(roomDefinition: RoomModel) {
       this.nameShort = roomDefinition.nameShort;
       this.nameLong = roomDefinition.nameLong;
-      this.etage = roomDefinition.etage;
-      this.fileName = `${this.etage}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
+      this.floor = roomDefinition.floor;
+      this.fileName = `${this.floor}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
       this.rolloOffsetSunR = roomDefinition.rolloOffsetSunRise ?? 0;
       this.rolloOffsetSunS = roomDefinition.rolloOffsetSunSet ?? 0;
       this.lampOffsetSunR = roomDefinition.lampOffsetSunRise ?? 0;
@@ -235,7 +235,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       const bottomDeviceBuilder: string[] = [];
       variablesBuilder.push(`  public static roomName = '${this.nameShort}';
   public static RoomSettings: RoomSettings;
-  public static InitialRoomSettings: RoomInitializationSettings = new RoomInitializationSettings('${this.nameShort}', ${this.etage});
+  public static InitialRoomSettings: RoomInitializationSettings = new RoomInitializationSettings('${this.nameShort}', ${this.floor});
   public static roomObject: ${this.className};`);
       initializeBuilder.push(`  public static initialize(): void {
     ${this.classNameCustom}.preInitialize();`);
