@@ -30,9 +30,6 @@ To do so,
    The resulting file has to be saved to `config/private/roomConfig.json`
 2. Run `npm run create-rooms` to create the needed source files for your configuration.
 
-*Note*: Any room specific logic can be added to the `custom.ts` file of each room. 
-If these files exist, they won't get overridden if you run `create-rooms` again.
-
 ### Connect to ioBroker
 1. Make sure the devices in ioBroker are named according to the following naming scheme:
    `00-[HmIP or Zigbee]-[Room name]-[DeviceType]-[RoomIndex]`
@@ -40,9 +37,35 @@ If these files exist, they won't get overridden if you run `create-rooms` again.
    The resulting `.json` should be placed in the `config/private` folder, renamed to `devices.json`
 3. Place a `mainConfig.json` in the `config/private` folder with the correct ioBroker URL.
    You can use the mainConfig.json.example as template and overview of which settings currently are available.
+   Room specific settings are also listed [near the end of this file.](#room-specific-settings)
 
 ### Configure behavior
-Main behaviour settings of the library can be placed/changed in the `mainConfig.json` as mentioned above.
+Main behaviour settings of the library can be placed/changed in the `mainConfig.json` as mentioned above.  
+If you want to configure the settings of a room (e.g. turning all lights on if movements are detected), 
+you can use 
+- the `..._custom.ts` file of each room.  
+  There, just set up your room settings via code.  
+  If these files exist, they won't get overridden if you run `create-rooms` again.
+- the `roomConfig.json` file before (re)generating your rooms.  
+  There, you can override any setting you can set in the roomDefault of your mainConfig.json for any room - just add them under the key `settings`.
+
+#### Room specific settings
+The following room-specific settings can currently be set:
+| Name                        | Description                                                                                 | Value     |
+|-----------------------------|---------------------------------------------------------------------------------------------|-----------|
+| rolloHeatReduction          | Use shutter to reduce warming of rooms on hot days (detected by weather service)            | boolean   |
+| lampenBeiBewegung           | Turn lamps of this room be turned if movements were recognized here                         | boolean   |
+| lichtSonnenAufgangAus       | Turn lamps off on sunrise                                                                   | boolean   |
+| sonnenUntergangRollos       | Close shutters on sunset (detected by geo location)                                         | boolean   |
+| sonnenUntergangRolloDelay   | Offset (positive/negative) in minutes for closing shutters after sunset                     | number    |
+| sonnenUntergangRolloMaxTime | Close the shutters by this time at the latest (regardless of sunset time)                   | iTimePair |
+| sonnenUntergangLampenDelay  | Offset in minutes for turning on lamps if movements were recognized                         | number    |
+| sonnenAufgangRollos         | Open shutters on sunrise (detected by geo location)                                         | boolean   |
+| sonnenAufgangRolloDelay     | Offset (positive/negative) in minutes for opening shutters after sunrise                    | number    |
+| sonnenAufgangRolloMinTime   | Open the shutters by this time at the latest (regardless of sunrise time)                   | iTimePair |
+| sonnenAufgangLampenDelay    | Offset in minutes for still turning on lamps if movements after sunrise were recognized     | number    |
+| movementResetTimer          | Time in seconds after which detected movements are reset (and assumed to not exist anymore) | number    |
+| lightIfNoWindows            | Turn lights on during the day if no windows are configured for this room                    | boolean   |
 
 ## Running the software
 If you want to run the software and are sure you've set the project up correctly, just run `npm run start`.

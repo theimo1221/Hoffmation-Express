@@ -22,10 +22,13 @@
             "nameShort": "1OGBathroom",
             "nameLong": "First floor - Bathroom",
             "floor": 1,
-            "rolloOffsetSunRise": 5,
-            "rolloOffsetSunSet": 2,
-            "lampOffsetSunRise": 2,
-            "lampOffsetSunSet": 15,
+            "settings": {
+                "lampenBeiBewegung": true,
+                "sonnenAufgangRolloDelay": 5,
+                "sonnenUntergangRolloDelay": 2,
+                "sonnenAufgangLampenDelay": 2,
+                "sonnenUntergangLampenDelay": 15
+            },
             "devices": [
                 {
                     "deviceType": "Fenster",

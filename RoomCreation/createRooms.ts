@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
+import { iRoomDefaultSettings } from 'hoffmation-base/lib';
+
 const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
@@ -36,11 +38,8 @@ interface RoomModel {
   nameShort: string;
   nameLong: string;
   floor: number;
-  rolloOffsetSunRise?: number;
-  rolloOffsetSunSet?: number;
-  lampOffsetSunRise?: number;
-  lampOffsetSunSet?: number;
   devices: DeviceModel[];
+  settings?: Partial<iRoomDefaultSettings>;
 }
 
 interface FensterParams {
@@ -74,17 +73,13 @@ function createRooms(): void {
     public fileName: string;
     public devices: { [deviceType: string]: Device[] } = {};
     public groups: { [groupName: string]: Device[] } = {};
+    public settings?: Partial<iRoomDefaultSettings>;
     public hasIoBrokerDevices: boolean = false;
     public fileContent: string = '';
     public customContent: string = '';
-    public noRolloOnSunrise: boolean = false;
     public readonly className: string;
     public readonly folderName: string;
     private readonly fileNameCustom: string;
-    private readonly rolloOffsetSunR: number;
-    private readonly rolloOffsetSunS: number;
-    private readonly lampOffsetSunR: number;
-    private readonly lampOffsetSunS: number;
     private readonly folderPath: string;
     private fileBuilder: string[] = [];
     private readonly classNameCustom: string;
@@ -123,12 +118,7 @@ function createRooms(): void {
       this.nameLong = roomDefinition.nameLong;
       this.floor = roomDefinition.floor;
       this.fileName = `${this.floor}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
-      this.rolloOffsetSunR = roomDefinition.rolloOffsetSunRise ?? 0;
-      this.rolloOffsetSunS = roomDefinition.rolloOffsetSunSet ?? 0;
-      this.lampOffsetSunR = roomDefinition.lampOffsetSunRise ?? 0;
-      this.lampOffsetSunS = roomDefinition.lampOffsetSunSet ?? 0;
-
-      this.noRolloOnSunrise = this.rolloOffsetSunR === -1;
+      this.settings = roomDefinition.settings;
       this.folderName = this.fileName.replace('.ts', '');
       this.folderPath = `./src/OwnRooms/${this.folderName}`;
       this.className = `room_${this.folderName}`;
@@ -298,11 +288,17 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
     private createConstructor(groupInitialize: string[]) {
       this.fileBuilder.push(`\n  public constructor() {
-    ${this.className}.RoomSettings = new RoomSettings(${this.className}.InitialRoomSettings);  
-    ${this.className}.RoomSettings.sonnenAufgangRolloDelay = ${this.rolloOffsetSunR};
-    ${this.className}.RoomSettings.sonnenUntergangRolloDelay = ${this.rolloOffsetSunS};
-    ${this.className}.RoomSettings.sonnenAufgangLampenDelay = ${this.lampOffsetSunR};
-    ${this.className}.RoomSettings.sonnenUntergangLampenDelay = ${this.lampOffsetSunS};
+    ${this.className}.RoomSettings = new RoomSettings(${this.className}.InitialRoomSettings);`);
+
+      if (this.settings) {
+        this.fileBuilder.push(`\n//#region room-specific settings`);
+        for (const [key, value] of Object.entries(this.settings)) {
+          this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${value};`);
+        }
+        this.fileBuilder.push(`//#region room-specific settings`);
+      }
+
+      this.fileBuilder.push(`\n 
     super(${this.className}.roomName, ${this.className}.RoomSettings);
     ${this.className}.roomObject = this;
     ${this.className}.initialize();`);
