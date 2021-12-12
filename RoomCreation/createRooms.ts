@@ -52,7 +52,6 @@ interface MotionParams {
 }
 
 interface DeviceModel {
-  room: string;
   deviceType: string;
   indexInRoom: number;
   customName?: string;
@@ -452,8 +451,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public zusatzParams: undefined | FensterParams | MotionParams;
     private defaultName: string;
 
-    public constructor(deviceDefinition: DeviceModel) {
-      this.room = deviceDefinition.room;
+    public constructor(roomkey: string, deviceDefinition: DeviceModel) {
+      this.room = roomkey;
       this.deviceType = deviceDefinition.deviceType;
       const translatedDeviceType: { name: string; deviceClass: string } | undefined = DEVICE_TYPE[this.deviceType];
       if (translatedDeviceType === undefined) {
@@ -593,7 +592,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
     addDevices(roomKey: string, deviceModels: DeviceModel[]): void {
       for (let i = 0; i < deviceModels.length; i++) {
-        const device: Device = new Device(deviceModels[i]);
+        const device: Device = new Device(roomKey, deviceModels[i]);
         if (this.rooms[roomKey] === undefined) {
           throw new Error(`Unknown Room ("${roomKey}") within device: ${device.nameLong}`);
         }
