@@ -3,7 +3,7 @@
         {
             "nameShort": "EGOffice",
             "nameLong": "Ground floor - Office",
-            "etage": 0,
+            "floor": 0,
             "devices": [
                 {
                     "deviceType": "HmIpTaster",
@@ -21,7 +21,7 @@
         {
             "nameShort": "1OGBathroom",
             "nameLong": "First floor - Bathroom",
-            "etage": 1,
+            "floor": 1,
             "rolloOffsetSunRise": 5,
             "rolloOffsetSunSet": 2,
             "lampOffsetSunRise": 2,
