@@ -1,0 +1,49 @@
+{
+    "rooms": [
+        {
+            "nameShort": "EGOffice",
+            "nameLong": "Ground floor - Office",
+            "etage": 0,
+            "devices": [
+                {
+                    "deviceType": "HmIpTaster",
+                    "indexInRoom": 1,
+                    "customName": "Buttons Door One",
+                    "includeInGroup": true
+                },
+                {
+                    "deviceType": "HmIpTaster",
+                    "indexInRoom": 2,
+                    "includeInGroup": true
+                }
+            ]
+        },
+        {
+            "nameShort": "1OGBathroom",
+            "nameLong": "First floor - Bathroom",
+            "etage": 1,
+            "rolloOffsetSunRise": 5,
+            "rolloOffsetSunSet": 2,
+            "lampOffsetSunRise": 2,
+            "lampOffsetSunSet": 15,
+            "devices": [
+                {
+                    "deviceType": "Fenster",
+                    "indexInRoom": 1,
+                    "customName": "Window Bathroom 1st floor",
+                    "windowID": 1,
+                    "includeInGroup": false,
+                    "additionalParams": "noRolloOnSunrise"
+                },
+                {
+                    "deviceType": "HmIpRoll",
+                    "indexInRoom": 1,
+                    "customName": "Shutters Bathroom 1st floor",
+                    "windowID": 1,
+                    "includeInGroup": false,
+                    "additionalParams": ""
+                }
+            ]
+        }
+    ]
+}
