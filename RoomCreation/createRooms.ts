@@ -17,6 +17,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   HmIpWippe: { name: 'Wippschalter', deviceClass: 'HmIP' },
   MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
   Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
+  ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
   ZigbeeAquaraVibra: { name: 'Vibrationssensor', deviceClass: 'Zigbee' },
   ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
   ZigbeeBlitzShp: { name: 'Stecker', deviceClass: 'Zigbee' },
@@ -103,6 +104,7 @@ function createRooms(): void {
       HmIpWippe: 'hoffmation-base/lib',
       Fenster: 'hoffmation-base/lib',
       Sonos: 'hoffmation-base/lib',
+      ZigbeeAquaraMotion: 'hoffmation-base/lib',
       ZigbeeAquaraVibra: 'hoffmation-base/lib',
       ZigbeeAquaraWater: 'hoffmation-base/lib',
       ZigbeeBlitzShp: 'hoffmation-base/lib',
@@ -499,6 +501,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
       switch (this.deviceType) {
         case 'HmIpBewegung':
+        case 'ZigbeeAquaraMotion':
           this.isBeweg = true;
           break;
         case 'HmIpPraezenz':
@@ -582,13 +585,13 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         const roomDefinition: RoomModel = roomDefinitions[i];
         const room = new Room(roomDefinition);
         this.rooms[room.nameLong] = room;
-        
+
         // Add Devices To Room
         this.addDevices(room.nameLong, roomDefinition.devices);
       }
     }
 
-    addDevices(roomKey: string,deviceModels: DeviceModel[]): void {
+    addDevices(roomKey: string, deviceModels: DeviceModel[]): void {
       for (let i = 0; i < deviceModels.length; i++) {
         const device: Device = new Device(deviceModels[i]);
         if (this.rooms[roomKey] === undefined) {
