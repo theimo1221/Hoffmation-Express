@@ -3,10 +3,13 @@ The configurable counterpart to the [Hoffmation-Base](https://github.com/theimo1
 This project is used for configuring rooms and devices to be used with the base library.
 
 ## Installation
-### Requirements
+### Requirements on the running system
 - node.js >= 16 and a matching npm version
   Note for FreeBSD or FreeBSD-based systems users: Make sure, your system or jail is up to date, otherwise [node might not work correctly](https://github.com/nodejs/node/issues/40467#issuecomment-946902776)
 - git (not *needed*, but makes things like updating and following the installation steps simpler)
+
+### Requirements for using the library
+.. should be looked up [here](https://github.com/theimo1221/Hoffmation-Base#base-requirements).
 
 ### Steps to install
 *Note: For security reasons, the project should not be installed and run as root, but as separate user!*
@@ -39,9 +42,12 @@ If these files exist, they won't get overridden if you run `create-rooms` again.
    You can use the mainConfig.json.example as template and overview of which settings currently are available.
 
 ### Configure behavior
-Main behaviour settings of the library can be placed/changed in the `mainConfig.json` as mentioned above. Most settings should be self-explanatory, a few special settings
+Main behaviour settings of the library can be placed/changed in the `mainConfig.json` as mentioned above.
 
-## Environmental notes
+## Running the software
+If you want to run the software and are sure you've set the project up correctly, just run `npm run start`.
+
+### Environmental notes
 This project has been tested on
 - Debian 11
 - FreeBSD 12.2-p10
