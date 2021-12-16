@@ -65,6 +65,9 @@
   "sonos": {
     "active": false
   },
+  "translationSettings": {
+    "language": "en"
+  },
   "weather": {
     "lattitude": "xx.xxxxxx",
     "longitude": "xx.xxxxx",

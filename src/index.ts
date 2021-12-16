@@ -1,5 +1,11 @@
 import express, { Express } from 'express';
-import { deviceConfig, Devices, HoffmationBase, HoffmationInitializationObject, OwnSonosDevice } from 'hoffmation-base/lib';
+import {
+  deviceConfig,
+  Devices,
+  HoffmationBase,
+  HoffmationInitializationObject,
+  OwnSonosDevice,
+} from 'hoffmation-base/lib';
 import devJson from '../config/private/devices.json';
 import config from '../config/private/mainConfig.json';
 import { RoomImportEnforcer } from './OwnRooms/RoomImportEnforcer';
