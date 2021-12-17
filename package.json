@@ -26,8 +26,8 @@
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms"
   },
   "dependencies": {
-    "hoffmation-base": "0.1.30-2",
-    "express": "4.17.1"
+    "hoffmation-base": "0.1.30-3",
+    "express": "4.17.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
