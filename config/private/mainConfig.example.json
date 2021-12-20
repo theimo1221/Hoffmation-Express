@@ -10,6 +10,10 @@
       "minutes": 30
     }
   },
+  "restServer":  {
+    "active": true,
+    "expressPort": 4444
+  },
   "roomDefault": {
     "rolloHeatReduction": true,
     "lampenBeiBewegung": true,
