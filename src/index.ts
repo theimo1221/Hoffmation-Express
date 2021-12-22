@@ -5,6 +5,7 @@ import {
   HoffmationBase,
   HoffmationInitializationObject,
   OwnSonosDevice,
+  SettingsService,
 } from 'hoffmation-base/lib';
 import devJson from '../config/private/devices.json';
 import config from '../config/private/mainConfig.json';
@@ -13,6 +14,7 @@ import { RoomImportEnforcer } from './OwnRooms/RoomImportEnforcer';
 /*** Place your custom imports here ***/
 
 import { room_1_buero } from './OwnRooms/1_buero/1_buero';
+import { RestService } from './rest-service';
 
 /*** Custom Import end ***/
 
@@ -26,10 +28,14 @@ export class Hoffmation {
 
     /*** Custom initialization end ***/
 
-    await HoffmationBase.initializeBeforeIoBroker(new HoffmationInitializationObject(config, this.app));
+    await HoffmationBase.initializeBeforeIoBroker(new HoffmationInitializationObject(config));
     const devices: Devices = new Devices(devJson as { [id: string]: deviceConfig }, new RoomImportEnforcer());
     HoffmationBase.startIoBroker(devices);
     HoffmationBase.initializePostIoBroker(defaultMuellSonos);
+
+    if (SettingsService.settings.restServer?.active) {
+      RestService.initialize(this.app, SettingsService.settings.restServer);
+    }
 
     /*** Place your custom post initialization logic here ***/
 
