@@ -26,8 +26,8 @@
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms"
   },
   "dependencies": {
-    "hoffmation-base": "0.1.30-8",
-    "express": "4.17.2"
+    "express": "4.17.2",
+    "hoffmation-base": "0.1.30-9"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
@@ -38,10 +38,11 @@
     "eslint": "^8.4.1",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "4.0.0",
+    "eslint-plugin-unused-imports": "^2.0.0",
     "postcss": "^8.4.5",
     "postcss-load-config": "^3.1.0",
     "prettier": "^2.5.1",
-    "typescript": "^4.5.4",
-    "ts-node": "^10.4.0"
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.4"
   }
 }
