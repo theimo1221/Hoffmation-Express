@@ -32,6 +32,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
     ZigbeeIlluLedRGBCCT: {name: 'LED Leiste', deviceClass: 'Zigbee'},
     ZigbeeIlluShutter: {name: 'Shutter', deviceClass: 'Zigbee'},
     ZigbeeSMaBiTMagnetContact: {name: 'Magnet Contact', deviceClass: 'Zigbee'},
+    ZigbeeSonoffMotion: {name: 'Motion Sensor', deviceClass: 'Zigbee'},
 };
 
 interface RoomModel {
@@ -111,6 +112,7 @@ function createRooms(): void {
             ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
             ZigbeeIlluShutter: 'hoffmation-base/lib',
             ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
+            ZigbeeSonoffMotion: 'hoffmation-base/lib',
         };
 
         public constructor(roomDefinition: RoomModel) {
@@ -516,6 +518,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             switch (this.deviceType) {
                 case 'HmIpBewegung':
                 case 'ZigbeeAquaraMotion':
+                case 'ZigbeeSonoffMotion':
                     this.isBeweg = true;
                     break;
                 case 'HmIpPraezenz':
