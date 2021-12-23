@@ -6,12 +6,13 @@ export class RestService {
 
   public static initialize(app: Express, config: iRestSettings): void {
     this._app = app;
-    this._app.get('/isAlive', (_req, res) => {
-      res.send(`Hoffmation-Base active ${new Date()}`);
-    });
 
     this._app.listen(config.port, () => {
       ServerLogService.writeLog(LogLevel.Info, `Example app listening at http://localhost:${config.port}`);
+    });
+    
+    this._app.get('/isAlive', (_req, res) => {
+      res.send(`Hoffmation-Base active ${new Date()}`);
     });
 
     this._app.get('/devices', (_req, res) => {

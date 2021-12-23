@@ -357,7 +357,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       [${rollo}],
       ${noRolloOnSunrise ? 'true' : 'false'},
     );`);
-                    initializeBuilder.push(innerBuilder.join(''));
+                    groupInitializeBuilder.push(innerBuilder.join(''));
                     continue;
                 }
                 for (const i in cDevices) {
