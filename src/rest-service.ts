@@ -19,12 +19,12 @@ export class RestService {
       return res.send(API.getDevices());
     });
 
-    this._app.get('/device/:deviceId', (req, res) => {
+    this._app.get('/devices/:deviceId', (req, res) => {
       return res.send(API.getDevice(req.params.deviceId));
     });
 
     this._app.get('/rooms', (_req, res) => {
-      return res.send(API.getRooms());
+      return res.send(Object.fromEntries(API.getRooms()));
     });
 
     this._app.get('/rooms/:roomId', (req, res) => {
