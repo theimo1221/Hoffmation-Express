@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "express": "4.17.2",
-    "hoffmation-base": "0.1.33-1"
+    "hoffmation-base": "0.1.33-2"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
