@@ -28,6 +28,10 @@ export class RestService {
       return res.send(API.getDevice(req.params.deviceId));
     });
 
+    this._app.get('/log', (_req, res) => {
+      return res.send(API.getLog());
+    });
+
     this._app.get('/rooms', (_req, res) => {
       return res.send(Object.fromEntries(API.getRooms()));
     });
