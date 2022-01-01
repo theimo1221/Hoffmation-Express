@@ -16,6 +16,7 @@
   },
   "roomDefault": {
     "rolloHeatReduction": true,
+    "roomIsAlwaysDark": false,
     "lampenBeiBewegung": true,
     "lichtSonnenAufgangAus": true,
     "sonnenUntergangRollos": true,
