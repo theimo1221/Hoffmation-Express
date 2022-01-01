@@ -20,6 +20,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
     HmIpWippe: {name: 'Wippschalter', deviceClass: 'HmIP'},
     MieleWasch: {name: 'Waschmaschine', deviceClass: 'Miele'},
     Sonos: {name: 'Sonos', deviceClass: 'Sonos'},
+    ZigbeeAqaraMagnetContact: {name: 'Magnet Contact', deviceClass: 'Zigbee'},
     ZigbeeAquaraMotion: {name: 'Bewegungsmelder', deviceClass: 'Zigbee'},
     ZigbeeAquaraVibra: {name: 'Vibrationssensor', deviceClass: 'Zigbee'},
     ZigbeeAquaraWater: {name: 'Wassermelder', deviceClass: 'Zigbee'},
@@ -101,6 +102,7 @@ function createRooms(): void {
             HmIpWippe: 'hoffmation-base/lib',
             Fenster: 'hoffmation-base/lib',
             Sonos: 'hoffmation-base/lib',
+            ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
             ZigbeeAquaraMotion: 'hoffmation-base/lib',
             ZigbeeAquaraVibra: 'hoffmation-base/lib',
             ZigbeeAquaraWater: 'hoffmation-base/lib',
@@ -333,6 +335,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
                     const innerBuilder: string[] = [];
                     const griffe: string[] = [];
                     const vibration: string[] = [];
+                    const magnet: string[] = [];
                     let rollo: string = '';
                     let fensterName: string = '';
                     let noRolloOnSunrise: boolean = false;
@@ -351,6 +354,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
                             griffe.push(`${this.className}.${d.nameShort}.id`);
                         } else if (d.isVibra) {
                             vibration.push(`${this.className}.${d.nameShort}.id`);
+                        } else if (d.isMagnet) {
+                            magnet.push(`${this.className}.${d.nameShort}.id`);
                         }
                     }
                     if (fensterName === '') {
@@ -359,6 +364,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
                     innerBuilder.push(`\n      [${griffe.join(', ')}],
       [${vibration.join(', ')}],
       [${rollo}],
+      [${magnet.join(', ')}],
       ${noRolloOnSunrise ? 'true' : 'false'},
     );`);
                     groupInitializeBuilder.push(innerBuilder.join(''));
@@ -457,6 +463,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         public isRollo: boolean = false;
         public isGriff: boolean = false;
         public isBeweg: boolean = false;
+        public isMagnet: boolean = false;
         public isVibra: boolean = false;
         public isPraesenz: boolean = false;
         public isSmoke: boolean = false;
@@ -543,6 +550,10 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
                     break;
                 case 'ZigbeeIkeaSteckdose':
                     this.isStecker = true;
+                    break;
+                case 'ZigbeeAqaraMagnetContact':
+                case 'ZigbeeSMaBiTMagnetContact':
+                    this.isMagnet = true;
                     break;
                 case 'ZigbeeAquaraVibra':
                     this.isVibra = true;
