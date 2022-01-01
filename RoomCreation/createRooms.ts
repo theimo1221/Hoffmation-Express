@@ -6,6 +6,7 @@ const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
     Fenster: {name: 'Fenster', deviceClass: 'Fenster'},
+    HmIpAccessPoint: {name: 'AccessPoint', deviceClass: 'HmIP'},
     HmIpBewegung: {name: 'Bewegungsmelder', deviceClass: 'HmIP'},
     HmIpGriff: {name: 'Griff', deviceClass: 'HmIP'},
     HmIpHeizgruppe: {name: 'Heizgruppe', deviceClass: 'HmIP'},
@@ -86,6 +87,7 @@ function createRooms(): void {
         private readonly classNameCustom: string;
 
         public static includesDict: { [deviceType: string]: string } = {
+            HmIpAccessPoint: 'hoffmation-base/lib',
             HmIpBewegung: 'hoffmation-base/lib',
             HmIpGriff: 'hoffmation-base/lib',
             HmIpHeizgruppe: 'hoffmation-base/lib',
