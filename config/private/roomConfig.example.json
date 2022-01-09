@@ -45,6 +45,17 @@
                     "windowID": 1,
                     "includeInGroup": false,
                     "additionalParams": ""
+                },
+                {
+                    "deviceType": "ZigbeeIlluDimmer",
+                    "indexInRoom": 1,
+                    "customName": "Bathroom main light",
+                    "includeInGroup": true,
+                    "settings":
+                    {
+                        "nightBrightness": 100,
+                        "dayBrightness": 50
+                    }
                 }
             ]
         }
