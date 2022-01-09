@@ -238,6 +238,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
       const initializeBuilder: string[] = [];
       const groupInitializeBuilder: string[] = [];
+      const clusterInitializerBuilder: string[] = [];
       const bottomDeviceBuilder: string[] = [];
       variablesBuilder.push(`  public static roomName = '${this.nameShort}';
   public static RoomSettings: RoomSettings;
@@ -263,6 +264,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
+            clusterInitializerBuilder.push(`this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`);
             bottomDeviceBuilder.push(
               `ioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
             );
@@ -302,7 +304,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       this.fileBuilder.push(getterBuilder.join(`\n`));
       this.fileBuilder.push(setIDBuilder.join(`\n`));
       this.fileBuilder.push(initializeBuilder.join('\n'));
-      this.createConstructor(groupInitializeBuilder);
+      this.createConstructor(groupInitializeBuilder, clusterInitializerBuilder);
       this.fileBuilder.push(`}`);
 
       if (this.hasIoBrokerDevices) {
@@ -314,7 +316,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       );
     }
 
-    private createConstructor(groupInitialize: string[]) {
+    private createConstructor(groupInitialize: string[], clusterInitialize: string[]) {
       this.fileBuilder.push(`\n  public constructor() {
     ${this.className}.RoomSettings = new RoomSettings(${this.className}.InitialRoomSettings);`);
 
@@ -329,7 +331,9 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
       this.fileBuilder.push(`\n 
     super(${this.className}.roomName, ${this.className}.RoomSettings, groups);
-    ${this.className}.roomObject = this;
+    ${this.className}.roomObject = this;`);
+      this.fileBuilder.push(clusterInitialize.join('\n'));
+      this.fileBuilder.push(`
     ${this.className}.initialize();`);
 
       this.fileBuilder.push(`    this.initializeBase();
