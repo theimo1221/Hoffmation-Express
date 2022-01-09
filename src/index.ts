@@ -13,7 +13,6 @@ import { RoomImportEnforcer } from './OwnRooms/RoomImportEnforcer';
 
 /*** Place your custom imports here ***/
 
-import { room_1_buero } from './OwnRooms/1_buero/1_buero';
 import { RestService } from './rest-service';
 
 /*** Custom Import end ***/
@@ -24,7 +23,7 @@ export class Hoffmation {
   public static async start(): Promise<void> {
     /*** Place your custom initialization Code here ***/
 
-    const defaultMuellSonos: OwnSonosDevice | undefined = room_1_buero.SNBüro;
+    const defaultMuellSonos: OwnSonosDevice | undefined = undefined;
 
     /*** Custom initialization end ***/
 

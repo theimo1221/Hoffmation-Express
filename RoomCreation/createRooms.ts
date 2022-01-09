@@ -1,41 +1,42 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
-import {iRoomDefaultSettings} from 'hoffmation-base/lib';
+import { ActuatorSettings, iRoomDefaultSettings } from 'hoffmation-base/lib';
+import { DeviceSettings } from "../../Hoffmation-Base/src/models/deviceSettings";
 
 const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
-  Fenster: {name: 'Fenster', deviceClass: 'Fenster'},
-  HmIpAccessPoint: {name: 'AccessPoint', deviceClass: 'HmIP'},
-  HmIpBewegung: {name: 'Bewegungsmelder', deviceClass: 'HmIP'},
-  HmIpGriff: {name: 'Griff', deviceClass: 'HmIP'},
-  HmIpHeizgruppe: {name: 'Heizgruppe', deviceClass: 'HmIP'},
-  HmIpHeizung: {name: 'Heizung', deviceClass: 'HmIP'},
-  HmIpLampe: {name: 'Lampe', deviceClass: 'HmIP'},
-  HmIpPraezenz: {name: 'Praesenzmelder', deviceClass: 'HmIP'},
-  HmIpRoll: {name: 'Rollo', deviceClass: 'HmIP'},
-  HmIpTaster: {name: 'Taster', deviceClass: 'HmIP'},
-  HmIpTherm: {name: 'Thermostat', deviceClass: 'HmIP'},
-  HmIpTuer: {name: 'Türkontakt', deviceClass: 'HmIP'},
-  HmIpWippe: {name: 'Wippschalter', deviceClass: 'HmIP'},
-  MieleWasch: {name: 'Waschmaschine', deviceClass: 'Miele'},
-  Sonos: {name: 'Sonos', deviceClass: 'Sonos'},
-  ZigbeeAqaraMagnetContact: {name: 'Magnet Contact', deviceClass: 'Zigbee'},
-  ZigbeeAquaraMotion: {name: 'Bewegungsmelder', deviceClass: 'Zigbee'},
-  ZigbeeAquaraVibra: {name: 'Vibrationssensor', deviceClass: 'Zigbee'},
-  ZigbeeAquaraWater: {name: 'Wassermelder', deviceClass: 'Zigbee'},
-  ZigbeeBlitzShp: {name: 'Stecker', deviceClass: 'Zigbee'},
-  ZigbeeHeimanSmoke: {name: 'Rauchmelder', deviceClass: 'Zigbee'},
-  ZigbeeIkeaFernbedienung: {name: 'Fernbedienung', deviceClass: 'Zigbee'},
-  ZigbeeIkeaSteckdose: {name: 'Stecker', deviceClass: 'Zigbee'},
-  ZigbeeIlluActuator: {name: 'Aktuator', deviceClass: 'Zigbee'},
-  ZigbeeIlluDimmer: {name: 'Dimmer', deviceClass: 'Zigbee'},
-  ZigbeeIlluLampe: {name: 'Lampe', deviceClass: 'Zigbee'},
-  ZigbeeIlluLedRGBCCT: {name: 'LED Leiste', deviceClass: 'Zigbee'},
-  ZigbeeIlluShutter: {name: 'Shutter', deviceClass: 'Zigbee'},
-  ZigbeeSMaBiTMagnetContact: {name: 'Magnet Contact', deviceClass: 'Zigbee'},
-  ZigbeeSonoffMotion: {name: 'Motion Sensor', deviceClass: 'Zigbee'},
-  ZigbeeSonoffTemp: {name: 'Temperatur Sensor', deviceClass: 'Zigbee'},
+  Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
+  HmIpAccessPoint: { name: 'AccessPoint', deviceClass: 'HmIP' },
+  HmIpBewegung: { name: 'Bewegungsmelder', deviceClass: 'HmIP' },
+  HmIpGriff: { name: 'Griff', deviceClass: 'HmIP' },
+  HmIpHeizgruppe: { name: 'Heizgruppe', deviceClass: 'HmIP' },
+  HmIpHeizung: { name: 'Heizung', deviceClass: 'HmIP' },
+  HmIpLampe: { name: 'Lampe', deviceClass: 'HmIP' },
+  HmIpPraezenz: { name: 'Praesenzmelder', deviceClass: 'HmIP' },
+  HmIpRoll: { name: 'Rollo', deviceClass: 'HmIP' },
+  HmIpTaster: { name: 'Taster', deviceClass: 'HmIP' },
+  HmIpTherm: { name: 'Thermostat', deviceClass: 'HmIP' },
+  HmIpTuer: { name: 'Türkontakt', deviceClass: 'HmIP' },
+  HmIpWippe: { name: 'Wippschalter', deviceClass: 'HmIP' },
+  MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
+  Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
+  ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
+  ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
+  ZigbeeAquaraVibra: { name: 'Vibrationssensor', deviceClass: 'Zigbee' },
+  ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
+  ZigbeeBlitzShp: { name: 'Stecker', deviceClass: 'Zigbee' },
+  ZigbeeHeimanSmoke: { name: 'Rauchmelder', deviceClass: 'Zigbee' },
+  ZigbeeIkeaFernbedienung: { name: 'Fernbedienung', deviceClass: 'Zigbee' },
+  ZigbeeIkeaSteckdose: { name: 'Stecker', deviceClass: 'Zigbee' },
+  ZigbeeIlluActuator: { name: 'Aktuator', deviceClass: 'Zigbee' },
+  ZigbeeIlluDimmer: { name: 'Dimmer', deviceClass: 'Zigbee' },
+  ZigbeeIlluLampe: { name: 'Lampe', deviceClass: 'Zigbee' },
+  ZigbeeIlluLedRGBCCT: { name: 'LED Leiste', deviceClass: 'Zigbee' },
+  ZigbeeIlluShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
+  ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
+  ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
 };
 
 interface RoomModel {
@@ -61,6 +62,7 @@ interface DeviceModel {
   windowID?: number;
   includeInGroup: boolean;
   additionalParams?: FensterParams | MotionParams;
+  settings?: Partial<ActuatorSettings>;
 }
 
 interface RoomConfigModel {
@@ -169,7 +171,7 @@ function createRooms(): void {
 
     public createFile(): void {
       if (!fs.existsSync(this.folderPath)) {
-        fs.mkdirSync(this.folderPath, {recursive: true});
+        fs.mkdirSync(this.folderPath, { recursive: true });
       }
 
       fs.writeFileSync(`${this.folderPath}/${this.fileName}`, this.fileContent);
@@ -232,6 +234,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       const variablesBuilder: string[] = [];
       const getterBuilder: string[] = [];
       const setIDBuilder: string[] = [];
+      const defaultSettingBuilder: string[] = [];
 
       const initializeBuilder: string[] = [];
       const groupInitializeBuilder: string[] = [];
@@ -280,10 +283,23 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             setIDBuilder.push(`    return ${this.className}.roomObject;`);
             setIDBuilder.push(`  }`);
           }
+
+          if (device.settings) {
+            for (const [key, value] of Object.entries(device.settings)) {
+              defaultSettingBuilder.push(`this.${device.nameShort}.settings.${key} = ${value};`);
+            }
+          }
         }
       }
-      initializeBuilder.push(`    ${this.classNameCustom}.postInitialize();
-  }`);
+
+      if (defaultSettingBuilder.length > 0) {
+        initializeBuilder.push(`\n//#region device-specific settings`);
+        initializeBuilder.push(defaultSettingBuilder.join(`\n`));
+        initializeBuilder.push(`//#endregion device-specific settings\n`);
+      }
+
+      initializeBuilder.push(`    ${this.classNameCustom}.postInitialize();  }`);
+
       this.fileBuilder.push(variablesBuilder.join(`\n  `));
       this.fileBuilder.push(getterBuilder.join(`\n`));
       this.fileBuilder.push(setIDBuilder.join(`\n`));
@@ -426,15 +442,25 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         }
       }
 
-      groupInitializeBuilder.push(`    const groups: Map<GroupType, BaseGroup> = new Map<GroupType, BaseGroup>();`)
+      groupInitializeBuilder.push(`    const groups: Map<GroupType, BaseGroup> = new Map<GroupType, BaseGroup>();`);
       if (fensterGroupList.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Window, new FensterGroup(${this.className}.roomName, [${fensterGroupList.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Window, new FensterGroup(${this.className}.roomName, [${fensterGroupList.join(
+            ', ',
+          )}]));`,
+        );
       }
       if (prasenz.length > 0 || beweg.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${prasenz.join(', ')}], [${beweg.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${prasenz.join(
+            ', ',
+          )}], [${beweg.join(', ')}]));`,
+        );
       }
       if (taster.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Buttons, new TasterGroup(${this.className}.roomName, [${taster.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Buttons, new TasterGroup(${this.className}.roomName, [${taster.join(', ')}]));`,
+        );
       }
       if (lampe.length > 0 || stecker.length > 0 || led.length > 0) {
         groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LampenGroup(
@@ -442,25 +468,29 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       [${lampe.join(', ')}],
       [${stecker.join(', ')}],
       [${led.join(', ')}],
-    ));`
-        );
+    ));`);
       }
       if (smoke.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Smoke, new SmokeGroup(${this.className}.roomName, [${smoke.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Smoke, new SmokeGroup(${this.className}.roomName, [${smoke.join(', ')}]));`,
+        );
       }
       if (water.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Water, new WaterGroup(${this.className}.roomName, [${water.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Water, new WaterGroup(${this.className}.roomName, [${water.join(', ')}]));`,
+        );
       }
       if (heater.length > 0 || humidity.length > 0 || temperatur.length > 0) {
         groupInitializeBuilder.push(`    groups.set(GroupType.Heating, new HeatGroup(${this.className}.roomName, 
         [${heater.join(', ')}],
         [${temperatur.join(', ')}],
         [${humidity.join(', ')}],
-      ));`
-        );
+      ));`);
       }
       if (sonos.length > 0) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Speaker, new SonosGroup(${this.className}.roomName, [${sonos.join(', ')}]));`);
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Speaker, new SonosGroup(${this.className}.roomName, [${sonos.join(', ')}]));`,
+        );
       }
     }
   }
@@ -499,6 +529,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public includeInGroup: boolean;
     public groupN: string[] = [];
     public zusatzParams: undefined | FensterParams | MotionParams;
+    public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
     public constructor(roomkey: string, deviceDefinition: DeviceModel) {
@@ -522,6 +553,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
       this.zusatzParams = deviceDefinition.additionalParams;
+      this.settings = deviceDefinition.settings;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;

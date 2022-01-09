@@ -66,6 +66,9 @@ The following room-specific settings can currently be set:
 | sonnenAufgangLampenDelay    | Offset in minutes for still turning on lamps if movements after sunrise were recognized     | number    |
 | movementResetTimer          | Time in seconds after which detected movements are reset (and assumed to not exist anymore) | number    |
 | lightIfNoWindows            | Turn lights on during the day if no windows are configured for this room                    | boolean   |
+  
+Each setting you can see in `iRoomDefaultSettings`, you can specify in the JSON file before you create your rooms.  
+The same is the case for device specific settings, although there are only settings inheriting from `DeviceSettings` supported.
 
 ## Running the software
 If you want to run the software and are sure you've set the project up correctly, just run `npm run start`.
