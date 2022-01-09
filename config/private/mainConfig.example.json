@@ -10,6 +10,10 @@
       "minutes": 30
     }
   },
+  "logSettings": {
+    "logLevel": 4,
+    "useTimestamp": true
+  },
   "restServer":  {
     "active": true,
     "expressPort": 4444
