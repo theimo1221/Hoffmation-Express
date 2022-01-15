@@ -22,6 +22,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
   Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
   ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
+  ZigbeeAqaraOpple3Switch: { name: 'Switch6Buttons', deviceClass: 'Zigbee' },
   ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
   ZigbeeAquaraVibra: { name: 'Vibrationssensor', deviceClass: 'Zigbee' },
   ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
@@ -106,6 +107,7 @@ function createRooms(): void {
       Fenster: 'hoffmation-base/lib',
       Sonos: 'hoffmation-base/lib',
       ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
+      ZigbeeAqaraOpple3Switch: 'hoffmation-base/lib',
       ZigbeeAquaraMotion: 'hoffmation-base/lib',
       ZigbeeAquaraVibra: 'hoffmation-base/lib',
       ZigbeeAquaraWater: 'hoffmation-base/lib',
@@ -590,6 +592,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           this.isPraesenz = true;
           break;
         case 'HmIpTaster':
+        case 'ZigbeeAqaraOpple3Switch':
           this.isTaster = true;
           break;
         case 'HmIpRoll':
