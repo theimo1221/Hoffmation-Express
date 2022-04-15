@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
 import { ActuatorSettings, iRoomDefaultSettings } from 'hoffmation-base/lib';
-import { DeviceSettings } from "../../Hoffmation-Base/src/models/deviceSettings";
+import { DeviceSettings } from '../../Hoffmation-Base/src/models/deviceSettings';
 
 const fs = require('fs');
 
@@ -38,6 +38,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
+  ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
 };
 
 interface RoomModel {
@@ -123,6 +124,7 @@ function createRooms(): void {
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
+      ZigbeeUbisysShutter: 'hoffmation-base/lib',
     };
 
     public constructor(roomDefinition: RoomModel) {
@@ -156,7 +158,7 @@ function createRooms(): void {
       if (device.groupN.length <= 0) {
         return;
       }
-      for (let gN of device.groupN) {
+      for (const gN of device.groupN) {
         if (this.groups[gN] === undefined) {
           this.groups[gN] = [];
         }
@@ -266,7 +268,9 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
-            clusterInitializerBuilder.push(`this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`);
+            clusterInitializerBuilder.push(
+              `this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`,
+            );
             bottomDeviceBuilder.push(
               `ioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
             );
@@ -597,6 +601,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'HmIpRoll':
         case 'ZigbeeIlluShutter':
+        case 'ZigbeeUbisysShutter':
           this.isRollo = true;
           break;
         case 'HmIpGriff':
