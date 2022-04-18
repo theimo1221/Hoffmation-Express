@@ -53,17 +53,13 @@ interface FensterParams {
   noRolloOnSunrise?: boolean;
 }
 
-interface MotionParams {
-  nightAlarmExclude?: boolean;
-}
-
 interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
-  additionalParams?: FensterParams | MotionParams;
+  additionalParams?: FensterParams;
   settings?: Partial<ActuatorSettings>;
 }
 
@@ -409,18 +405,12 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           const completeNameWithId = `${completeName}.id`;
           if (d.isBeweg) {
             beweg.push(completeNameWithId);
-            if (d.excludeFromNightAlarm) {
-              initializeBuilder.push(`    ${completeName}.excludeFromNightAlarm = true;`);
-            }
           } else if (d.isLED) {
             led.push(completeNameWithId);
           } else if (d.isStecker) {
             stecker.push(completeNameWithId);
           } else if (d.isPraesenz) {
             prasenz.push(completeNameWithId);
-            if (d.excludeFromNightAlarm) {
-              initializeBuilder.push(`    ${completeName}.excludeFromNightAlarm = true;`);
-            }
           } else if (d.isLampeOrDimmer) {
             lampe.push(completeNameWithId);
           } else if (d.isTaster) {
@@ -530,11 +520,10 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
     public fensterNoRolloOnSunrise?: boolean = false;
-    public excludeFromNightAlarm: boolean = false;
     public windowID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
-    public zusatzParams: undefined | FensterParams | MotionParams;
+    public zusatzParams: undefined | FensterParams;
     public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
@@ -569,9 +558,6 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'HmIP':
           this.isIoBrokerDevice = true;
-          if (this.zusatzParams !== undefined && (this.zusatzParams as MotionParams).nightAlarmExclude) {
-            this.excludeFromNightAlarm = true;
-          }
           break;
         case 'Fenster':
           this.isFenster = true;
