@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
 import { ActuatorSettings, iRoomDefaultSettings } from 'hoffmation-base/lib';
-import { DeviceSettings } from "../../Hoffmation-Base/src/models/deviceSettings";
+import { DeviceSettings } from '../../Hoffmation-Base/src/models/deviceSettings';
 
 const fs = require('fs');
 
@@ -38,6 +38,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
+  ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
 };
 
 interface RoomModel {
@@ -52,17 +53,13 @@ interface FensterParams {
   noRolloOnSunrise?: boolean;
 }
 
-interface MotionParams {
-  nightAlarmExclude?: boolean;
-}
-
 interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
-  additionalParams?: FensterParams | MotionParams;
+  additionalParams?: FensterParams;
   settings?: Partial<ActuatorSettings>;
 }
 
@@ -123,6 +120,7 @@ function createRooms(): void {
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
+      ZigbeeUbisysShutter: 'hoffmation-base/lib',
     };
 
     public constructor(roomDefinition: RoomModel) {
@@ -156,7 +154,7 @@ function createRooms(): void {
       if (device.groupN.length <= 0) {
         return;
       }
-      for (let gN of device.groupN) {
+      for (const gN of device.groupN) {
         if (this.groups[gN] === undefined) {
           this.groups[gN] = [];
         }
@@ -266,7 +264,9 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
-            clusterInitializerBuilder.push(`this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`);
+            clusterInitializerBuilder.push(
+              `this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`,
+            );
             bottomDeviceBuilder.push(
               `ioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
             );
@@ -405,18 +405,12 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           const completeNameWithId = `${completeName}.id`;
           if (d.isBeweg) {
             beweg.push(completeNameWithId);
-            if (d.excludeFromNightAlarm) {
-              initializeBuilder.push(`    ${completeName}.excludeFromNightAlarm = true;`);
-            }
           } else if (d.isLED) {
             led.push(completeNameWithId);
           } else if (d.isStecker) {
             stecker.push(completeNameWithId);
           } else if (d.isPraesenz) {
             prasenz.push(completeNameWithId);
-            if (d.excludeFromNightAlarm) {
-              initializeBuilder.push(`    ${completeName}.excludeFromNightAlarm = true;`);
-            }
           } else if (d.isLampeOrDimmer) {
             lampe.push(completeNameWithId);
           } else if (d.isTaster) {
@@ -526,11 +520,10 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
     public fensterNoRolloOnSunrise?: boolean = false;
-    public excludeFromNightAlarm: boolean = false;
     public windowID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
-    public zusatzParams: undefined | FensterParams | MotionParams;
+    public zusatzParams: undefined | FensterParams;
     public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
@@ -565,9 +558,6 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'HmIP':
           this.isIoBrokerDevice = true;
-          if (this.zusatzParams !== undefined && (this.zusatzParams as MotionParams).nightAlarmExclude) {
-            this.excludeFromNightAlarm = true;
-          }
           break;
         case 'Fenster':
           this.isFenster = true;
@@ -597,6 +587,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'HmIpRoll':
         case 'ZigbeeIlluShutter':
+        case 'ZigbeeUbisysShutter':
           this.isRollo = true;
           break;
         case 'HmIpGriff':
