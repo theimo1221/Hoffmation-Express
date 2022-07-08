@@ -6,6 +6,7 @@ import { DeviceSettings } from '../../Hoffmation-Base/src/models/deviceSettings'
 const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
+  Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
   HmIpAccessPoint: { name: 'AccessPoint', deviceClass: 'HmIP' },
   HmIpBewegung: { name: 'Bewegungsmelder', deviceClass: 'HmIP' },
@@ -56,6 +57,7 @@ interface FensterParams {
 interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
+  ipAddress?: string;
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
@@ -89,6 +91,7 @@ function createRooms(): void {
     private readonly classNameCustom: string;
 
     public static includesDict: { [deviceType: string]: string } = {
+      Daikin: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
       HmIpBewegung: 'hoffmation-base/lib',
       HmIpGriff: 'hoffmation-base/lib',
@@ -214,16 +217,22 @@ import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
 import { HeatGroup } from 'hoffmation-base/lib';
+import { AcGroup } from 'hoffmation-base/lib';
 import { SonosGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
-        if (type !== 'Sonos') {
-          this.fileBuilder.push(`import { ${type} } from '${Room.includesDict[type]}';`);
-        } else {
+        if (type === 'Sonos') {
           this.fileBuilder.push(
             `import { OwnSonosDevice } from '${Room.includesDict[type]}';
 import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'Daikin') {
+          this.fileBuilder.push(
+            `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
+import { OwnDaikinDevices } from 'hoffmation-base/lib';`,
+          );
+        } else {
+          this.fileBuilder.push(`import { ${type} } from '${Room.includesDict[type]}';`);
         }
       }
       this.fileBuilder.push(`import { ${this.classNameCustom} } from './${this.fileNameCustom.replace('.ts', '')}';`);
@@ -259,8 +268,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         const cDevices: Device[] = this.devices[type];
         for (const index in cDevices) {
           const device: Device = cDevices[index];
-          const noGetter: boolean = device.isSonos || device.isFenster;
-          const noID: boolean = device.isSonos || device.isFenster;
+          const noGetter: boolean = device.isSonos || device.isFenster || device.isDaikin;
+          const noID: boolean = device.isSonos || device.isFenster || device.isDaikin;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -277,6 +286,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             }
           } else if (device.isSonos) {
             bottomDeviceBuilder.push(`OwnSonosDevices.addDevice(${this.className}.SN${device.nameShort});`);
+          } else if (device.isDaikin) {
+            bottomDeviceBuilder.push(`OwnDaikinDevices.addDevice(${this.className}.Daikin${device.nameShort});`);
           }
           !noGetter && getterBuilder.push(`  }`);
           if (!noID) {
@@ -353,6 +364,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
       const led: string[] = [];
       const stecker: string[] = [];
       const sonos: string[] = [];
+      const daikin: string[] = [];
       const smoke: string[] = [];
       const water: string[] = [];
       const heater: string[] = [];
@@ -419,6 +431,11 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             sonos.push(`${this.className}.SN${d.nameShort}.name`);
             variablesBuilder.push(
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
+            );
+          } else if (d.isDaikin) {
+            daikin.push(`${this.className}.Daikin${d.nameShort}.name`);
+            variablesBuilder.push(
+              `public static Daikin${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isSmoke) {
             smoke.push(completeNameWithId);
@@ -488,11 +505,17 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           `    groups.set(GroupType.Speaker, new SonosGroup(${this.className}.roomName, [${sonos.join(', ')}]));`,
         );
       }
+      if (daikin.length > 0) {
+        groupInitializeBuilder.push(
+          `    groups.set(GroupType.Ac, new AcGroup(${this.className}.roomName, [${daikin.join(', ')}]));`,
+        );
+      }
     }
   }
 
   class Device {
     public idName: string;
+    public ipAddress: string = '';
     public setIdName: string;
     public room: string;
     public customName: string | undefined;
@@ -504,6 +527,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
     public isIoBrokerDevice: boolean = false;
     public isFenster: boolean = false;
     public isSonos: boolean = false;
+    public isDaikin: boolean = false;
     public isLampeOrDimmer: boolean = false;
     public isStecker: boolean = false;
     public isLED: boolean = false;
@@ -552,6 +576,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
+      this.ipAddress = deviceDefinition.ipAddress ?? '';
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
@@ -567,6 +592,9 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           break;
         case 'Sonos':
           this.isSonos = true;
+          break;
+        case 'Daikin':
+          this.isDaikin = true;
           break;
         default:
           throw new Error(`${this.deviceClass} is not yet supported for ${this.nameLong}`);
@@ -646,6 +674,9 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         }
         if (this.isSonos) {
           this.groupN.push(`Sonos`);
+        }
+        if (this.isDaikin) {
+          this.groupN.push(`Daikin`);
         }
         if (this.isTaster) {
           this.groupN.push(`Taster`);
