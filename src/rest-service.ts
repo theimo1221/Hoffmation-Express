@@ -22,7 +22,7 @@ export class RestService {
   }
 
   private static _app: Express;
-  private static _initialized: boolean;
+  private static _initialized: boolean = false;
   private static _queuedCustomHandler: CustomHandler[] = new Array<CustomHandler>();
 
   public static initialize(app: Express, config: iRestSettings): void {
