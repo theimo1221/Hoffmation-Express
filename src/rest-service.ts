@@ -1,12 +1,29 @@
 import cors from 'cors';
 import { Express } from 'express';
 import { API, iRestSettings, LogLevel, ServerLogService } from 'hoffmation-base';
+import { RequestHandler } from 'express-serve-static-core';
+
+interface CustomHandler {
+  path: string;
+  handler: RequestHandler[];
+}
 
 export class RestService {
+  public static addCustomEndpoint(path: string, ...handler: RequestHandler[]) {
+    if (this._initialized) {
+      this.app.get(path, handler);
+      return;
+    }
+    this._queuedCustomHandler.push({ path, handler });
+  }
+
   public static get app(): Express {
     return this._app;
   }
+
   private static _app: Express;
+  private static _initialized: boolean;
+  private static _queuedCustomHandler: CustomHandler[] = new Array<CustomHandler>();
 
   public static initialize(app: Express, config: iRestSettings): void {
     this._app = app;
@@ -58,5 +75,9 @@ export class RestService {
     this._app.get('/lamps/:deviceId/:state', (req, res) => {
       return res.send(API.setLight(req.params.deviceId, req.params.state === 'true'));
     });
+    this._initialized = true;
+    for (const handler of this._queuedCustomHandler) {
+      this._app.get(handler.path, handler.handler);
+    }
   }
 }
