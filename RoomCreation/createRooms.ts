@@ -217,7 +217,6 @@ import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
 import { HeatGroup } from 'hoffmation-base/lib';
-import { AcGroup } from 'hoffmation-base/lib';
 import { SonosGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
@@ -229,7 +228,7 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
         } else if (type === 'Daikin') {
           this.fileBuilder.push(
             `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
-import { OwnDaikinDevices } from 'hoffmation-base/lib';`,
+import { OwnAcDevices } from 'hoffmation-base/lib';`,
           );
         } else {
           this.fileBuilder.push(`import { ${type} } from '${Room.includesDict[type]}';`);
@@ -287,7 +286,7 @@ import { OwnDaikinDevices } from 'hoffmation-base/lib';`,
           } else if (device.isSonos) {
             bottomDeviceBuilder.push(`OwnSonosDevices.addDevice(${this.className}.SN${device.nameShort});`);
           } else if (device.isDaikin) {
-            bottomDeviceBuilder.push(`OwnDaikinDevices.addDevice(${this.className}.Daikin${device.nameShort});`);
+            bottomDeviceBuilder.push(`OwnAcDevices.addDevice(${this.className}.Daikin${device.nameShort});`);
           }
           !noGetter && getterBuilder.push(`  }`);
           if (!noID) {
@@ -498,16 +497,12 @@ import { OwnDaikinDevices } from 'hoffmation-base/lib';`,
         [${heater.join(', ')}],
         [${temperatur.join(', ')}],
         [${humidity.join(', ')}],
+        [${daikin.join(', ')}],
       ));`);
       }
       if (sonos.length > 0) {
         groupInitializeBuilder.push(
           `    groups.set(GroupType.Speaker, new SonosGroup(${this.className}.roomName, [${sonos.join(', ')}]));`,
-        );
-      }
-      if (daikin.length > 0) {
-        groupInitializeBuilder.push(
-          `    groups.set(GroupType.Ac, new AcGroup(${this.className}.roomName, [${daikin.join(', ')}]));`,
         );
       }
     }
