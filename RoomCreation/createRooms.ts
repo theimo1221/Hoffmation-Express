@@ -7,6 +7,7 @@ const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
+  WledDevice: { name: 'Wled', deviceClass: 'Wled' },
   Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
   HmIpAccessPoint: { name: 'AccessPoint', deviceClass: 'HmIP' },
   HmIpBewegung: { name: 'Bewegungsmelder', deviceClass: 'HmIP' },
@@ -91,6 +92,7 @@ function createRooms(): void {
     private readonly classNameCustom: string;
 
     public static includesDict: { [deviceType: string]: string } = {
+      WledDevice: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
       HmIpBewegung: 'hoffmation-base/lib',
@@ -361,6 +363,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const lampe: string[] = [];
       const taster: string[] = [];
       const led: string[] = [];
+      const wled: string[] = [];
       const stecker: string[] = [];
       const sonos: string[] = [];
       const daikin: string[] = [];
@@ -418,6 +421,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             beweg.push(completeNameWithId);
           } else if (d.isLED) {
             led.push(completeNameWithId);
+          } else if (d.isWled) {
+            wled.push(completeNameWithId);
           } else if (d.isStecker) {
             stecker.push(completeNameWithId);
           } else if (d.isPraesenz) {
@@ -474,12 +479,13 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           `    groups.set(GroupType.Buttons, new TasterGroup(${this.className}.roomName, [${taster.join(', ')}]));`,
         );
       }
-      if (lampe.length > 0 || stecker.length > 0 || led.length > 0) {
+      if (lampe.length > 0 || stecker.length > 0 || led.length > 0 || wled.length) {
         groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LampenGroup(
       ${this.className}.roomName,
       [${lampe.join(', ')}],
       [${stecker.join(', ')}],
       [${led.join(', ')}],
+      [${wled.join(', ')}],
     ));`);
       }
       if (smoke.length > 0) {
@@ -523,6 +529,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public isFenster: boolean = false;
     public isSonos: boolean = false;
     public isDaikin: boolean = false;
+    public isWled: boolean = false;
     public isLampeOrDimmer: boolean = false;
     public isStecker: boolean = false;
     public isLED: boolean = false;
@@ -590,6 +597,10 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           break;
         case 'Daikin':
           this.isDaikin = true;
+          break;
+        case 'Wled':
+          this.isWled = true;
+          this.isIoBrokerDevice = true;
           break;
         default:
           throw new Error(`${this.deviceClass} is not yet supported for ${this.nameLong}`);
@@ -672,6 +683,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         }
         if (this.isDaikin) {
           this.groupN.push(`Daikin`);
+        }
+        if (this.isWled) {
+          this.groupN.push(`Wled`);
         }
         if (this.isTaster) {
           this.groupN.push(`Taster`);
