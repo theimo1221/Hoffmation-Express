@@ -437,7 +437,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
           } else if (d.isDaikin) {
-            daikin.push(`${this.className}.Daikin${d.nameShort}.name`);
+            daikin.push(`${this.className}.Daikin${d.nameShort}.id`);
             variablesBuilder.push(
               `public static Daikin${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
             );
