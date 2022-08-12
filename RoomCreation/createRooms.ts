@@ -288,7 +288,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           } else if (device.isSonos) {
             bottomDeviceBuilder.push(`OwnSonosDevices.addDevice(${this.className}.SN${device.nameShort});`);
           } else if (device.isDaikin) {
-            bottomDeviceBuilder.push(`OwnAcDevices.addDevice(${this.className}.Daikin${device.nameShort});`);
+            bottomDeviceBuilder.push(`OwnAcDevices.addDevice(${this.className}.${device.nameShort});`);
           }
           !noGetter && getterBuilder.push(`  }`);
           if (!noID) {
@@ -437,9 +437,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
           } else if (d.isDaikin) {
-            daikin.push(`${this.className}.Daikin${d.nameShort}.id`);
+            daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(
-              `public static Daikin${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
+              `public static ${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isSmoke) {
             smoke.push(completeNameWithId);
