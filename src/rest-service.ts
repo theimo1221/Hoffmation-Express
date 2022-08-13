@@ -80,13 +80,18 @@ export class RestService {
       return res.send(API.setActuator(req.params.deviceId, req.params.state === 'true'));
     });
 
-    this._app.get('/dimmer/:deviceId/:state/', (req, res) => {
+    this._app.get('/dimmer/:deviceId/:state', (req, res) => {
       return res.send(API.setDimmer(req.params.deviceId, req.params.state === 'true'));
     });
 
     this._app.get('/dimmer/:deviceId/:state/:brightness', (req, res) => {
       return res.send(
-        API.setDimmer(req.params.deviceId, req.params.state === 'true', parseFloat(req.params.brightness)),
+        API.setDimmer(
+          req.params.deviceId,
+          req.params.state === 'true',
+          60 * 60 * 1000,
+          parseFloat(req.params.brightness),
+        ),
       );
     });
 
