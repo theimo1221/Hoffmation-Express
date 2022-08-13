@@ -219,7 +219,7 @@ import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
 import { HeatGroup } from 'hoffmation-base/lib';
-import { SonosGroup } from 'hoffmation-base/lib';`);
+import { SpeakerGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
         if (type === 'Sonos') {
@@ -508,7 +508,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       }
       if (sonos.length > 0) {
         groupInitializeBuilder.push(
-          `    groups.set(GroupType.Speaker, new SonosGroup(${this.className}.roomName, [${sonos.join(', ')}]));`,
+          `    groups.set(GroupType.Speaker, new SpeakerGroup(${this.className}.roomName, [${sonos.join(', ')}]));`,
         );
       }
     }

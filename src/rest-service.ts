@@ -73,7 +73,7 @@ export class RestService {
     });
 
     this._app.get('/lamps/:deviceId/:state', (req, res) => {
-      return res.send(API.setLight(req.params.deviceId, req.params.state === 'true'));
+      return res.send(API.setLamp(req.params.deviceId, req.params.state === 'true'));
     });
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
