@@ -75,6 +75,21 @@ export class RestService {
     this._app.get('/lamps/:deviceId/:state', (req, res) => {
       return res.send(API.setLamp(req.params.deviceId, req.params.state === 'true'));
     });
+
+    this._app.get('/actuator/:deviceId/:state', (req, res) => {
+      return res.send(API.setActuator(req.params.deviceId, req.params.state === 'true'));
+    });
+
+    this._app.get('/dimmer/:deviceId/:state/', (req, res) => {
+      return res.send(API.setDimmer(req.params.deviceId, req.params.state === 'true'));
+    });
+
+    this._app.get('/dimmer/:deviceId/:state/:brightness', (req, res) => {
+      return res.send(
+        API.setDimmer(req.params.deviceId, req.params.state === 'true', parseFloat(req.params.brightness)),
+      );
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
