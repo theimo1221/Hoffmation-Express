@@ -95,6 +95,10 @@ export class RestService {
       );
     });
 
+    this._app.get('/shutter/:deviceId/:level', (req, res) => {
+      return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
