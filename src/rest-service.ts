@@ -1,5 +1,5 @@
 import cors from 'cors';
-import { Express } from 'express';
+import { Express, json } from 'express';
 import { API, iRestSettings, LogLevel, ServerLogService } from 'hoffmation-base';
 import { RequestHandler } from 'express-serve-static-core';
 
@@ -33,6 +33,8 @@ export class RestService {
         origin: '*',
       }),
     );
+
+    this.app.use(json());
 
     this._app.listen(config.port, () => {
       ServerLogService.writeLog(LogLevel.Info, `Example app listening at http://localhost:${config.port}`);
@@ -97,6 +99,10 @@ export class RestService {
 
     this._app.get('/shutter/:deviceId/:level', (req, res) => {
       return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
+    });
+
+    this._app.post('/speak/:deviceId', (req, res) => {
+      return res.send(API.speakOnDevice(req.params.deviceId, req.body.message, req.body.volume));
     });
 
     this._initialized = true;
