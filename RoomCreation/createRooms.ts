@@ -432,7 +432,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           } else if (d.isTaster) {
             taster.push(completeNameWithId);
           } else if (d.isSonos) {
-            sonos.push(`${this.className}.SN${d.nameShort}.name`);
+            sonos.push(`${this.className}.SN${d.nameShort}.id`);
             variablesBuilder.push(
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
