@@ -38,7 +38,9 @@
     },
     "sonnenAufgangRolloDelay": 35,
     "sonnenAufgangLampenDelay": 15,
-    "lightIfNoWindows": false
+    "sonnenUntergangRolloAdditionalOffsetPerCloudiness": 0.25,
+    "lightIfNoWindows": false,
+    "ambientLightAfterSunset": false
   },
   "telegram": {
     "logLevel": 1,
