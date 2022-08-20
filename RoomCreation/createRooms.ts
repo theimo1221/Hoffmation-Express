@@ -30,6 +30,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
   ZigbeeBlitzShp: { name: 'Stecker', deviceClass: 'Zigbee' },
   ZigbeeHeimanSmoke: { name: 'Rauchmelder', deviceClass: 'Zigbee' },
+  ZigbeeEuroHeater: { name: 'Heizung', deviceClass: 'Zigbee' },
   ZigbeeIkeaFernbedienung: { name: 'Fernbedienung', deviceClass: 'Zigbee' },
   ZigbeeIkeaSteckdose: { name: 'Stecker', deviceClass: 'Zigbee' },
   ZigbeeIlluActuator: { name: 'Aktuator', deviceClass: 'Zigbee' },
@@ -115,6 +116,7 @@ function createRooms(): void {
       ZigbeeAquaraWater: 'hoffmation-base/lib',
       ZigbeeBlitzShp: 'hoffmation-base/lib',
       ZigbeeHeimanSmoke: 'hoffmation-base/lib',
+      ZigbeeEuroHeater: 'hoffmation-base/lib',
       ZigbeeIkeaFernbedienung: 'hoffmation-base/lib',
       ZigbeeIkeaSteckdose: 'hoffmation-base/lib',
       ZigbeeIlluActuator: 'hoffmation-base/lib',
@@ -652,6 +654,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           this.isWater = true;
           break;
         case 'HmIpHeizgruppe':
+        case 'ZigbeeEuroHeater':
           this.isHeater = true;
           break;
         case 'ZigbeeSonoffTemp':
