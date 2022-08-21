@@ -635,6 +635,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           this.isLampeOrDimmer = true;
           break;
         case 'ZigbeeIkeaSteckdose':
+        case 'ZigbeeBlitzShp':
           this.isStecker = true;
           break;
         case 'ZigbeeAqaraMagnetContact':
