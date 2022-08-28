@@ -7,6 +7,7 @@ const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
+  Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
   WledDevice: { name: 'Wled', deviceClass: 'Wled' },
   Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
   HmIpAccessPoint: { name: 'AccessPoint', deviceClass: 'HmIP' },
@@ -95,6 +96,7 @@ function createRooms(): void {
     public static includesDict: { [deviceType: string]: string } = {
       WledDevice: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
+      Espresense: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
       HmIpBewegung: 'hoffmation-base/lib',
       HmIpGriff: 'hoffmation-base/lib',
@@ -234,6 +236,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
 import { OwnAcDevices } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'Espresense') {
+          this.fileBuilder.push(`import { EspresenseDevice } from '${Room.includesDict[type]}';`);
         } else {
           this.fileBuilder.push(`import { ${type} } from '${Room.includesDict[type]}';`);
         }
@@ -271,8 +275,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         const cDevices: Device[] = this.devices[type];
         for (const index in cDevices) {
           const device: Device = cDevices[index];
-          const noGetter: boolean = device.isSonos || device.isFenster || device.isDaikin;
-          const noID: boolean = device.isSonos || device.isFenster || device.isDaikin;
+          const noGetter: boolean = device.isSonos || device.isFenster || device.isDaikin || device.isEspresense;
+          const noID: boolean = device.isSonos || device.isFenster || device.isDaikin || device.isEspresense;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -443,6 +447,10 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             variablesBuilder.push(
               `public static ${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
             );
+          } else if (d.isEspresense) {
+            variablesBuilder.push(
+              `public static Espresense: EspresenseDevice = new EspresenseDevice('${d.nameShort}', this.roomName);`,
+            );
           } else if (d.isSmoke) {
             smoke.push(completeNameWithId);
             initializeBuilder.push(`    ${completeName}.roomName = '${this.nameLong}';`);
@@ -531,6 +539,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public isFenster: boolean = false;
     public isSonos: boolean = false;
     public isDaikin: boolean = false;
+    public isEspresense: boolean = false;
     public isWled: boolean = false;
     public isLampeOrDimmer: boolean = false;
     public isStecker: boolean = false;
@@ -599,6 +608,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           break;
         case 'Daikin':
           this.isDaikin = true;
+          break;
+        case 'Espresense':
+          this.isEspresense = true;
           break;
         case 'Wled':
           this.isWled = true;
@@ -687,6 +699,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         }
         if (this.isDaikin) {
           this.groupN.push(`Daikin`);
+        }
+        if (this.isEspresense) {
+          this.groupN.push(`Espresense`);
         }
         if (this.isWled) {
           this.groupN.push(`Wled`);
