@@ -19,6 +19,7 @@ import { RestService } from './rest-service';
 
 export class Hoffmation {
   public static readonly app: Express = express();
+  public static readonly initializationData = new HoffmationInitializationObject(config);
 
   public static async start(): Promise<void> {
     /*** Place your custom initialization Code here ***/
@@ -27,7 +28,7 @@ export class Hoffmation {
 
     /*** Custom initialization end ***/
 
-    await HoffmationBase.initializeBeforeIoBroker(new HoffmationInitializationObject(config));
+    await HoffmationBase.initializeBeforeIoBroker(this.initializationData);
     const devices: Devices = new Devices(devJson as { [id: string]: deviceConfig }, new RoomImportEnforcer());
     HoffmationBase.startIoBroker(devices);
     HoffmationBase.initializePostIoBroker(defaultMuellSonos);
