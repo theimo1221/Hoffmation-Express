@@ -343,7 +343,11 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       if (this.settings) {
         this.fileBuilder.push(`\n//#region room-specific settings`);
         for (const [key, value] of Object.entries(this.settings)) {
-          this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${value};`);
+          if(typeof value == "object") {
+            this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${JSON.stringify(value)};`);
+          } else {
+            this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${value};`);
+          }
         }
         this.fileBuilder.push(`//#region room-specific settings`);
       }
