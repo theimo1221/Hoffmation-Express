@@ -255,6 +255,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const initializeBuilder: string[] = [];
       const groupInitializeBuilder: string[] = [];
       const clusterInitializerBuilder: string[] = [];
+      const postRoomSettingsBuilder: string[] = [];
       const bottomDeviceBuilder: string[] = [];
       variablesBuilder.push(`  public static roomName = '${this.nameShort}';
   public static RoomSettings: RoomSettings;
@@ -263,7 +264,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       initializeBuilder.push(`  public static initialize(): void {
     ${this.classNameCustom}.preInitialize();`);
 
-      this.createGroups(variablesBuilder, initializeBuilder, groupInitializeBuilder);
+      this.createGroups(variablesBuilder, initializeBuilder, groupInitializeBuilder, postRoomSettingsBuilder);
 
       if (this.hasIoBrokerDevices) {
         bottomDeviceBuilder.push(
@@ -294,7 +295,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           } else if (device.isSonos) {
             bottomDeviceBuilder.push(`OwnSonosDevices.addDevice(${this.className}.SN${device.nameShort});`);
           } else if (device.isDaikin) {
-            bottomDeviceBuilder.push(`OwnAcDevices.addDevice(${this.className}.${device.nameShort});`);
+            postRoomSettingsBuilder.push(`OwnAcDevices.addDevice(${this.className}.${device.nameShort});`);
           }
           !noGetter && getterBuilder.push(`  }`);
           if (!noID) {
@@ -324,7 +325,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       this.fileBuilder.push(getterBuilder.join(`\n`));
       this.fileBuilder.push(setIDBuilder.join(`\n`));
       this.fileBuilder.push(initializeBuilder.join('\n'));
-      this.createConstructor(groupInitializeBuilder, clusterInitializerBuilder);
+      this.createConstructor(groupInitializeBuilder, clusterInitializerBuilder, postRoomSettingsBuilder);
       this.fileBuilder.push(`}`);
 
       if (this.hasIoBrokerDevices) {
@@ -336,14 +337,15 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       );
     }
 
-    private createConstructor(groupInitialize: string[], clusterInitialize: string[]) {
+    private createConstructor(groupInitialize: string[], clusterInitialize: string[], postRoomSettings: string[]) {
       this.fileBuilder.push(`\n  public constructor() {
     ${this.className}.RoomSettings = new RoomSettings(${this.className}.InitialRoomSettings);`);
+      this.fileBuilder.push(postRoomSettings.join('\n'));
 
       if (this.settings) {
         this.fileBuilder.push(`\n//#region room-specific settings`);
         for (const [key, value] of Object.entries(this.settings)) {
-          if(typeof value == "object") {
+          if (typeof value == 'object') {
             this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${JSON.stringify(value)};`);
           } else {
             this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${value};`);
@@ -366,7 +368,12 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
   }`);
     }
 
-    private createGroups(variablesBuilder: string[], initializeBuilder: string[], groupInitializeBuilder: string[]) {
+    private createGroups(
+      variablesBuilder: string[],
+      initializeBuilder: string[],
+      groupInitializeBuilder: string[],
+      postRoomSettingsBuilder: string[],
+    ) {
       const fensterGroupList: string[] = [];
       const beweg: string[] = [];
       const prasenz: string[] = [];
@@ -448,8 +455,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             );
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
-            variablesBuilder.push(
-              `public static ${d.nameShort}: OwnDaikinDevice = new OwnDaikinDevice('${d.nameShort}', this.roomName, '${d.ipAddress}', undefined);`,
+            variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
+            postRoomSettingsBuilder.push(
+              `    ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isEspresense) {
             variablesBuilder.push(
