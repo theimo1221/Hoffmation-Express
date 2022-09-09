@@ -376,7 +376,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     ) {
       const fensterGroupList: string[] = [];
       const beweg: string[] = [];
-      const prasenz: string[] = [];
       const lampe: string[] = [];
       const taster: string[] = [];
       const led: string[] = [];
@@ -442,8 +441,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             wled.push(completeNameWithId);
           } else if (d.isStecker) {
             stecker.push(completeNameWithId);
-          } else if (d.isPraesenz) {
-            prasenz.push(completeNameWithId);
           } else if (d.isLampeOrDimmer) {
             lampe.push(completeNameWithId);
           } else if (d.isTaster) {
@@ -489,11 +486,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           )}]));`,
         );
       }
-      if (prasenz.length > 0 || beweg.length > 0) {
+      if (beweg.length > 0) {
         groupInitializeBuilder.push(
-          `    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${prasenz.join(
-            ', ',
-          )}], [${beweg.join(', ')}]));`,
+          `    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${beweg.join(', ')}]));`,
         );
       }
       if (taster.length > 0) {
@@ -562,7 +557,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public isBeweg: boolean = false;
     public isMagnet: boolean = false;
     public isVibra: boolean = false;
-    public isPraesenz: boolean = false;
     public isSmoke: boolean = false;
     public isWater: boolean = false;
     public isHeater: boolean = false;
@@ -636,10 +630,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         case 'HmIpBewegung':
         case 'ZigbeeAquaraMotion':
         case 'ZigbeeSonoffMotion':
-          this.isBeweg = true;
-          break;
         case 'HmIpPraezenz':
-          this.isPraesenz = true;
+          this.isBeweg = true;
           break;
         case 'HmIpTaster':
         case 'ZigbeeAqaraOpple3Switch':
@@ -693,9 +685,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       } else if (this.includeInGroup) {
         if (this.isBeweg) {
           this.groupN.push(`Beweg`);
-        }
-        if (this.isPraesenz) {
-          this.groupN.push(`Praesenz`);
         }
         if (this.isLampeOrDimmer) {
           this.groupN.push(`Lampe`);
