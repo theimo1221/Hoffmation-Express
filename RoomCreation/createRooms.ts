@@ -9,7 +9,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
   WledDevice: { name: 'Wled', deviceClass: 'Wled' },
-  Fenster: { name: 'Fenster', deviceClass: 'Fenster' },
+  Window: { name: 'Window', deviceClass: 'Window' },
   HmIpAccessPoint: { name: 'AccessPoint', deviceClass: 'HmIP' },
   HmIpBewegung: { name: 'Bewegungsmelder', deviceClass: 'HmIP' },
   HmIpGriff: { name: 'Griff', deviceClass: 'HmIP' },
@@ -53,7 +53,7 @@ interface RoomModel {
   settings?: Partial<iRoomDefaultSettings>;
 }
 
-interface FensterParams {
+interface WindowParams {
   noRolloOnSunrise?: boolean;
 }
 
@@ -64,7 +64,7 @@ interface DeviceModel {
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
-  additionalParams?: FensterParams;
+  additionalParams?: WindowParams;
   settings?: Partial<ActuatorSettings>;
 }
 
@@ -109,7 +109,7 @@ function createRooms(): void {
       HmIpTherm: 'hoffmation-base/lib',
       HmIpTuer: 'hoffmation-base/lib',
       HmIpWippe: 'hoffmation-base/lib',
-      Fenster: 'hoffmation-base/lib',
+      Window: 'hoffmation-base/lib',
       Sonos: 'hoffmation-base/lib',
       ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
       ZigbeeAqaraOpple3Switch: 'hoffmation-base/lib',
@@ -216,7 +216,7 @@ import { RoomSettings, RoomInitializationSettings, RoomDeviceAddingSettings } fr
 import { RoomBase } from 'hoffmation-base/lib';
 import { DeviceType } from 'hoffmation-base/lib';
 import { GroupType, BaseGroup } from 'hoffmation-base/lib';
-import { FensterGroup } from 'hoffmation-base/lib';
+import { WindowGroup } from 'hoffmation-base/lib';
 import { LampenGroup } from 'hoffmation-base/lib';
 import { PraesenzGroup } from 'hoffmation-base/lib';
 import { TasterGroup } from 'hoffmation-base/lib';
@@ -276,8 +276,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         const cDevices: Device[] = this.devices[type];
         for (const index in cDevices) {
           const device: Device = cDevices[index];
-          const noGetter: boolean = device.isSonos || device.isFenster || device.isDaikin || device.isEspresense;
-          const noID: boolean = device.isSonos || device.isFenster || device.isDaikin || device.isEspresense;
+          const noGetter: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
+          const noID: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -374,7 +374,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       groupInitializeBuilder: string[],
       postRoomSettingsBuilder: string[],
     ) {
-      const fensterGroupList: string[] = [];
+      const windowGroupList: string[] = [];
       const beweg: string[] = [];
       const lampe: string[] = [];
       const taster: string[] = [];
@@ -390,23 +390,23 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const humidity: string[] = [];
       for (const grName in this.groups) {
         const cDevices = this.groups[grName];
-        if (grName.startsWith('Fenster')) {
+        if (grName.startsWith('Window')) {
           const innerBuilder: string[] = [];
           const griffe: string[] = [];
           const vibration: string[] = [];
           const magnet: string[] = [];
           let rollo: string = '';
-          let fensterName: string = '';
+          let windowName: string = '';
           let noRolloOnSunrise: boolean = false;
           for (const i in cDevices) {
             const d: Device = cDevices[i];
-            if (d.isFenster) {
-              fensterName = d.nameShort;
-              noRolloOnSunrise = d.fensterNoRolloOnSunrise as boolean;
-              variablesBuilder.push(`public static ${d.nameShort}: Fenster;`);
-              innerBuilder.push(`\n    ${this.className}.${d.nameShort} = new Fenster(
+            if (d.isWindow) {
+              windowName = d.nameShort;
+              noRolloOnSunrise = d.windowNoRolloOnSunrise as boolean;
+              variablesBuilder.push(`public static ${d.nameShort}: Window;`);
+              innerBuilder.push(`\n    ${this.className}.${d.nameShort} = new Window(
       ${this.className}.roomName,`);
-              fensterGroupList.push(`${this.className}.${d.nameShort}`);
+              windowGroupList.push(`${this.className}.${d.nameShort}`);
             } else if (d.isRollo) {
               rollo = `${this.className}.${d.nameShort}.id`;
             } else if (d.isGriff) {
@@ -417,8 +417,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
               magnet.push(`${this.className}.${d.nameShort}.id`);
             }
           }
-          if (fensterName === '') {
-            throw new Error(`Fenster without name for ${this.className}`);
+          if (windowName === '') {
+            throw new Error(`Window without name for ${this.className}`);
           }
           innerBuilder.push(`\n      [${griffe.join(', ')}],
       [${vibration.join(', ')}],
@@ -479,9 +479,9 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       }
 
       groupInitializeBuilder.push(`    const groups: Map<GroupType, BaseGroup> = new Map<GroupType, BaseGroup>();`);
-      if (fensterGroupList.length > 0) {
+      if (windowGroupList.length > 0) {
         groupInitializeBuilder.push(
-          `    groups.set(GroupType.Window, new FensterGroup(${this.className}.roomName, [${fensterGroupList.join(
+          `    groups.set(GroupType.Window, new WindowGroup(${this.className}.roomName, [${windowGroupList.join(
             ', ',
           )}]));`,
         );
@@ -543,7 +543,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public nameShort: string;
     public nameLong: string;
     public isIoBrokerDevice: boolean = false;
-    public isFenster: boolean = false;
+    public isWindow: boolean = false;
     public isSonos: boolean = false;
     public isDaikin: boolean = false;
     public isEspresense: boolean = false;
@@ -562,11 +562,11 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public isHeater: boolean = false;
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
-    public fensterNoRolloOnSunrise?: boolean = false;
+    public windowNoRolloOnSunrise?: boolean = false;
     public windowID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
-    public zusatzParams: undefined | FensterParams;
+    public zusatzParams: undefined | WindowParams;
     public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
@@ -603,10 +603,10 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         case 'HmIP':
           this.isIoBrokerDevice = true;
           break;
-        case 'Fenster':
-          this.isFenster = true;
-          if (this.zusatzParams !== undefined && (this.zusatzParams as FensterParams).noRolloOnSunrise) {
-            this.fensterNoRolloOnSunrise = true;
+        case 'Window':
+          this.isWindow = true;
+          if (this.zusatzParams !== undefined && (this.zusatzParams as WindowParams).noRolloOnSunrise) {
+            this.windowNoRolloOnSunrise = true;
           }
           break;
         case 'Sonos':
@@ -681,7 +681,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       }
 
       if (this.windowID !== undefined && this.windowID > 0) {
-        this.groupN.push(`Fenster_${this.windowID}`);
+        this.groupN.push(`Window_${this.windowID}`);
       } else if (this.includeInGroup) {
         if (this.isBeweg) {
           this.groupN.push(`Beweg`);
