@@ -3,12 +3,12 @@ import {
   Devices,
   HeatingMode,
   HoffmationBase,
-  HoffmationInitializationObject
-} from "hoffmation-base/lib";
-import devJson from "../../config/private/devices.json";
-import config from "../../config/private/mainConfig.json";
-import { RoomImportEnforcer } from "../OwnRooms/RoomImportEnforcer";
-import { SettingsService } from "hoffmation-base";
+  HoffmationInitializationObject,
+} from 'hoffmation-base/lib';
+import devJson from '../../config/private/devices.json';
+import config from '../../config/private/mainConfig.json';
+import { RoomImportEnforcer } from '../OwnRooms/RoomImportEnforcer';
+import { SettingsService } from 'hoffmation-base';
 
 export class ConfigTest {
   public static async start(): Promise<void> {
@@ -31,7 +31,7 @@ export class ConfigTest {
 
 void ConfigTest.start();
 
-process.on("uncaughtException", (err) => {
+process.on('uncaughtException', (err) => {
   console.log(`Uncaught Exception: ${err.message}\n${err.stack}`);
   process.exit(1);
 });
