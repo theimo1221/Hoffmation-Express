@@ -39,6 +39,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeIlluLampe: { name: 'Lampe', deviceClass: 'Zigbee' },
   ZigbeeIlluLedRGBCCT: { name: 'LED Leiste', deviceClass: 'Zigbee' },
   ZigbeeIlluShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ZigbeeLinkindLedRgbCct: { name: 'LED Bulp', deviceClass: 'Zigbee' },
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
@@ -126,6 +127,7 @@ function createRooms(): void {
       ZigbeeIlluLampe: 'hoffmation-base/lib',
       ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
       ZigbeeIlluShutter: 'hoffmation-base/lib',
+      ZigbeeLinkindLedRgbCct: 'hoffmation-base/lib',
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
@@ -662,6 +664,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
           this.isVibra = true;
           break;
         case 'ZigbeeIlluLedRGBCCT':
+        case 'ZigbeeLinkindLedRgbCct':
           this.isLED = true;
           break;
         case 'ZigbeeHeimanSmoke':
