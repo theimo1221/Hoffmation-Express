@@ -39,7 +39,8 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeIlluLampe: { name: 'Lampe', deviceClass: 'Zigbee' },
   ZigbeeIlluLedRGBCCT: { name: 'LED Leiste', deviceClass: 'Zigbee' },
   ZigbeeIlluShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
-  ZigbeeLinkindLedRgbCct: { name: 'LED Bulp', deviceClass: 'Zigbee' },
+  ZigbeeLinkindLedRgbCct: { name: 'LED Bulb', deviceClass: 'Zigbee' },
+  ZigbeeOsramDimmer: { name: 'Dimmer', deviceClass: 'Zigbee' },
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
@@ -128,6 +129,7 @@ function createRooms(): void {
       ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
       ZigbeeIlluShutter: 'hoffmation-base/lib',
       ZigbeeLinkindLedRgbCct: 'hoffmation-base/lib',
+      ZigbeeOsramDimmer: 'hoffmation-base/lib',
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
@@ -650,6 +652,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         case 'HmIpLampe':
         case 'ZigbeeIlluDimmer':
         case 'ZigbeeIlluLampe':
+        case 'ZigbeeOsramDimmer':
           this.isLampeOrDimmer = true;
           break;
         case 'ZigbeeIkeaSteckdose':
