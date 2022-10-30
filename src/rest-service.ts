@@ -78,8 +78,20 @@ export class RestService {
       return res.send(API.setLamp(req.params.deviceId, req.params.state === 'true'));
     });
 
+    this._app.get('/lamps/:deviceId/:state/:duration', (req, res) => {
+      return res.send(
+        API.setLamp(req.params.deviceId, req.params.state === 'true', parseInt(req.params.duration) * 60 * 1000),
+      );
+    });
+
     this._app.get('/actuator/:deviceId/:state', (req, res) => {
       return res.send(API.setActuator(req.params.deviceId, req.params.state === 'true'));
+    });
+
+    this._app.get('/actuator/:deviceId/:state/:duration', (req, res) => {
+      return res.send(
+        API.setActuator(req.params.deviceId, req.params.state === 'true', parseInt(req.params.duration) * 60 * 1000),
+      );
     });
 
     this._app.get('/dimmer/:deviceId/:state', (req, res) => {
@@ -97,8 +109,31 @@ export class RestService {
       );
     });
 
+    this._app.get('/dimmer/:deviceId/:state/:brightness/:forceDuration', (req, res) => {
+      return res.send(
+        API.setDimmer(
+          req.params.deviceId,
+          req.params.state === 'true',
+          parseInt(req.params.forceDuration) * 60 * 1000,
+          parseFloat(req.params.brightness),
+        ),
+      );
+    });
+
     this._app.get('/shutter/:deviceId/:level', (req, res) => {
       return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
+    });
+
+    this._app.get('/scene/:deviceId/start/:timeout', (req, res) => {
+      let timeout: number | undefined = parseInt(req.params.timeout);
+      if (timeout === 0 || isNaN(timeout)) {
+        timeout = undefined;
+      }
+      return res.send(API.startScene(req.params.deviceId, timeout));
+    });
+
+    this._app.get('/scene/:deviceId/end', (req, res) => {
+      return res.send(API.endScene(req.params.deviceId));
     });
 
     this._app.post('/speak/:deviceId', (req, res) => {
