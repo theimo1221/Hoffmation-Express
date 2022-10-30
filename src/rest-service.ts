@@ -124,6 +124,18 @@ export class RestService {
       return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
     });
 
+    this._app.get('/scene/:deviceId/start/:timeout', (req, res) => {
+      let timeout: number | undefined = parseInt(req.params.timeout);
+      if (timeout === 0 || isNaN(timeout)) {
+        timeout = undefined;
+      }
+      return res.send(API.startScene(req.params.deviceId, timeout));
+    });
+
+    this._app.get('/scene/:deviceId/end', (req, res) => {
+      return res.send(API.endScene(req.params.deviceId));
+    });
+
     this._app.post('/speak/:deviceId', (req, res) => {
       return res.send(API.speakOnDevice(req.params.deviceId, req.body.message, req.body.volume));
     });
