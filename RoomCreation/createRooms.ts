@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
-import { ActuatorSettings, iRoomDefaultSettings } from 'hoffmation-base/lib';
-import { DeviceSettings } from '../../Hoffmation-Base/src/models/deviceSettings';
+import { iRoomDefaultSettings } from 'hoffmation-base/lib';
 
 const fs = require('fs');
 
@@ -67,7 +66,6 @@ interface DeviceModel {
   windowID?: number;
   includeInGroup: boolean;
   additionalParams?: WindowParams;
-  settings?: Partial<ActuatorSettings>;
 }
 
 interface RoomConfigModel {
@@ -307,12 +305,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             setIDBuilder.push(`    ${this.className}.${device.idName} = value;`);
             setIDBuilder.push(`    return ${this.className}.roomObject;`);
             setIDBuilder.push(`  }`);
-          }
-
-          if (device.settings) {
-            for (const [key, value] of Object.entries(device.settings)) {
-              defaultSettingBuilder.push(`this.${device.nameShort}.settings.${key} = ${value};`);
-            }
           }
         }
       }
@@ -571,7 +563,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public includeInGroup: boolean;
     public groupN: string[] = [];
     public zusatzParams: undefined | WindowParams;
-    public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
     public constructor(roomkey: string, deviceDefinition: DeviceModel) {
@@ -595,7 +586,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
       this.zusatzParams = deviceDefinition.additionalParams;
-      this.settings = deviceDefinition.settings;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
