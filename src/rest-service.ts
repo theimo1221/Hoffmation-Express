@@ -150,6 +150,12 @@ export class RestService {
       return res.send();
     });
 
+    this._app.get('/deviceSettings/restore', (_req, res) => {
+      API.loadAllDeviceSettingsFromDb();
+      res.status(200);
+      return res.send();
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
