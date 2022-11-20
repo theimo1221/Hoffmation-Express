@@ -144,6 +144,10 @@ export class RestService {
       return res.send(API.setDeviceSettings(req.params.deviceId, req.body.settings));
     });
 
+    this._app.post('/roomSettings/:roomName', (req, res) => {
+      return res.send(API.setRoomSettings(req.params.roomName, req.body.settings));
+    });
+
     this._app.get('/deviceSettings/persist', (_req, res) => {
       API.persistAllDeviceSettings();
       res.status(200);
