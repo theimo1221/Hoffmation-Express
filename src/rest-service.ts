@@ -140,6 +140,26 @@ export class RestService {
       return res.send(API.speakOnDevice(req.params.deviceId, req.body.message, req.body.volume));
     });
 
+    this._app.post('/deviceSettings/:deviceId', (req, res) => {
+      return res.send(API.setDeviceSettings(req.params.deviceId, req.body.settings));
+    });
+
+    this._app.post('/roomSettings/:roomName', (req, res) => {
+      return res.send(API.setRoomSettings(req.params.roomName, req.body.settings));
+    });
+
+    this._app.get('/deviceSettings/persist', (_req, res) => {
+      API.persistAllDeviceSettings();
+      res.status(200);
+      return res.send();
+    });
+
+    this._app.get('/deviceSettings/restore', (_req, res) => {
+      API.loadAllDeviceSettingsFromDb();
+      res.status(200);
+      return res.send();
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);

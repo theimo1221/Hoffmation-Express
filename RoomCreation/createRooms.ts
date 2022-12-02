@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import config from '../config/private/roomConfig.json';
-import { ActuatorSettings, iRoomDefaultSettings } from 'hoffmation-base/lib';
-import { DeviceSettings } from '../../Hoffmation-Base/src/models/deviceSettings';
 
 const fs = require('fs');
 
@@ -52,7 +50,6 @@ interface RoomModel {
   nameLong: string;
   floor: number;
   devices: DeviceModel[];
-  settings?: Partial<iRoomDefaultSettings>;
 }
 
 interface WindowParams {
@@ -67,7 +64,6 @@ interface DeviceModel {
   windowID?: number;
   includeInGroup: boolean;
   additionalParams?: WindowParams;
-  settings?: Partial<ActuatorSettings>;
 }
 
 interface RoomConfigModel {
@@ -84,7 +80,6 @@ function createRooms(): void {
     public fileName: string;
     public devices: { [deviceType: string]: Device[] } = {};
     public groups: { [groupName: string]: Device[] } = {};
-    public settings?: Partial<iRoomDefaultSettings>;
     public hasIoBrokerDevices: boolean = false;
     public fileContent: string = '';
     public customContent: string = '';
@@ -141,7 +136,6 @@ function createRooms(): void {
       this.nameLong = roomDefinition.nameLong;
       this.floor = roomDefinition.floor;
       this.fileName = `${this.floor}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
-      this.settings = roomDefinition.settings;
       this.folderName = this.fileName.replace('.ts', '');
       this.folderPath = `./src/OwnRooms/${this.folderName}`;
       this.className = `room_${this.folderName}`;
@@ -254,7 +248,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const variablesBuilder: string[] = [];
       const getterBuilder: string[] = [];
       const setIDBuilder: string[] = [];
-      const defaultSettingBuilder: string[] = [];
 
       const initializeBuilder: string[] = [];
       const groupInitializeBuilder: string[] = [];
@@ -262,19 +255,15 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const postRoomSettingsBuilder: string[] = [];
       const bottomDeviceBuilder: string[] = [];
       variablesBuilder.push(`  public static roomName = '${this.nameShort}';
-  public static RoomSettings: RoomSettings;
-  public static InitialRoomSettings: RoomInitializationSettings = new RoomInitializationSettings('${this.nameShort}', ${this.floor});
   public static roomObject: ${this.className};`);
       initializeBuilder.push(`  public static initialize(): void {
     ${this.classNameCustom}.preInitialize();`);
 
       this.createGroups(variablesBuilder, initializeBuilder, groupInitializeBuilder, postRoomSettingsBuilder);
 
-      if (this.hasIoBrokerDevices) {
-        bottomDeviceBuilder.push(
-          `const ioDevices: RoomDeviceAddingSettings = new RoomDeviceAddingSettings('${this.nameShort}');`,
-        );
-      }
+      bottomDeviceBuilder.push(`
+  public static prepareDeviceAdding(): void {
+    const ioDevices: RoomDeviceAddingSettings = new RoomDeviceAddingSettings('${this.nameShort}');`);
 
       for (const type in this.devices) {
         const cDevices: Device[] = this.devices[type];
@@ -289,7 +278,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
               `this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`,
             );
             bottomDeviceBuilder.push(
-              `ioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
+              `\t\tioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
             );
             if (!noGetter) {
               getterBuilder.push(
@@ -308,19 +297,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             setIDBuilder.push(`    return ${this.className}.roomObject;`);
             setIDBuilder.push(`  }`);
           }
-
-          if (device.settings) {
-            for (const [key, value] of Object.entries(device.settings)) {
-              defaultSettingBuilder.push(`this.${device.nameShort}.settings.${key} = ${value};`);
-            }
-          }
         }
-      }
-
-      if (defaultSettingBuilder.length > 0) {
-        initializeBuilder.push(`\n//#region device-specific settings`);
-        initializeBuilder.push(defaultSettingBuilder.join(`\n`));
-        initializeBuilder.push(`//#endregion device-specific settings\n`);
       }
 
       initializeBuilder.push(`    ${this.classNameCustom}.postInitialize();  }`);
@@ -330,37 +307,24 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       this.fileBuilder.push(setIDBuilder.join(`\n`));
       this.fileBuilder.push(initializeBuilder.join('\n'));
       this.createConstructor(groupInitializeBuilder, clusterInitializerBuilder, postRoomSettingsBuilder);
-      this.fileBuilder.push(`}`);
-
-      if (this.hasIoBrokerDevices) {
-        bottomDeviceBuilder.push(`${this.className}.InitialRoomSettings.deviceAddidngSettings = ioDevices;`);
-      }
+      bottomDeviceBuilder.push(`
+    
+    const initSettings: RoomInitializationSettings = new RoomInitializationSettings('${this.nameShort}')
+    initSettings.deviceAddidngSettings = ioDevices;
+    RoomInitializationSettings.registerRoomForDevices(initSettings);
+    }`);
       this.fileBuilder.push(bottomDeviceBuilder.join('\n'));
-      this.fileBuilder.push(
-        `\nRoomInitializationSettings.registerRoomForDevices(${this.className}.InitialRoomSettings);\n`,
-      );
+      this.fileBuilder.push(`}\n
+${this.className}.prepareDeviceAdding();`);
     }
 
     private createConstructor(groupInitialize: string[], clusterInitialize: string[], postRoomSettings: string[]) {
-      this.fileBuilder.push(`\n  public constructor() {
-    ${this.className}.RoomSettings = new RoomSettings(${this.className}.InitialRoomSettings);`);
+      this.fileBuilder.push(`\n  public constructor() {`);
       this.fileBuilder.push(postRoomSettings.join('\n'));
-
-      if (this.settings) {
-        this.fileBuilder.push(`\n//#region room-specific settings`);
-        for (const [key, value] of Object.entries(this.settings)) {
-          if (typeof value == 'object') {
-            this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${JSON.stringify(value)};`);
-          } else {
-            this.fileBuilder.push(`${this.className}.RoomSettings.${key} = ${value};`);
-          }
-        }
-        this.fileBuilder.push(`//#region room-specific settings`);
-      }
       this.fileBuilder.push(groupInitialize.join('\n'));
 
       this.fileBuilder.push(`\n 
-    super(${this.className}.roomName, ${this.className}.RoomSettings, groups);
+    super(groups, ${this.className}.roomName, ${this.floor});
     ${this.className}.roomObject = this;`);
       this.fileBuilder.push(clusterInitialize.join('\n'));
       this.fileBuilder.push(`
@@ -571,7 +535,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     public includeInGroup: boolean;
     public groupN: string[] = [];
     public zusatzParams: undefined | WindowParams;
-    public settings?: Partial<DeviceSettings>;
     private defaultName: string;
 
     public constructor(roomkey: string, deviceDefinition: DeviceModel) {
@@ -595,7 +558,6 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
       this.zusatzParams = deviceDefinition.additionalParams;
-      this.settings = deviceDefinition.settings;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
