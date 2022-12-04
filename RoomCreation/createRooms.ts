@@ -4,6 +4,7 @@ import config from '../config/private/roomConfig.json';
 const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
+  Camera: { name: 'Camera', deviceClass: 'Camera' },
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
   WledDevice: { name: 'Wled', deviceClass: 'Wled' },
@@ -92,6 +93,7 @@ function createRooms(): void {
 
     public static includesDict: { [deviceType: string]: string } = {
       WledDevice: 'hoffmation-base/lib',
+      Camera: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
       Espresense: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
@@ -216,7 +218,7 @@ import { DeviceType } from 'hoffmation-base/lib';
 import { GroupType, BaseGroup } from 'hoffmation-base/lib';
 import { WindowGroup } from 'hoffmation-base/lib';
 import { LampenGroup } from 'hoffmation-base/lib';
-import { PraesenzGroup } from 'hoffmation-base/lib';
+import { PresenceGroup } from 'hoffmation-base/lib';
 import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
@@ -234,6 +236,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
 import { OwnAcDevices } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'Camera') {
+          this.fileBuilder.push(`import { CameraDevice } from '${Room.includesDict[type]}';`);
         } else if (type === 'Espresense') {
           this.fileBuilder.push(`import { EspresenseDevice } from '${Room.includesDict[type]}';`);
         } else {
@@ -269,8 +273,10 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         const cDevices: Device[] = this.devices[type];
         for (const index in cDevices) {
           const device: Device = cDevices[index];
-          const noGetter: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
-          const noID: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
+          const noGetter: boolean =
+            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
+          const noID: boolean =
+            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -418,11 +424,17 @@ ${this.className}.prepareDeviceAdding();`);
             variablesBuilder.push(
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
+          } else if (d.isCamera) {
+            variablesBuilder.push(`public static Camera: CameraDevice;`);
+            postRoomSettingsBuilder.push(
+              `    ${this.className}.Camera = new CameraDevice('${d.nameShort}', ${this.className}.roomName)`,
+            );
+            beweg.push(`${this.className}.Camera.id`);
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
             postRoomSettingsBuilder.push(
-              `    ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
+              `   ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isEspresense) {
             variablesBuilder.push(
@@ -456,7 +468,7 @@ ${this.className}.prepareDeviceAdding();`);
       }
       if (beweg.length > 0) {
         groupInitializeBuilder.push(
-          `    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${beweg.join(', ')}]));`,
+          `    groups.set(GroupType.Presence, new PresenceGroup(${this.className}.roomName, [${beweg.join(', ')}]));`,
         );
       }
       if (taster.length > 0) {
@@ -513,6 +525,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isIoBrokerDevice: boolean = false;
     public isWindow: boolean = false;
     public isSonos: boolean = false;
+    public isCamera: boolean = false;
     public isDaikin: boolean = false;
     public isEspresense: boolean = false;
     public isWled: boolean = false;
@@ -577,6 +590,9 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'Sonos':
           this.isSonos = true;
+          break;
+        case 'Camera':
+          this.isCamera = true;
           break;
         case 'Daikin':
           this.isDaikin = true;
@@ -665,6 +681,9 @@ ${this.className}.prepareDeviceAdding();`);
         }
         if (this.isSonos) {
           this.groupN.push(`Sonos`);
+        }
+        if (this.isCamera) {
+          this.groupN.push(`Camera`);
         }
         if (this.isDaikin) {
           this.groupN.push(`Daikin`);
