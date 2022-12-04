@@ -160,6 +160,10 @@ export class RestService {
       return res.send();
     });
 
+    this._app.get('/camera/:deviceId/image', (req, res) => {
+      return res.send(API.getLastCameraImage(req.params.deviceId));
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);

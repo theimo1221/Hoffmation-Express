@@ -61,6 +61,8 @@ interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   ipAddress?: string;
+  blueIrisName?: string;
+  mqttFolderName?: string;
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
@@ -425,11 +427,11 @@ ${this.className}.prepareDeviceAdding();`);
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
           } else if (d.isCamera) {
-            variablesBuilder.push(`public static Camera: CameraDevice;`);
+            variablesBuilder.push(`public static ${d.nameShort}: CameraDevice;`);
             postRoomSettingsBuilder.push(
-              `    ${this.className}.Camera = new CameraDevice('${d.nameShort}', ${this.className}.roomName)`,
+              `    ${completeName} = new CameraDevice('${d.mqttFolderName}', ${this.className}.roomName, '${d.blueIrisName}')`,
             );
-            beweg.push(`${this.className}.Camera.id`);
+            beweg.push(`${completeName}.id`);
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
@@ -514,6 +516,8 @@ ${this.className}.prepareDeviceAdding();`);
   class Device {
     public idName: string;
     public ipAddress: string = '';
+    public blueIrisName: string = '';
+    public mqttFolderName: string = '';
     public setIdName: string;
     public room: string;
     public customName: string | undefined;
@@ -575,6 +579,8 @@ ${this.className}.prepareDeviceAdding();`);
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
       this.ipAddress = deviceDefinition.ipAddress ?? '';
+      this.blueIrisName = deviceDefinition.blueIrisName ?? '';
+      this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
