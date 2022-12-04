@@ -431,7 +431,9 @@ ${this.className}.prepareDeviceAdding();`);
             postRoomSettingsBuilder.push(
               `    ${completeName} = new CameraDevice('${d.mqttFolderName}', ${this.className}.roomName, '${d.blueIrisName}')`,
             );
-            beweg.push(`${completeName}.id`);
+            if (d.includeInGroup) {
+              beweg.push(`${completeName}.id`);
+            }
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
@@ -669,7 +671,9 @@ ${this.className}.prepareDeviceAdding();`);
           this.hasTemperatur = true;
           break;
       }
-
+      if (this.isCamera) {
+        this.groupN.push(`Camera`);
+      }
       if (this.windowID !== undefined && this.windowID > 0) {
         this.groupN.push(`Window_${this.windowID}`);
       } else if (this.includeInGroup) {
@@ -687,9 +691,6 @@ ${this.className}.prepareDeviceAdding();`);
         }
         if (this.isSonos) {
           this.groupN.push(`Sonos`);
-        }
-        if (this.isCamera) {
-          this.groupN.push(`Camera`);
         }
         if (this.isDaikin) {
           this.groupN.push(`Daikin`);
