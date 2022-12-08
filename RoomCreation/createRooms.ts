@@ -219,7 +219,7 @@ import { RoomBase } from 'hoffmation-base/lib';
 import { DeviceType } from 'hoffmation-base/lib';
 import { GroupType, BaseGroup } from 'hoffmation-base/lib';
 import { WindowGroup } from 'hoffmation-base/lib';
-import { LampenGroup } from 'hoffmation-base/lib';
+import { LightGroup } from 'hoffmation-base/lib';
 import { PresenceGroup } from 'hoffmation-base/lib';
 import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
@@ -481,7 +481,7 @@ ${this.className}.prepareDeviceAdding();`);
         );
       }
       if (lampe.length > 0 || stecker.length > 0 || led.length > 0 || wled.length) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LampenGroup(
+        groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LightGroup(
       ${this.className}.roomName,
       [${lampe.join(', ')}],
       [${stecker.join(', ')}],
