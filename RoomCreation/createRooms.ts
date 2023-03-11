@@ -4,6 +4,7 @@ import config from '../config/private/roomConfig.json';
 const fs = require('fs');
 
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
+  Camera: { name: 'Camera', deviceClass: 'Camera' },
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
   WledDevice: { name: 'Wled', deviceClass: 'Wled' },
@@ -60,6 +61,8 @@ interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   ipAddress?: string;
+  blueIrisName?: string;
+  mqttFolderName?: string;
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
@@ -92,6 +95,7 @@ function createRooms(): void {
 
     public static includesDict: { [deviceType: string]: string } = {
       WledDevice: 'hoffmation-base/lib',
+      Camera: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
       Espresense: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
@@ -215,8 +219,8 @@ import { RoomBase } from 'hoffmation-base/lib';
 import { DeviceType } from 'hoffmation-base/lib';
 import { GroupType, BaseGroup } from 'hoffmation-base/lib';
 import { WindowGroup } from 'hoffmation-base/lib';
-import { LampenGroup } from 'hoffmation-base/lib';
-import { PraesenzGroup } from 'hoffmation-base/lib';
+import { LightGroup } from 'hoffmation-base/lib';
+import { PresenceGroup } from 'hoffmation-base/lib';
 import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
@@ -234,6 +238,8 @@ import { OwnSonosDevices } from 'hoffmation-base/lib';`,
             `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
 import { OwnAcDevices } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'Camera') {
+          this.fileBuilder.push(`import { CameraDevice } from '${Room.includesDict[type]}';`);
         } else if (type === 'Espresense') {
           this.fileBuilder.push(`import { EspresenseDevice } from '${Room.includesDict[type]}';`);
         } else {
@@ -269,8 +275,10 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         const cDevices: Device[] = this.devices[type];
         for (const index in cDevices) {
           const device: Device = cDevices[index];
-          const noGetter: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
-          const noID: boolean = device.isSonos || device.isWindow || device.isDaikin || device.isEspresense;
+          const noGetter: boolean =
+            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
+          const noID: boolean =
+            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -418,11 +426,19 @@ ${this.className}.prepareDeviceAdding();`);
             variablesBuilder.push(
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
+          } else if (d.isCamera) {
+            variablesBuilder.push(`public static ${d.nameShort}: CameraDevice;`);
+            postRoomSettingsBuilder.push(
+              `    ${completeName} = new CameraDevice('${d.mqttFolderName}', ${this.className}.roomName, '${d.blueIrisName}')`,
+            );
+            if (d.includeInGroup) {
+              beweg.push(`${completeName}.id`);
+            }
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
             postRoomSettingsBuilder.push(
-              `    ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
+              `   ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isEspresense) {
             variablesBuilder.push(
@@ -456,7 +472,7 @@ ${this.className}.prepareDeviceAdding();`);
       }
       if (beweg.length > 0) {
         groupInitializeBuilder.push(
-          `    groups.set(GroupType.Presence, new PraesenzGroup(${this.className}.roomName, [${beweg.join(', ')}]));`,
+          `    groups.set(GroupType.Presence, new PresenceGroup(${this.className}.roomName, [${beweg.join(', ')}]));`,
         );
       }
       if (taster.length > 0) {
@@ -465,7 +481,7 @@ ${this.className}.prepareDeviceAdding();`);
         );
       }
       if (lampe.length > 0 || stecker.length > 0 || led.length > 0 || wled.length) {
-        groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LampenGroup(
+        groupInitializeBuilder.push(`    groups.set(GroupType.Light, new LightGroup(
       ${this.className}.roomName,
       [${lampe.join(', ')}],
       [${stecker.join(', ')}],
@@ -502,6 +518,8 @@ ${this.className}.prepareDeviceAdding();`);
   class Device {
     public idName: string;
     public ipAddress: string = '';
+    public blueIrisName: string = '';
+    public mqttFolderName: string = '';
     public setIdName: string;
     public room: string;
     public customName: string | undefined;
@@ -513,6 +531,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isIoBrokerDevice: boolean = false;
     public isWindow: boolean = false;
     public isSonos: boolean = false;
+    public isCamera: boolean = false;
     public isDaikin: boolean = false;
     public isEspresense: boolean = false;
     public isWled: boolean = false;
@@ -562,6 +581,8 @@ ${this.className}.prepareDeviceAdding();`);
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
       this.ipAddress = deviceDefinition.ipAddress ?? '';
+      this.blueIrisName = deviceDefinition.blueIrisName ?? '';
+      this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
@@ -577,6 +598,9 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'Sonos':
           this.isSonos = true;
+          break;
+        case 'Camera':
+          this.isCamera = true;
           break;
         case 'Daikin':
           this.isDaikin = true;
@@ -647,7 +671,9 @@ ${this.className}.prepareDeviceAdding();`);
           this.hasTemperatur = true;
           break;
       }
-
+      if (this.isCamera) {
+        this.groupN.push(`Camera`);
+      }
       if (this.windowID !== undefined && this.windowID > 0) {
         this.groupN.push(`Window_${this.windowID}`);
       } else if (this.includeInGroup) {

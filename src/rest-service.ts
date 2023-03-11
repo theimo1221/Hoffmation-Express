@@ -160,6 +160,26 @@ export class RestService {
       return res.send();
     });
 
+    this._app.get('/device/:deviceId/liftAutomaticBlock', (req, res) => {
+      API.liftAutomaticBlock(req.params.deviceId);
+      res.status(200);
+      return res.send();
+    });
+
+    this._app.get('/device/:deviceId/blockAutomatic/:timeout', (req, res) => {
+      let timeout: number | undefined = parseInt(req.params.timeout);
+      if (timeout === 0 || isNaN(timeout)) {
+        timeout = undefined;
+      }
+      API.blockAutomatic(req.params.deviceId, timeout ?? 60 * 60 * 1000);
+      res.status(200);
+      return res.send();
+    });
+
+    this._app.get('/camera/:deviceId/image', (req, res) => {
+      return res.send(API.getLastCameraImage(req.params.deviceId));
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
