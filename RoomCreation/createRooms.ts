@@ -43,6 +43,8 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
+  ZigbeeUbisysAcuator: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ZigbeeUbisysLampe: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
 };
 
@@ -51,10 +53,6 @@ interface RoomModel {
   nameLong: string;
   floor: number;
   devices: DeviceModel[];
-}
-
-interface WindowParams {
-  noRolloOnSunrise?: boolean;
 }
 
 interface DeviceModel {
@@ -66,7 +64,6 @@ interface DeviceModel {
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
-  additionalParams?: WindowParams;
 }
 
 interface RoomConfigModel {
@@ -132,6 +129,8 @@ function createRooms(): void {
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
+      ZigbeeUbisysAcuator: 'hoffmation-base/lib',
+      ZigbeeUbisysLampe: 'hoffmation-base/lib',
       ZigbeeUbisysShutter: 'hoffmation-base/lib',
     };
 
@@ -373,12 +372,10 @@ ${this.className}.prepareDeviceAdding();`);
           const magnet: string[] = [];
           let rollo: string = '';
           let windowName: string = '';
-          let noRolloOnSunrise: boolean = false;
           for (const i in cDevices) {
             const d: Device = cDevices[i];
             if (d.isWindow) {
               windowName = d.nameShort;
-              noRolloOnSunrise = d.windowNoRolloOnSunrise as boolean;
               variablesBuilder.push(`public static ${d.nameShort}: Window;`);
               innerBuilder.push(`\n    ${this.className}.${d.nameShort} = new Window(
       ${this.className}.roomName,`);
@@ -399,8 +396,7 @@ ${this.className}.prepareDeviceAdding();`);
           innerBuilder.push(`\n      [${griffe.join(', ')}],
       [${vibration.join(', ')}],
       [${rollo}],
-      [${magnet.join(', ')}],
-      ${noRolloOnSunrise ? 'true' : 'false'},
+      [${magnet.join(', ')}]
     );`);
           groupInitializeBuilder.push(innerBuilder.join(''));
           continue;
@@ -549,11 +545,9 @@ ${this.className}.prepareDeviceAdding();`);
     public isHeater: boolean = false;
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
-    public windowNoRolloOnSunrise?: boolean = false;
     public windowID: number | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
-    public zusatzParams: undefined | WindowParams;
     private defaultName: string;
 
     public constructor(roomkey: string, deviceDefinition: DeviceModel) {
@@ -576,7 +570,6 @@ ${this.className}.prepareDeviceAdding();`);
       this.nameLong = `${this.room} ${this.customName !== '' ? this.customName : this.defaultName}`.replace(/_/g, ' ');
       this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
-      this.zusatzParams = deviceDefinition.additionalParams;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
@@ -592,9 +585,6 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'Window':
           this.isWindow = true;
-          if (this.zusatzParams !== undefined && (this.zusatzParams as WindowParams).noRolloOnSunrise) {
-            this.windowNoRolloOnSunrise = true;
-          }
           break;
         case 'Sonos':
           this.isSonos = true;
@@ -638,6 +628,7 @@ ${this.className}.prepareDeviceAdding();`);
         case 'HmIpLampe':
         case 'ZigbeeIlluDimmer':
         case 'ZigbeeIlluLampe':
+        case 'ZigbeeUbisysLampe':
         case 'ZigbeeOsramDimmer':
           this.isLampeOrDimmer = true;
           break;
