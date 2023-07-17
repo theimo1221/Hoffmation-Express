@@ -38,6 +38,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeIlluLampe: { name: 'Lampe', deviceClass: 'Zigbee' },
   ZigbeeIlluLedRGBCCT: { name: 'LED Leiste', deviceClass: 'Zigbee' },
   ZigbeeIlluShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ZigbeeInnr142C: { name: 'LED Leiste', deviceClass: 'Zigbee' },
   ZigbeeLinkindLedRgbCct: { name: 'LED Bulb', deviceClass: 'Zigbee' },
   ZigbeeOsramDimmer: { name: 'Dimmer', deviceClass: 'Zigbee' },
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
@@ -124,6 +125,7 @@ function createRooms(): void {
       ZigbeeIlluLampe: 'hoffmation-base/lib',
       ZigbeeIlluLedRGBCCT: 'hoffmation-base/lib',
       ZigbeeIlluShutter: 'hoffmation-base/lib',
+      ZigbeeInnr142C: 'hoffmation-base/lib',
       ZigbeeLinkindLedRgbCct: 'hoffmation-base/lib',
       ZigbeeOsramDimmer: 'hoffmation-base/lib',
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
@@ -644,6 +646,7 @@ ${this.className}.prepareDeviceAdding();`);
           this.isVibra = true;
           break;
         case 'ZigbeeIlluLedRGBCCT':
+        case 'ZigbeeInnr142C':
         case 'ZigbeeLinkindLedRgbCct':
           this.isLED = true;
           break;
