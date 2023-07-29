@@ -120,6 +120,20 @@ export class RestService {
       );
     });
 
+    this._app.get('/led/:deviceId/:state/:brightness/:color/:forceDuration', (req, res) => {
+      return res.send(
+        API.setLedLamp(
+          req.params.deviceId,
+          req.params.state === 'true',
+          parseInt(req.params.forceDuration) * 60 * 1000,
+          parseFloat(req.params.brightness),
+          undefined,
+          req.params.color,
+          undefined,
+        ),
+      );
+    });
+
     this._app.get('/shutter/:deviceId/:level', (req, res) => {
       return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
     });
