@@ -1,6 +1,6 @@
 import cors from 'cors';
 import { Express, json } from 'express';
-import { API, iRestSettings, LogLevel, ServerLogService } from 'hoffmation-base';
+import { AcMode, API, iRestSettings, LogLevel, ServerLogService } from 'hoffmation-base';
 import { RequestHandler } from 'express-serve-static-core';
 
 interface CustomHandler {
@@ -64,6 +64,10 @@ export class RestService {
       return res.send(API.getRoom(req.params.roomId));
     });
 
+    this._app.get('/groups/:groupId', (req, res) => {
+      return res.send(API.getGroup(req.params.groupId));
+    });
+
     this._app.get('/ac/power/:state', (req, res) => {
       API.setAllAc(req.params.state === 'true');
       res.status(200);
@@ -72,6 +76,10 @@ export class RestService {
 
     this._app.get('/ac/:acId/power/:state', (req, res) => {
       return res.send(API.setAc(req.params.acId, req.params.state === 'true'));
+    });
+
+    this._app.get('/ac/:acId/power/:mode/:temp', (req, res) => {
+      return res.send(API.setAc(req.params.acId, true, parseInt(req.params.mode) as AcMode, parseInt(req.params.temp)));
     });
 
     this._app.get('/lamps/:deviceId/:state', (req, res) => {
@@ -160,6 +168,10 @@ export class RestService {
 
     this._app.post('/roomSettings/:roomName', (req, res) => {
       return res.send(API.setRoomSettings(req.params.roomName, req.body.settings));
+    });
+
+    this._app.post('/groupSettings/:groupId', (req, res) => {
+      return res.send(API.setGroupSettings(req.params.groupId, req.body.settings));
     });
 
     this._app.get('/deviceSettings/persist', (_req, res) => {
