@@ -54,6 +54,14 @@ interface RoomModel {
   nameLong: string;
   floor: number;
   devices: DeviceModel[];
+  startCoordinate?: Coordinate;
+  endCoordinate?: Coordinate;
+}
+
+interface Coordinate {
+  x: number;
+  y: number;
+  z: number;
 }
 
 interface DeviceModel {
@@ -65,6 +73,7 @@ interface DeviceModel {
   customName?: string;
   windowID?: number;
   includeInGroup: boolean;
+  coordinate?: Coordinate;
 }
 
 interface RoomConfigModel {
@@ -90,6 +99,8 @@ function createRooms(): void {
     private readonly folderPath: string;
     private fileBuilder: string[] = [];
     private readonly classNameCustom: string;
+    private endPoint: Coordinate | undefined;
+    private startPoint: Coordinate | undefined;
 
     public static includesDict: { [deviceType: string]: string } = {
       WledDevice: 'hoffmation-base/lib',
@@ -140,6 +151,8 @@ function createRooms(): void {
       this.nameShort = roomDefinition.nameShort;
       this.nameLong = roomDefinition.nameLong;
       this.floor = roomDefinition.floor;
+      this.startPoint = roomDefinition.startCoordinate;
+      this.endPoint = roomDefinition.endCoordinate;
       this.fileName = `${this.floor}_${this.nameShort.replace(' ', '').toLowerCase()}.ts`;
       this.folderName = this.fileName.replace('.ts', '');
       this.folderPath = `./src/OwnRooms/${this.folderName}`;
@@ -217,6 +230,7 @@ function createRooms(): void {
       this.fileBuilder.push(`import { Devices } from 'hoffmation-base/lib';
 import { RoomSettings, RoomInitializationSettings, RoomDeviceAddingSettings } from 'hoffmation-base/lib';
 import { RoomBase } from 'hoffmation-base/lib';
+import { TrilaterationPoint } from 'hoffmation-base/lib';
 import { DeviceType } from 'hoffmation-base/lib';
 import { GroupType, BaseGroup } from 'hoffmation-base/lib';
 import { WindowGroup } from 'hoffmation-base/lib';
@@ -263,6 +277,20 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       const bottomDeviceBuilder: string[] = [];
       variablesBuilder.push(`  public static roomName = '${this.nameShort}';
   public static roomObject: ${this.className};`);
+      if (this.startPoint !== undefined) {
+        variablesBuilder.push(
+          `public static startPoint: TrilaterationPoint = new TrilaterationPoint(${this.startPoint.x}, ${this.startPoint.y},${this.startPoint.z}, '${this.nameShort}');`,
+        );
+      } else {
+        variablesBuilder.push(`public static startPoint: TrilaterationPoint | undefined = undefined;`);
+      }
+      if (this.endPoint !== undefined) {
+        variablesBuilder.push(
+          `public static endPoint: TrilaterationPoint = new TrilaterationPoint(${this.endPoint.x}, ${this.endPoint.y},${this.endPoint.z}, '${this.nameShort}');`,
+        );
+      } else {
+        variablesBuilder.push(`public static endPoint: TrilaterationPoint | undefined = undefined;`);
+      }
       initializeBuilder.push(`  public static initialize(): void {
     ${this.classNameCustom}.preInitialize();`);
 
@@ -333,7 +361,13 @@ ${this.className}.prepareDeviceAdding();`);
       this.fileBuilder.push(groupInitialize.join('\n'));
 
       this.fileBuilder.push(`\n 
-    super(groups, ${this.className}.roomName, ${this.floor});
+    super(
+      groups,
+      ${this.className}.roomName,
+      ${this.floor},
+      ${this.className}.startPoint,
+      ${this.className}.endPoint,
+    );
     ${this.className}.roomObject = this;`);
       this.fileBuilder.push(clusterInitialize.join('\n'));
       this.fileBuilder.push(`
@@ -439,8 +473,11 @@ ${this.className}.prepareDeviceAdding();`);
               `   ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
             );
           } else if (d.isEspresense) {
+            if (d.coordinate === undefined) {
+              throw new Error(`Espresense ${d.nameShort} has no coordinate`);
+            }
             variablesBuilder.push(
-              `public static Espresense: EspresenseDevice = new EspresenseDevice('${d.nameShort}', this.roomName);`,
+              `public static Espresense: EspresenseDevice = new EspresenseDevice('${d.nameShort}', this.roomName, ${d.coordinate.x}, ${d.coordinate.y}, ${d.coordinate.z});`,
             );
           } else if (d.isSmoke) {
             smoke.push(completeNameWithId);
@@ -548,6 +585,7 @@ ${this.className}.prepareDeviceAdding();`);
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
     public windowID: number | undefined;
+    public coordinate: Coordinate | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
     private defaultName: string;
@@ -572,6 +610,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.nameLong = `${this.room} ${this.customName !== '' ? this.customName : this.defaultName}`.replace(/_/g, ' ');
       this.windowID = deviceDefinition.windowID;
       this.includeInGroup = deviceDefinition.includeInGroup;
+      this.coordinate = deviceDefinition.coordinate;
 
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
