@@ -47,6 +47,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeUbisysAcuator: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysLampe: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
+  ShellyTrv: { name: 'Heater', deviceClass: 'Shelly' },
 };
 
 interface RoomModel {
@@ -145,6 +146,7 @@ function createRooms(): void {
       ZigbeeUbisysAcuator: 'hoffmation-base/lib',
       ZigbeeUbisysLampe: 'hoffmation-base/lib',
       ZigbeeUbisysShutter: 'hoffmation-base/lib',
+      ShellyTrv: 'hoffmation-base/lib',
     };
 
     public constructor(roomDefinition: RoomModel) {
@@ -624,6 +626,9 @@ ${this.className}.prepareDeviceAdding();`);
         case 'HmIP':
           this.isIoBrokerDevice = true;
           break;
+        case 'Shelly':
+          this.isIoBrokerDevice = true;
+          break;
         case 'Window':
           this.isWindow = true;
           break;
@@ -697,6 +702,7 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'HmIpHeizgruppe':
         case 'ZigbeeEuroHeater':
+        case 'ShellyTrv':
           this.isHeater = true;
           break;
         case 'ZigbeeSonoffTemp':
