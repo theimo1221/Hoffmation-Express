@@ -142,6 +142,10 @@ export class RestService {
       );
     });
 
+    this._app.get('/garageDoor/:deviceId/:state', (req, res) => {
+      return res.send(API.switchGarageDoor(req.params.deviceId, req.params.state === 'true'));
+    });
+
     this._app.get('/shutter/:deviceId/:level', (req, res) => {
       return res.send(API.setShutter(req.params.deviceId, parseInt(req.params.level)));
     });

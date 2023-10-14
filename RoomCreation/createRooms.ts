@@ -48,6 +48,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeUbisysLampe: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
   ShellyTrv: { name: 'Heater', deviceClass: 'Shelly' },
+  TuyaGarageOpener: { name: 'GarageDoor', deviceClass: 'Tuya' },
 };
 
 interface RoomModel {
@@ -147,6 +148,7 @@ function createRooms(): void {
       ZigbeeUbisysLampe: 'hoffmation-base/lib',
       ZigbeeUbisysShutter: 'hoffmation-base/lib',
       ShellyTrv: 'hoffmation-base/lib',
+      TuyaGarageOpener: 'hoffmation-base/lib',
     };
 
     public constructor(roomDefinition: RoomModel) {
@@ -584,6 +586,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isSmoke: boolean = false;
     public isWater: boolean = false;
     public isHeater: boolean = false;
+    public isGarageDoor: boolean = false;
     public hasTemperatur: boolean = false;
     public hasHumidity: boolean = false;
     public windowID: number | undefined;
@@ -627,6 +630,9 @@ ${this.className}.prepareDeviceAdding();`);
           this.isIoBrokerDevice = true;
           break;
         case 'Shelly':
+          this.isIoBrokerDevice = true;
+          break;
+        case 'Tuya':
           this.isIoBrokerDevice = true;
           break;
         case 'Window':
@@ -708,6 +714,9 @@ ${this.className}.prepareDeviceAdding();`);
         case 'ZigbeeSonoffTemp':
           this.hasHumidity = true;
           this.hasTemperatur = true;
+          break;
+        case 'TuyaGarageOpener':
+          this.isGarageDoor = true;
           break;
       }
       if (this.isCamera) {
