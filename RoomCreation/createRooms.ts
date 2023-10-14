@@ -3,7 +3,7 @@ import config from '../config/private/roomConfig.json';
 
 const fs = require('fs');
 
-const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
+const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overideDeviceType?: string } } = {
   Camera: { name: 'Camera', deviceClass: 'Camera' },
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
@@ -48,7 +48,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string } } = {
   ZigbeeUbisysLampe: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
   ShellyTrv: { name: 'Heater', deviceClass: 'Shelly' },
-  TuyaGarageOpener: { name: 'GarageDoor', deviceClass: 'Tuya' },
+  TuyaGarageOpener: { name: 'GarageDoor', deviceClass: 'Tuya', overideDeviceType: 'TuyaGarageDoorOpener' },
 };
 
 interface RoomModel {
@@ -319,7 +319,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
               `this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`,
             );
             bottomDeviceBuilder.push(
-              `\t\tioDevices.addDevice(DeviceType.${type}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
+              `\t\tioDevices.addDevice(DeviceType.${device.deviceTypeOveride}, ${this.className}.${device.setIdName}, ${device.roomIndex}, '${device.nameLong}');`,
             );
             if (!noGetter) {
               getterBuilder.push(
@@ -563,6 +563,7 @@ ${this.className}.prepareDeviceAdding();`);
     public room: string;
     public customName: string | undefined;
     public deviceType: string;
+    public deviceTypeOveride: string;
     public deviceClass: string;
     public roomIndex: number;
     public nameShort: string;
@@ -598,7 +599,8 @@ ${this.className}.prepareDeviceAdding();`);
     public constructor(roomkey: string, deviceDefinition: DeviceModel) {
       this.room = roomkey;
       this.deviceType = deviceDefinition.deviceType;
-      const translatedDeviceType: { name: string; deviceClass: string } | undefined = DEVICE_TYPE[this.deviceType];
+      const translatedDeviceType: { name: string; deviceClass: string; overideDeviceType?: string } | undefined =
+        DEVICE_TYPE[this.deviceType];
       if (translatedDeviceType === undefined) {
         throw new Error(`Invalid/Unsuported Device type "${this.deviceType}"`);
       }
@@ -606,6 +608,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.deviceClass = translatedDeviceType.deviceClass;
       this.roomIndex = deviceDefinition.indexInRoom;
       this.defaultName = translatedDeviceType.name;
+      this.deviceTypeOveride = translatedDeviceType.overideDeviceType ?? this.deviceType;
       if (this.roomIndex > 1) {
         this.defaultName += `_${this.roomIndex}`;
       }
