@@ -24,14 +24,14 @@
     "build": "tsc",
     "start": "node lib/src/index.js",
     "pg-test": "tsc && node lib/src/tests/pg-test.js",
-    "config-test": "tsc && node lib/src/tests/config-test.js",
+    "config-test": "ts-node src/tests/config-test.ts",
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms && npm run build",
     "check-package-upgrades": "npx npm-check-updates -i"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.18.2",
-    "hoffmation-base": "^2.18.13"
+    "hoffmation-base": "^2.19.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.14",
