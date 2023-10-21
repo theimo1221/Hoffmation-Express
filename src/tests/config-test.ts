@@ -8,7 +8,7 @@ import {
 import devJson from '../../config/private/devices.json';
 import config from '../../config/private/mainConfig.json';
 import { RoomImportEnforcer } from '../OwnRooms/RoomImportEnforcer';
-import { API, SettingsService } from 'hoffmation-base';
+import { SettingsService } from 'hoffmation-base';
 
 export class ConfigTest {
   public static async start(): Promise<void> {
