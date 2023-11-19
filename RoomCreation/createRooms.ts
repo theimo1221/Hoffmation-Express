@@ -23,6 +23,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   HmIpWippe: { name: 'Wippschalter', deviceClass: 'HmIP' },
   MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
   Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
+  Govee: { name: 'Govee', deviceClass: 'Govee' },
   ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeAqaraOpple3Switch: { name: 'Switch6Buttons', deviceClass: 'Zigbee' },
   ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
@@ -70,6 +71,7 @@ interface DeviceModel {
   deviceType: string;
   indexInRoom: number;
   ipAddress?: string;
+  macAddress?: string;
   blueIrisName?: string;
   mqttFolderName?: string;
   customName?: string;
@@ -109,6 +111,7 @@ function createRooms(): void {
       Camera: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
       Espresense: 'hoffmation-base/lib',
+      Govee: 'hoffmation-base/lib',
       HmIpAccessPoint: 'hoffmation-base/lib',
       HmIpBewegung: 'hoffmation-base/lib',
       HmIpGriff: 'hoffmation-base/lib',
@@ -252,6 +255,11 @@ import { SpeakerGroup } from 'hoffmation-base/lib';`);
             `import { OwnSonosDevice } from '${Room.includesDict[type]}';
 import { OwnSonosDevices } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'Govee') {
+          this.fileBuilder.push(
+            `import { OwnGoveeDevice } from '${Room.includesDict[type]}';
+import { OwnGoveeDevices } from 'hoffmation-base/lib';`,
+          );
         } else if (type === 'Daikin') {
           this.fileBuilder.push(
             `import { OwnDaikinDevice } from '${Room.includesDict[type]}';
@@ -309,9 +317,19 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
         for (const index in cDevices) {
           const device: Device = cDevices[index];
           const noGetter: boolean =
-            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
+            device.isSonos ||
+            device.isGovee ||
+            device.isWindow ||
+            device.isDaikin ||
+            device.isEspresense ||
+            device.isCamera;
           const noID: boolean =
-            device.isSonos || device.isWindow || device.isDaikin || device.isEspresense || device.isCamera;
+            device.isSonos ||
+            device.isGovee ||
+            device.isWindow ||
+            device.isDaikin ||
+            device.isEspresense ||
+            device.isCamera;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
           if (device.isIoBrokerDevice) {
@@ -328,6 +346,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             }
           } else if (device.isSonos) {
             bottomDeviceBuilder.push(`OwnSonosDevices.addDevice(${this.className}.SN${device.nameShort});`);
+          } else if (device.isGovee) {
+            bottomDeviceBuilder.push(`OwnGoveeDevices.addDevice(${this.className}.${device.nameShort});`);
           } else if (device.isDaikin) {
             postRoomSettingsBuilder.push(`OwnAcDevices.addDevice(${this.className}.${device.nameShort});`);
           }
@@ -462,6 +482,13 @@ ${this.className}.prepareDeviceAdding();`);
             variablesBuilder.push(
               `public static SN${d.nameShort}: OwnSonosDevice = new OwnSonosDevice('${d.nameShort}', this.roomName, undefined);`,
             );
+          } else if (d.isGovee) {
+            variablesBuilder.push(
+              `public static ${d.nameShort}: OwnGoveeDevice = new OwnGoveeDevice('${d.macAddress}','${d.nameShort}', this.roomName, undefined);`,
+            );
+            if (d.includeInGroup) {
+              led.push(`${completeName}.id`);
+            }
           } else if (d.isCamera) {
             variablesBuilder.push(`public static ${d.nameShort}: CameraDevice;`);
             postRoomSettingsBuilder.push(
@@ -557,6 +584,7 @@ ${this.className}.prepareDeviceAdding();`);
   class Device {
     public idName: string;
     public ipAddress: string = '';
+    public macAddress: string = '';
     public blueIrisName: string = '';
     public mqttFolderName: string = '';
     public setIdName: string;
@@ -571,6 +599,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isIoBrokerDevice: boolean = false;
     public isWindow: boolean = false;
     public isSonos: boolean = false;
+    public isGovee: boolean = false;
     public isCamera: boolean = false;
     public isDaikin: boolean = false;
     public isEspresense: boolean = false;
@@ -623,6 +652,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.idName = `id${this.nameShort}`;
       this.setIdName = `set${this.idName.charAt(0).toUpperCase()}${this.idName.substr(1)}`;
       this.ipAddress = deviceDefinition.ipAddress ?? '';
+      this.macAddress = deviceDefinition.macAddress ?? '';
       this.blueIrisName = deviceDefinition.blueIrisName ?? '';
       this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       switch (this.deviceClass) {
@@ -643,6 +673,9 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'Sonos':
           this.isSonos = true;
+          break;
+        case 'Govee':
+          this.isGovee = true;
           break;
         case 'Camera':
           this.isCamera = true;
@@ -724,6 +757,9 @@ ${this.className}.prepareDeviceAdding();`);
       }
       if (this.isCamera) {
         this.groupN.push(`Camera`);
+      }
+      if (this.isGovee) {
+        this.groupN.push(`Govee`);
       }
       if (this.windowID !== undefined && this.windowID > 0) {
         this.groupN.push(`Window_${this.windowID}`);
