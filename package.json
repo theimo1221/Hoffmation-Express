@@ -31,7 +31,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.18.2",
-    "hoffmation-base": "^2.20.5"
+    "hoffmation-base": "^2.21.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
