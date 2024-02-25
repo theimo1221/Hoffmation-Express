@@ -501,7 +501,7 @@ ${this.className}.prepareDeviceAdding();`);
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
             postRoomSettingsBuilder.push(
-              `   ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined);`,
+              `   ${completeName} = new OwnDaikinDevice('${d.nameShort}', ${this.className}.roomName, '${d.ipAddress}', undefined, '${d.macAddress}');`,
             );
           } else if (d.isEspresense) {
             if (d.coordinate === undefined) {
