@@ -371,7 +371,7 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
       bottomDeviceBuilder.push(`
     
     const initSettings: RoomInitializationSettings = new RoomInitializationSettings('${this.nameShort}')
-    initSettings.deviceAddidngSettings = ioDevices;
+    initSettings.deviceAddingSettings = ioDevices;
     RoomInitializationSettings.registerRoomForDevices(initSettings);
     }`);
       this.fileBuilder.push(bottomDeviceBuilder.join('\n'));
