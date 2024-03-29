@@ -1,18 +1,33 @@
 {
-  "ioBrokerUrl": "http://xxx.xxx.xxx.xxx:8xx4",
-  "timeSettings": {
-    "nightStart": {
-      "hours": 23,
-      "minutes": 45
-    },
-    "nightEnd": {
-      "hours": 6,
-      "minutes": 30
-    }
+  "blockAutomaticHandlerDefaults": {
+    "revertToAutomaticAtBlockLift": true,
+    "blockAutomaticDurationMS": 3600000,
+    "defaultCollisionSolving": 1
+  },
+  "ioBroker": {
+    "ioBrokerUrl": "http://xxx.xxx.xxx.xxx:8xx4",
+    "useZigbee2mqtt": true
+  },
+  "goveeDevicesPresent": false,
+  "heaterSettings": {
+    "allowAcHeating": true,
+    "mode": 1
   },
   "logSettings": {
     "logLevel": 4,
     "useTimestamp": true
+  },
+  "mp3Server": {
+    "path": "//XXXXXXXXXX/XXXXX/XXXXXX/XXX/ttsMP3/",
+    "serverAddress": "http://xxx.xxx.xxx.xxx:8081"
+  },
+  "muell": {
+    "calendarURL": "https://xxxxxxxxxxxxxxxxxxxxx.de/abfuhrkalender?format=ical&street=xxxxxxxx&number=xx"
+  },
+  "news": {
+    "rssUrl": "https://www1.wdr.de/mediathek/audio/wdr-aktuell-news/wdr-aktuell-152.podcast",
+    "requestInterval": 30,
+    "keepMaxAge": 120
   },
   "restServer":  {
     "active": true,
@@ -43,30 +58,6 @@
     "ambientLightAfterSunset": false,
     "includeLampsInNormalMovementLightning": false
   },
-  "telegram": {
-    "logLevel": 1,
-    "telegramToken": "15xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxXU",
-    "allowedIDs": [
-      111111111,
-      111111111
-    ],
-    "subscribedIDs": [
-      111111111,
-      111111111
-    ]
-  },
-  "mp3Server": {
-    "path": "//XXXXXXXXXX/XXXXX/XXXXXX/XXX/ttsMP3/",
-    "serverAddress": "http://xxx.xxx.xxx.xxx:8081"
-  },
-  "muell": {
-    "calendarURL": "https://xxxxxxxxxxxxxxxxxxxxx.de/abfuhrkalender?format=ical&street=xxxxxxxx&number=xx"
-  },
-  "news": {
-    "rssUrl": "https://www1.wdr.de/mediathek/audio/wdr-aktuell-news/wdr-aktuell-152.podcast",
-    "requestInterval": 30,
-    "keepMaxAge": 120
-  },
   "persistence": {
     "mongoConnection": "mongodb://localhost:2701",
     "mongoDbName": "hoffmation"
@@ -81,6 +72,28 @@
   },
   "sonos": {
     "active": false
+  },
+  "timeSettings": {
+    "nightStart": {
+      "hours": 23,
+      "minutes": 45
+    },
+    "nightEnd": {
+      "hours": 6,
+      "minutes": 30
+    }
+  },
+  "telegram": {
+    "logLevel": 1,
+    "telegramToken": "15xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxXU",
+    "allowedIDs": [
+      111111111,
+      111111111
+    ],
+    "subscribedIDs": [
+      111111111,
+      111111111
+    ]
   },
   "translationSettings": {
     "language": "en"

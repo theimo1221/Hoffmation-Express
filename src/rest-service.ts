@@ -97,27 +97,37 @@ export class RestService {
     });
 
     this._app.get('/lamps/:deviceId/:state/:duration?', (req, res) => {
-      const timeout: number | undefined = this.getTimeout(req.params.duration);
+      const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.duration);
       return res.send(
         API.lampSetLight(
           req.params.deviceId,
-          new LampSetLightCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req), timeout),
+          new LampSetLightCommand(
+            CommandSource.API,
+            req.params.state === 'true',
+            this.getClientInfo(req),
+            blockCommand,
+          ),
         ),
       );
     });
 
     this._app.get('/actuator/:deviceId/:state/:duration?', (req, res) => {
-      const timeout: number | undefined = this.getTimeout(req.params.duration);
+      const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.duration);
       return res.send(
         API.actuatorSetState(
           req.params.deviceId,
-          new ActuatorSetStateCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req), timeout),
+          new ActuatorSetStateCommand(
+            CommandSource.API,
+            req.params.state === 'true',
+            this.getClientInfo(req),
+            blockCommand,
+          ),
         ),
       );
     });
 
     this._app.get('/dimmer/:deviceId/:state/:brightness?/:forceDuration?', (req, res) => {
-      const timeout: number | undefined = this.getTimeout(req.params.forceDuration);
+      const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.forceDuration);
       const brightness: number | undefined = this.getIntParameter(req.params.brightness, false);
       return res.send(
         API.dimmerSetLight(
@@ -126,7 +136,7 @@ export class RestService {
             CommandSource.API,
             req.params.state === 'true',
             this.getClientInfo(req),
-            timeout,
+            blockCommand,
             brightness,
           ),
         ),
@@ -134,7 +144,7 @@ export class RestService {
     });
 
     this._app.get('/led/:deviceId/:state/:brightness/:color/:forceDuration?', (req, res) => {
-      const timeout: number | undefined = this.getTimeout(req.params.forceDuration);
+      const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.forceDuration);
       return res.send(
         API.ledSetLight(
           req.params.deviceId,
@@ -142,7 +152,7 @@ export class RestService {
             CommandSource.API,
             req.params.state === 'true',
             this.getClientInfo(req),
-            timeout,
+            blockCommand,
             parseFloat(req.params.brightness),
             undefined,
             req.params.color,
@@ -166,7 +176,7 @@ export class RestService {
     });
 
     this._app.get('/scene/:deviceId/start/:timeout', (req, res) => {
-      const timeout: number | undefined = this.getTimeout(req.params.timeout);
+      const timeout: number | undefined = this.getIntParameter(req.params.timeout, true);
       return res.send(API.startScene(req.params.deviceId, timeout));
     });
 
@@ -238,8 +248,15 @@ export class RestService {
     return `Client (user-agent: "${req.headers['user-agent']}", ip: ${req.ip})`;
   }
 
-  private static getTimeout(timeoutParameter: string | undefined): number | undefined {
-    return this.getIntParameter(timeoutParameter, true);
+  private static getBlockComand(timeoutParameter: string | undefined): BlockAutomaticCommand | undefined | null {
+    const timeout: number | undefined = this.getIntParameter(timeoutParameter, false);
+    if (timeout === undefined) {
+      return undefined;
+    }
+    if (timeout < 0) {
+      return null;
+    }
+    return new BlockAutomaticCommand(CommandSource.API, timeout, 'API timeout duration given');
   }
 
   private static getIntParameter(
