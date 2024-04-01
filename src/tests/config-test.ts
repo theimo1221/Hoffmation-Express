@@ -22,7 +22,7 @@ export class ConfigTest {
     console.log(`Devices amount: ${Object.keys(Devices.alLDevices).length}`);
     if (SettingsService.heatMode === HeatingMode.Winter) {
       console.log(`Desired Heating Mode Winter`);
-    } else if (SettingsService.heatMode === HeatingMode.Sommer) {
+    } else if (SettingsService.heatMode === HeatingMode.Summer) {
       console.log(`Desired Heating Mode Summer`);
     }
     process.exit(1);
