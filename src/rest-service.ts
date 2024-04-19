@@ -103,6 +103,7 @@ export class RestService {
         res.status(404);
         return res.send();
       }
+      camera.log(LogLevel.Debug, 'API Requested last motion image');
       return res.send(camera.lastImage);
     });
 
