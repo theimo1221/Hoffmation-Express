@@ -6,6 +6,7 @@ import {
   API,
   BlockAutomaticCommand,
   BlockAutomaticLiftBlockCommand,
+  CameraDevice,
   CommandSource,
   DimmerSetLightCommand,
   iRestSettings,
@@ -94,6 +95,15 @@ export class RestService {
 
     this._app.get('/ac/:acId/power/:mode/:temp', (req, res) => {
       return res.send(API.setAc(req.params.acId, true, parseInt(req.params.mode) as AcMode, parseInt(req.params.temp)));
+    });
+
+    this._app.get('/camera/:cameraId/lastMotionImage', (req, res) => {
+      const camera: CameraDevice | undefined = API.getDevice(req.params.cameraId) as CameraDevice | undefined;
+      if (camera === undefined) {
+        res.status(404);
+        return res.send();
+      }
+      return res.send(camera.lastImage);
     });
 
     this._app.get('/lamps/:deviceId/:state/:duration?', (req, res) => {
