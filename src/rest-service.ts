@@ -233,10 +233,7 @@ export class RestService {
     });
 
     this._app.get('/device/:deviceId/blockAutomatic/:timeout', (req, res) => {
-      let timeout: number | undefined = parseInt(req.params.timeout);
-      if (timeout === 0 || isNaN(timeout)) {
-        timeout = undefined;
-      }
+      const timeout: number | undefined = this.getIntParameter(req.params.timeout, true);
       API.blockAutomaticSetBlock(
         req.params.deviceId,
         new BlockAutomaticCommand(CommandSource.API, timeout ?? 60 * 60 * 1000, this.getClientInfo(req)),
