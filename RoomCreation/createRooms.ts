@@ -484,7 +484,7 @@ ${this.className}.prepareDeviceAdding();`);
             );
           } else if (d.isGovee) {
             variablesBuilder.push(
-              `public static ${d.nameShort}: OwnGoveeDevice = new OwnGoveeDevice('${d.macAddress}','${d.nameShort}', this.roomName, undefined);`,
+              `public static ${d.nameShort}: OwnGoveeDevice = new OwnGoveeDevice('${d.macAddress}','${d.nameShort}', this.roomName);`,
             );
             if (d.includeInGroup) {
               led.push(`${completeName}.id`);
