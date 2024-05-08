@@ -49,6 +49,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   ZigbeeUbisysLampe: { name: 'Shutter', deviceClass: 'Zigbee' },
   ZigbeeUbisysShutter: { name: 'Shutter', deviceClass: 'Zigbee' },
   ShellyTrv: { name: 'Heater', deviceClass: 'Shelly' },
+  ShellyActuator: { name: 'Actuator', deviceClass: 'Shelly' },
   TuyaGarageOpener: { name: 'GarageDoor', deviceClass: 'Tuya', overideDeviceType: 'TuyaGarageDoorOpener' },
 };
 
@@ -151,6 +152,7 @@ function createRooms(): void {
       ZigbeeUbisysLampe: 'hoffmation-base/lib',
       ZigbeeUbisysShutter: 'hoffmation-base/lib',
       ShellyTrv: 'hoffmation-base/lib',
+      ShellyActuator: 'hoffmation-base/lib',
       TuyaGarageOpener: 'hoffmation-base/lib',
     };
 
