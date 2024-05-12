@@ -24,6 +24,9 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   MieleWasch: { name: 'Waschmaschine', deviceClass: 'Miele' },
   Sonos: { name: 'Sonos', deviceClass: 'Sonos' },
   Govee: { name: 'Govee', deviceClass: 'Govee' },
+  SmartGardenMower: { name: 'Mower', deviceClass: 'SmartGarden' },
+  SmartGardenSensor: { name: 'Soil Sensor', deviceClass: 'SmartGarden' },
+  SmartGardenValve: { name: 'Valve', deviceClass: 'SmartGarden' },
   ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeAqaraOpple3Switch: { name: 'Switch6Buttons', deviceClass: 'Zigbee' },
   ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
@@ -79,6 +82,7 @@ interface DeviceModel {
   windowID?: number;
   includeInGroup: boolean;
   coordinate?: Coordinate;
+  smartGardenId?: string;
 }
 
 interface RoomConfigModel {
@@ -127,6 +131,9 @@ function createRooms(): void {
       HmIpWippe: 'hoffmation-base/lib',
       Window: 'hoffmation-base/lib',
       Sonos: 'hoffmation-base/lib',
+      SmartGardenMower: 'hoffmation-base/lib',
+      SmartGardenSensor: 'hoffmation-base/lib',
+      SmartGardenValve: 'hoffmation-base/lib',
       ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
       ZigbeeAqaraOpple3Switch: 'hoffmation-base/lib',
       ZigbeeAquaraMotion: 'hoffmation-base/lib',
@@ -249,6 +256,8 @@ import { TasterGroup } from 'hoffmation-base/lib';
 import { SmokeGroup } from 'hoffmation-base/lib';
 import { WaterGroup } from 'hoffmation-base/lib';
 import { HeatGroup } from 'hoffmation-base/lib';
+import { SmartGardenDeviceRegistrationInfo } from 'hoffmation-base/lib';
+import { SmartGardenService } from 'hoffmation-base/lib';
 import { SpeakerGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
@@ -334,6 +343,18 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             device.isCamera;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
           !noGetter && getterBuilder.push(`\n  public static get ${device.nameShort}(): ${type} {`);
+          if (device.isSmartGarden) {
+            if (device.smartGardenId === undefined) {
+              throw new Error(`SmartGardenId not defined for ${device.nameShort} in room ${this.nameShort}`);
+            }
+            bottomDeviceBuilder.push(`SmartGardenService.preRegisterDevice('${device.smartGardenId}', new SmartGardenDeviceRegistrationInfo(
+    DeviceType.${device.deviceType},
+    '${device.smartGardenId}',
+    '${device.nameShort}',
+    '${device.room}',
+    ${device.roomIndex},
+  ));`);
+          }
           if (device.isIoBrokerDevice) {
             clusterInitializerBuilder.push(
               `this._deviceCluster.addByDeviceType(${this.className}.${device.nameShort});`,
@@ -601,6 +622,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isIoBrokerDevice: boolean = false;
     public isWindow: boolean = false;
     public isSonos: boolean = false;
+    public isSmartGarden: boolean = false;
     public isGovee: boolean = false;
     public isCamera: boolean = false;
     public isDaikin: boolean = false;
@@ -623,6 +645,7 @@ ${this.className}.prepareDeviceAdding();`);
     public hasHumidity: boolean = false;
     public windowID: number | undefined;
     public coordinate: Coordinate | undefined;
+    public smartGardenId: string | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
     private defaultName: string;
@@ -657,6 +680,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.macAddress = deviceDefinition.macAddress ?? '';
       this.blueIrisName = deviceDefinition.blueIrisName ?? '';
       this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
+      this.smartGardenId = deviceDefinition.smartGardenId;
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
@@ -675,6 +699,10 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'Sonos':
           this.isSonos = true;
+          break;
+        case 'SmartGarden':
+          this.isSmartGarden = true;
+          this.isIoBrokerDevice = true;
           break;
         case 'Govee':
           this.isGovee = true;
