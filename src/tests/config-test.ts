@@ -25,6 +25,21 @@ export class ConfigTest {
     } else if (SettingsService.heatMode === HeatingMode.Summer) {
       console.log(`Desired Heating Mode Summer`);
     }
+    // const updater = new DeviceUpdater();
+    // updater.updateState(
+    //   'klf200.0.products.0.currentPosition',
+    //   {
+    //     ts: Date.now(),
+    //     lc: Date.now(),
+    //     from: 'internal',
+    //     val: 50,
+    //     ack: true,
+    //   },
+    //   false,
+    // );
+    // setTimeout(() => {
+    //   process.exit(1);
+    // }, 5000);
     process.exit(1);
   }
 }
