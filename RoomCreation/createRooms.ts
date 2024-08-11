@@ -27,6 +27,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   SmartGardenMower: { name: 'Mower', deviceClass: 'SmartGarden' },
   SmartGardenSensor: { name: 'Soil Sensor', deviceClass: 'SmartGarden' },
   SmartGardenValve: { name: 'Valve', deviceClass: 'SmartGarden' },
+  VeluxShutter: { name: 'Shutter', deviceClass: 'Velux' },
   ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeAqaraOpple3Switch: { name: 'Switch6Buttons', deviceClass: 'Zigbee' },
   ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
@@ -83,6 +84,7 @@ interface DeviceModel {
   includeInGroup: boolean;
   coordinate?: Coordinate;
   smartGardenId?: string;
+  veluxProductId?: string;
 }
 
 interface RoomConfigModel {
@@ -134,6 +136,7 @@ function createRooms(): void {
       SmartGardenMower: 'hoffmation-base/lib',
       SmartGardenSensor: 'hoffmation-base/lib',
       SmartGardenValve: 'hoffmation-base/lib',
+      VeluxShutter: 'hoffmation-base/lib',
       ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
       ZigbeeAqaraOpple3Switch: 'hoffmation-base/lib',
       ZigbeeAquaraMotion: 'hoffmation-base/lib',
@@ -258,6 +261,8 @@ import { WaterGroup } from 'hoffmation-base/lib';
 import { HeatGroup } from 'hoffmation-base/lib';
 import { SmartGardenDeviceRegistrationInfo } from 'hoffmation-base/lib';
 import { SmartGardenService } from 'hoffmation-base/lib';
+import { VeluxService } from 'hoffmation-base/lib';
+import { VeluxDeviceRegistrationInfo } from 'hoffmation-base/lib';
 import { SpeakerGroup } from 'hoffmation-base/lib';`);
 
       for (const type in this.devices) {
@@ -352,6 +357,18 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     '${device.smartGardenId}',
     '${device.nameShort}',
     '${device.room}',
+    ${device.roomIndex},
+  ));`);
+          } else if (device.isVelux) {
+            if (device.veluxProductId === undefined) {
+              throw new Error(`VeluxProductId not defined for ${device.nameShort} in room ${this.nameShort}`);
+            }
+            bottomDeviceBuilder.push(
+              `VeluxService.preRegisterDevice('00-Velux-${this.nameShort}-${device.deviceType}-${device.roomIndex}', new VeluxDeviceRegistrationInfo(
+    DeviceType.${device.deviceType},
+    '${device.veluxProductId}',
+    '${device.nameShort}',
+    '${this.nameShort}',
     ${device.roomIndex},
   ));`);
           }
@@ -623,6 +640,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isWindow: boolean = false;
     public isSonos: boolean = false;
     public isSmartGarden: boolean = false;
+    public isVelux: boolean = false;
     public isGovee: boolean = false;
     public isCamera: boolean = false;
     public isDaikin: boolean = false;
@@ -646,6 +664,7 @@ ${this.className}.prepareDeviceAdding();`);
     public windowID: number | undefined;
     public coordinate: Coordinate | undefined;
     public smartGardenId: string | undefined;
+    public veluxProductId: string | undefined;
     public includeInGroup: boolean;
     public groupN: string[] = [];
     private defaultName: string;
@@ -681,6 +700,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.blueIrisName = deviceDefinition.blueIrisName ?? '';
       this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       this.smartGardenId = deviceDefinition.smartGardenId;
+      this.veluxProductId = deviceDefinition.veluxProductId;
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
@@ -702,6 +722,10 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'SmartGarden':
           this.isSmartGarden = true;
+          this.isIoBrokerDevice = true;
+          break;
+        case 'Velux':
+          this.isVelux = true;
           this.isIoBrokerDevice = true;
           break;
         case 'Govee':
@@ -738,6 +762,7 @@ ${this.className}.prepareDeviceAdding();`);
         case 'HmIpRoll':
         case 'ZigbeeIlluShutter':
         case 'ZigbeeUbisysShutter':
+        case 'VeluxShutter':
           this.isRollo = true;
           break;
         case 'HmIpGriff':
