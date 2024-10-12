@@ -47,6 +47,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   ZigbeeLinkindLedRgbCct: { name: 'LED Bulb', deviceClass: 'Zigbee' },
   ZigbeeOsramDimmer: { name: 'Dimmer', deviceClass: 'Zigbee' },
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
+  ZigbeeSodaHandle: { name: 'Griff', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
   ZigbeeUbisysAcuator: { name: 'Shutter', deviceClass: 'Zigbee' },
@@ -156,6 +157,7 @@ function createRooms(): void {
       ZigbeeLinkindLedRgbCct: 'hoffmation-base/lib',
       ZigbeeOsramDimmer: 'hoffmation-base/lib',
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
+      ZigbeeSodaHandle: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
       ZigbeeUbisysAcuator: 'hoffmation-base/lib',
@@ -767,6 +769,11 @@ ${this.className}.prepareDeviceAdding();`);
           break;
         case 'HmIpGriff':
           this.isGriff = true;
+          break;
+        case 'ZigbeeSodaHandle':
+          this.isGriff = true;
+          this.hasHumidity = true;
+          this.hasTemperatur = true;
           break;
         case 'HmIpLampe':
         case 'ZigbeeIlluDimmer':
