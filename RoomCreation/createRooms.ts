@@ -372,7 +372,8 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
     '${device.nameShort}',
     '${this.nameShort}',
     ${device.roomIndex},
-  ));`);
+  ));`,
+            );
           }
           if (device.isIoBrokerDevice) {
             clusterInitializerBuilder.push(
@@ -825,7 +826,9 @@ ${this.className}.prepareDeviceAdding();`);
       }
       if (this.windowID !== undefined && this.windowID > 0) {
         this.groupN.push(`Window_${this.windowID}`);
-      } else if (this.includeInGroup) {
+      }
+
+      if (this.includeInGroup) {
         if (this.isBeweg) {
           this.groupN.push(`Beweg`);
         }
