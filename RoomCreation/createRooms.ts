@@ -86,6 +86,7 @@ interface DeviceModel {
   coordinate?: Coordinate;
   smartGardenId?: string;
   veluxProductId?: string;
+  ignore?: boolean;
 }
 
 interface RoomConfigModel {
@@ -639,6 +640,7 @@ ${this.className}.prepareDeviceAdding();`);
     public roomIndex: number;
     public nameShort: string;
     public nameLong: string;
+    public ignore: boolean = false;
     public isIoBrokerDevice: boolean = false;
     public isWindow: boolean = false;
     public isSonos: boolean = false;
@@ -704,6 +706,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       this.smartGardenId = deviceDefinition.smartGardenId;
       this.veluxProductId = deviceDefinition.veluxProductId;
+      this.ignore = deviceDefinition.ignore ?? false;
       switch (this.deviceClass) {
         case 'Zigbee':
           this.isIoBrokerDevice = true;
@@ -896,6 +899,9 @@ ${this.className}.prepareDeviceAdding();`);
     addDevices(roomKey: string, deviceModels: DeviceModel[]): void {
       for (let i = 0; i < deviceModels.length; i++) {
         const device: Device = new Device(roomKey, deviceModels[i]);
+        if (device.ignore) {
+          continue;
+        }
         if (this.rooms[roomKey] === undefined) {
           throw new Error(`Unknown Room ("${roomKey}") within device: ${device.nameLong}`);
         }
