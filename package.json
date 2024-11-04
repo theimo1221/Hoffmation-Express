@@ -30,8 +30,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "4.19.2",
-    "hoffmation-base": "^3.0.0-alpha.95"
+    "express": "4.21.1",
+    "hoffmation-base": "^3.0.0-alpha.96"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
