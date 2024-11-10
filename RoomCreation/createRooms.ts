@@ -49,6 +49,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   ZigbeeSMaBiTMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeSodaHandle: { name: 'Griff', deviceClass: 'Zigbee' },
   ZigbeeSonoffMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
+  ZigbeeTuyaMotion: { name: 'Motion Sensor', deviceClass: 'Zigbee' },
   ZigbeeSonoffTemp: { name: 'Temperatur Sensor', deviceClass: 'Zigbee' },
   ZigbeeUbisysActuator: { name: 'Actuator', deviceClass: 'Zigbee' },
   ZigbeeUbisysLampe: { name: 'Light', deviceClass: 'Zigbee' },
@@ -160,6 +161,7 @@ function createRooms(): void {
       ZigbeeSMaBiTMagnetContact: 'hoffmation-base/lib',
       ZigbeeSodaHandle: 'hoffmation-base/lib',
       ZigbeeSonoffMotion: 'hoffmation-base/lib',
+      ZigbeeTuyaMotion: 'hoffmation-base/lib',
       ZigbeeSonoffTemp: 'hoffmation-base/lib',
       ZigbeeUbisysActuator: 'hoffmation-base/lib',
       ZigbeeUbisysLampe: 'hoffmation-base/lib',
@@ -758,6 +760,7 @@ ${this.className}.prepareDeviceAdding();`);
         case 'HmIpBewegung':
         case 'ZigbeeAquaraMotion':
         case 'ZigbeeSonoffMotion':
+        case 'ZigbeeTuyaMotion':
         case 'HmIpPraezenz':
           this.isBeweg = true;
           break;
