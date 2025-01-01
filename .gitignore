@@ -110,6 +110,7 @@ dist
 
 # Personal Config Files
 /config/private/*
+/upload_to_dtrack.sh
 
 # Personal Room Configuration
 /src/OwnRooms/*
