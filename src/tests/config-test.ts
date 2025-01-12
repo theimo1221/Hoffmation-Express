@@ -1,9 +1,9 @@
 import {
-  deviceConfig,
   Devices,
   HeatingMode,
   HoffmationBase,
   HoffmationInitializationObject,
+  iDeviceConfig,
 } from 'hoffmation-base/lib';
 import devJson from '../../config/private/devices.json';
 import config from '../../config/private/mainConfig.json';
@@ -18,7 +18,7 @@ export class ConfigTest {
     init.config.persistence = undefined;
     init.config.muell = undefined;
     await HoffmationBase.initializeBeforeIoBroker(init);
-    new Devices(devJson as { [id: string]: deviceConfig }, new RoomImportEnforcer(), config);
+    new Devices(devJson as { [id: string]: iDeviceConfig }, new RoomImportEnforcer(), config);
     console.log(`Devices amount: ${Object.keys(Devices.alLDevices).length}`);
     if (SettingsService.heatMode === HeatingMode.Winter) {
       console.log(`Desired Heating Mode Winter`);

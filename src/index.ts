@@ -1,9 +1,9 @@
 import express, { Express } from 'express';
 import {
-  deviceConfig,
   Devices,
   HoffmationBase,
   HoffmationInitializationObject,
+  iDeviceConfig,
   OwnSonosDevice,
   SettingsService,
 } from 'hoffmation-base/lib';
@@ -29,7 +29,7 @@ export class Hoffmation {
     /*** Custom initialization end ***/
 
     await HoffmationBase.initializeBeforeIoBroker(this.initializationData);
-    const devices: Devices = new Devices(devJson as { [id: string]: deviceConfig }, new RoomImportEnforcer(), config);
+    const devices: Devices = new Devices(devJson as { [id: string]: iDeviceConfig }, new RoomImportEnforcer(), config);
     HoffmationBase.initializePostRoomCreationBeforeIoBroker();
     HoffmationBase.startIoBroker(devices);
     HoffmationBase.initializePostIoBroker(defaultMuellSonos);

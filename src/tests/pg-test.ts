@@ -1,19 +1,19 @@
 import {
   HoffmationInitializationObject,
   PostgreSqlPersist,
-  Res,
   SettingsService,
   LogLevel,
   ServerLogService,
 } from 'hoffmation-base';
 import config from '../../config/private/mainConfig.json';
+import { Res } from "hoffmation-base/lib/i18n";
 
 export async function pgTest(): Promise<void> {
   const initObject = new HoffmationInitializationObject(config);
   SettingsService.initialize(initObject.config);
   Res.initialize(initObject.config.translationSettings);
   if (initObject.config.logSettings) {
-    ServerLogService.initialize(initObject.config.logSettings);
+    ServerLogService.initialize(initObject.config.logSettings, SettingsService.instance);
   }
   ServerLogService.writeLog(
     LogLevel.Info,

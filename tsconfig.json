@@ -31,7 +31,8 @@
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "./types"],
     "types": ["node"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true,
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*"]
