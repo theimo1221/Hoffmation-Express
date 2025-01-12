@@ -22,7 +22,7 @@
     "lint-fix-rooms": "eslint ./src/OwnRooms/**/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-createRooms": "eslint ./RoomCreation/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "build": "tsc",
-    "start": "node lib/src/index.js",
+    "start": "tsx lib/src/index.js",
     "pg-test": "tsc && node lib/src/tests/pg-test.js",
     "config-test": "tsx src/tests/config-test.ts",
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms && npm run build",
