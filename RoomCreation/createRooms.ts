@@ -81,6 +81,7 @@ interface DeviceModel {
   ipAddress?: string;
   macAddress?: string;
   blueIrisName?: string;
+  unifiName?: string;
   mqttFolderName?: string;
   customName?: string;
   windowID?: number;
@@ -726,6 +727,7 @@ ${this.className}.prepareDeviceAdding();`);
       this.ipAddress = deviceDefinition.ipAddress ?? '';
       this.macAddress = deviceDefinition.macAddress ?? '';
       this.blueIrisName = deviceDefinition.blueIrisName ?? '';
+      this.unifiName = deviceDefinition.unifiName ?? '';
       this.mqttFolderName = deviceDefinition.mqttFolderName ?? '';
       this.smartGardenId = deviceDefinition.smartGardenId;
       this.veluxProductId = deviceDefinition.veluxProductId;
