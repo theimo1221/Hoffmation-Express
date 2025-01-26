@@ -18,6 +18,9 @@
   },
   "homepage": "https://github.com/theimo1221/Hoffmation-Express#readme",
   "scripts": {
+    "bun-config-test": "bun ts-node RoomCreation/createRooms.ts && bun run lint-fix-rooms && bun run build",
+    "bun-create-rooms": "bun run create-rooms",
+    "bun-start": "bun run start",
     "lint-fix-all": "eslint ./src/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-rooms": "eslint ./src/OwnRooms/**/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-createRooms": "eslint ./RoomCreation/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
@@ -31,7 +34,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.21.1",
-    "hoffmation-base": "^3.2.0"
+    "hoffmation-base": "^3.2.1-alpha.0"
   },
   "devDependencies": {
     "@iobroker/types": "^7.0.6",
