@@ -24,7 +24,7 @@
     "lint-fix-all": "eslint ./src/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-rooms": "eslint ./src/OwnRooms/**/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
     "lint-fix-createRooms": "eslint ./RoomCreation/{*.ts,*.js} --fix --no-error-on-unmatched-pattern",
-    "build": "tsc",
+    "build": "tsc --build --clean",
     "start": "tsx lib/src/index.js --no-cache",
     "pg-test": "tsc && node lib/src/tests/pg-test.js",
     "config-test": "tsx src/tests/config-test.ts --no-cache",
