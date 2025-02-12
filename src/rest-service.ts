@@ -64,8 +64,8 @@ export class RestService {
       return res.send(API.getDevices());
     });
 
-    this._app.post('/restart/actuator', (req, res) => {
-      const deviceId: string = req.body.deviceId;
+    this._app.post('/actuator/:deviceId/restart', (req, res) => {
+      const deviceId: string = req.params.deviceId;
       const clientInfo: string = this.getClientInfo(req);
       return res.send(this.restartDevice(deviceId, clientInfo));
     });
