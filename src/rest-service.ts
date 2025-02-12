@@ -64,6 +64,12 @@ export class RestService {
       return res.send(API.getDevices());
     });
 
+    this._app.post('/actuator/restart/', (req, res) => {
+      const deviceId: string = req.body.deviceId;
+      const clientInfo: string = this.getClientInfo(req);
+      return res.send(this.restartDevice(deviceId, clientInfo));
+    });
+
     this._app.get('/devices/:deviceId', (req, res) => {
       return res.send(API.getDevice(req.params.deviceId));
     });
@@ -125,11 +131,6 @@ export class RestService {
 
     this._app.get('/actuator/:deviceId/restart', (req, res) => {
       const deviceId: string = req.params.deviceId;
-      const clientInfo: string = this.getClientInfo(req);
-      return res.send(this.restartDevice(deviceId, clientInfo));
-    });
-    this._app.post('/actuator/restart', (req, res) => {
-      const deviceId: string = req.body.deviceId;
       const clientInfo: string = this.getClientInfo(req);
       return res.send(this.restartDevice(deviceId, clientInfo));
     });
