@@ -128,8 +128,8 @@ export class RestService {
       const clientInfo: string = this.getClientInfo(req);
       return res.send(this.restartDevice(deviceId, clientInfo));
     });
-    this._app.post('/actuator/:deviceId/restart', (req, res) => {
-      const deviceId: string = req.params.deviceId;
+    this._app.post('/actuator/restart', (req, res) => {
+      const deviceId: string = req.body.deviceId;
       const clientInfo: string = this.getClientInfo(req);
       return res.send(this.restartDevice(deviceId, clientInfo));
     });
