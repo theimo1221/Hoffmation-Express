@@ -138,22 +138,15 @@ export class RestService {
       );
     });
 
-    this._app.all('/actuator/:deviceId/restart', (req, res) => {
-      const turnOff: Error | null = API.actuatorSetState(
-        req.params.deviceId,
-        new ActuatorSetStateCommand(CommandSource.API, false, `Restart-Off: ${this.getClientInfo(req)}`, null),
-      );
-      if (turnOff !== null) {
-        res.send(turnOff);
-        return;
-      }
-      Utils.guardedTimeout(() => {
-        API.actuatorSetState(
-          req.params.deviceId,
-          new ActuatorSetStateCommand(CommandSource.API, true, `Restart-On: ${this.getClientInfo(req)}`, null),
-        );
-      }, 5000);
-      return res.send(null);
+    this._app.get('/actuator/:deviceId/restart', (req, res) => {
+      const deviceId: string = req.params.deviceId;
+      const clientInfo: string = this.getClientInfo(req);
+      return res.send(this.restartDevice(deviceId, clientInfo));
+    });
+    this._app.post('/actuator/:deviceId/restart', (req, res) => {
+      const deviceId: string = req.params.deviceId;
+      const clientInfo: string = this.getClientInfo(req);
+      return res.send(this.restartDevice(deviceId, clientInfo));
     });
 
     this._app.get('/dimmer/:deviceId/:state/:brightness?/:forceDuration?', (req, res) => {
@@ -269,6 +262,23 @@ export class RestService {
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
     }
+  }
+
+  private static restartDevice(deviceId: string, clientInfo: string): Error | null {
+    const result: Error | null = API.actuatorSetState(
+      deviceId,
+      new ActuatorSetStateCommand(CommandSource.API, false, `Restart-Off: ${clientInfo}`, null),
+    );
+    if (result !== null) {
+      return result;
+    }
+    Utils.guardedTimeout(() => {
+      API.actuatorSetState(
+        deviceId,
+        new ActuatorSetStateCommand(CommandSource.API, true, `Restart-On: ${clientInfo}`, null),
+      );
+    }, 5000);
+    return null;
   }
 
   private static getClientInfo(req: Request): string {
