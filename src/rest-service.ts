@@ -15,6 +15,7 @@ import {
   LogLevel,
   ServerLogService,
   ShutterSetLevelCommand,
+  Utils,
 } from 'hoffmation-base';
 import { RequestHandler } from 'express-serve-static-core';
 
@@ -137,6 +138,24 @@ export class RestService {
       );
     });
 
+    this._app.get('/actuator/:deviceId/restart', (req, res) => {
+      const turnOff: Error | null = API.actuatorSetState(
+        req.params.deviceId,
+        new ActuatorSetStateCommand(CommandSource.API, false, `Restart-Off: ${this.getClientInfo(req)}`, null),
+      );
+      if (turnOff !== null) {
+        res.send(turnOff);
+        return;
+      }
+      Utils.guardedTimeout(() => {
+        API.actuatorSetState(
+          req.params.deviceId,
+          new ActuatorSetStateCommand(CommandSource.API, true, `Restart-On: ${this.getClientInfo(req)}`, null),
+        );
+      }, 5000);
+      return res.send(null);
+    });
+
     this._app.get('/dimmer/:deviceId/:state/:brightness?/:forceDuration?', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.forceDuration);
       const brightness: number | undefined = this.getIntParameter(req.params.brightness, false);
@@ -253,7 +272,7 @@ export class RestService {
   }
 
   private static getClientInfo(req: Request): string {
-    return `Client (user-agent: "${req.headers['user-agent']}", ip: ${req.ip})`;
+    return `Client (user-agent: "${req.headers['user-agent']}", ip: ${req.ip}, endpoint: ${req.path})`;
   }
 
   private static getBlockComand(timeoutParameter: string | undefined): BlockAutomaticCommand | undefined | null {
