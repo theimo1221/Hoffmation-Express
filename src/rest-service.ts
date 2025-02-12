@@ -123,6 +123,17 @@ export class RestService {
       );
     });
 
+    this._app.get('/actuator/:deviceId/restart', (req, res) => {
+      const deviceId: string = req.params.deviceId;
+      const clientInfo: string = this.getClientInfo(req);
+      return res.send(this.restartDevice(deviceId, clientInfo));
+    });
+    this._app.post('/actuator/:deviceId/restart', (req, res) => {
+      const deviceId: string = req.params.deviceId;
+      const clientInfo: string = this.getClientInfo(req);
+      return res.send(this.restartDevice(deviceId, clientInfo));
+    });
+
     this._app.get('/actuator/:deviceId/:state/:duration?', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.duration);
       return res.send(
@@ -136,17 +147,6 @@ export class RestService {
           ),
         ),
       );
-    });
-
-    this._app.get('/actuator/:deviceId/restart', (req, res) => {
-      const deviceId: string = req.params.deviceId;
-      const clientInfo: string = this.getClientInfo(req);
-      return res.send(this.restartDevice(deviceId, clientInfo));
-    });
-    this._app.post('/actuator/:deviceId/restart', (req, res) => {
-      const deviceId: string = req.params.deviceId;
-      const clientInfo: string = this.getClientInfo(req);
-      return res.send(this.restartDevice(deviceId, clientInfo));
     });
 
     this._app.get('/dimmer/:deviceId/:state/:brightness?/:forceDuration?', (req, res) => {
