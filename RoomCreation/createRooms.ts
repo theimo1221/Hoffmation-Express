@@ -6,6 +6,7 @@ const fs = require('fs');
 const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overideDeviceType?: string } } = {
   BlueIrisCamera: { name: 'BlueIrisCamera', deviceClass: 'BlueIrisCamera' },
   UnifiCamera: { name: 'UnifiCamera', deviceClass: 'UnifiCamera' },
+  UnifiDoor: { name: 'UnifiDoor', deviceClass: 'UnifiDoor' },
   Daikin: { name: 'Daikin', deviceClass: 'Daikin' },
   Espresense: { name: 'Espresense', deviceClass: 'Espresense' },
   WledDevice: { name: 'Wled', deviceClass: 'Wled' },
@@ -122,6 +123,7 @@ function createRooms(): void {
       WledDevice: 'hoffmation-base/lib',
       BlueIrisCamera: 'hoffmation-base/lib',
       UnifiCamera: 'hoffmation-base/lib',
+      UnifiDoor: 'hoffmation-base/lib',
       Daikin: 'hoffmation-base/lib',
       Espresense: 'hoffmation-base/lib',
       Govee: 'hoffmation-base/lib',
@@ -296,6 +298,11 @@ import { OwnAcDevices } from 'hoffmation-base/lib';`,
             `import { OwnUnifiCamera } from '${Room.includesDict[type]}';
 import { UnifiProtect } from 'hoffmation-base/lib';`,
           );
+        } else if (type === 'UnifiDoor') {
+          this.fileBuilder.push(
+            `import { OwnUnifiDoor } from '${Room.includesDict[type]}';
+import { UnifiAccess } from 'hoffmation-base/lib';`,
+          );
         } else if (type === 'Espresense') {
           this.fileBuilder.push(`import { EspresenseDevice } from '${Room.includesDict[type]}';`);
         } else {
@@ -352,6 +359,7 @@ import { UnifiProtect } from 'hoffmation-base/lib';`,
             device.isDaikin ||
             device.isEspresense ||
             device.isBlueIrisCamera ||
+            device.isUnifiDoor ||
             device.isUnifiCamera;
           const noID: boolean =
             device.isSonos ||
@@ -359,6 +367,7 @@ import { UnifiProtect } from 'hoffmation-base/lib';`,
             device.isWindow ||
             device.isDaikin ||
             device.isEspresense ||
+            device.isUnifiDoor ||
             device.isUnifiCamera ||
             device.isBlueIrisCamera;
           !noID && variablesBuilder.push(`private static ${device.idName}: string = '';`);
@@ -408,6 +417,8 @@ import { UnifiProtect } from 'hoffmation-base/lib';`,
             postRoomSettingsBuilder.push(`OwnAcDevices.addDevice(${this.className}.${device.nameShort});`);
           } else if (device.isUnifiCamera) {
             postRoomSettingsBuilder.push(`UnifiProtect.addDevice(${this.className}.${device.nameShort});`);
+          } else if (device.isUnifiDoor) {
+            postRoomSettingsBuilder.push(`UnifiAccess.addDevice(${this.className}.${device.nameShort});`);
           }
           !noGetter && getterBuilder.push(`  }`);
           if (!noID) {
@@ -563,6 +574,11 @@ ${this.className}.prepareDeviceAdding();`);
             if (d.includeInGroup) {
               beweg.push(`${completeName}.id`);
             }
+          } else if (d.isUnifiDoor) {
+            variablesBuilder.push(`public static ${d.nameShort}: OwnUnifiDoor;`);
+            postRoomSettingsBuilder.push(
+              `    ${completeName} = new OwnUnifiDoor('${d.customName}', ${this.className}.roomName, '${d.unifiName}')`,
+            );
           } else if (d.isDaikin) {
             daikin.push(`${this.className}.${d.nameShort}.id`);
             variablesBuilder.push(`public static ${d.nameShort}: OwnDaikinDevice;`);
@@ -672,6 +688,7 @@ ${this.className}.prepareDeviceAdding();`);
     public isGovee: boolean = false;
     public isBlueIrisCamera: boolean = false;
     public isUnifiCamera: boolean = false;
+    public isUnifiDoor: boolean = false;
     public isDaikin: boolean = false;
     public isEspresense: boolean = false;
     public isWled: boolean = false;
@@ -768,6 +785,9 @@ ${this.className}.prepareDeviceAdding();`);
         case 'UnifiCamera':
           this.isUnifiCamera = true;
           break;
+        case 'UnifiDoor':
+          this.isUnifiDoor = true;
+          break;
         case 'Daikin':
           this.isDaikin = true;
           break;
@@ -855,6 +875,9 @@ ${this.className}.prepareDeviceAdding();`);
       }
       if (this.isUnifiCamera) {
         this.groupN.push(`UnifiCamera`);
+      }
+      if (this.isUnifiDoor) {
+        this.groupN.push(`UnifiDoor`);
       }
       if (this.isGovee) {
         this.groupN.push(`Govee`);
