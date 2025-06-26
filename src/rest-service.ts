@@ -259,6 +259,12 @@ export class RestService {
       return res.send(API.getLastCameraImage(req.params.deviceId));
     });
 
+    this._app.get('/camera/:deviceId/personDetected', (req, res) => {
+      API.cameraInformPersonDetected(req.params.deviceId);
+      res.status(200);
+      return res.send();
+    });
+
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
