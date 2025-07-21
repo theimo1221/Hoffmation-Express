@@ -33,6 +33,7 @@ const DEVICE_TYPE: { [type: string]: { name: string; deviceClass: string; overid
   ZigbeeAqaraMagnetContact: { name: 'Magnet Contact', deviceClass: 'Zigbee' },
   ZigbeeAqaraOpple3Switch: { name: 'Switch6Buttons', deviceClass: 'Zigbee' },
   ZigbeeAquaraMotion: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
+  ZigbeeAqaraPresence: { name: 'Bewegungsmelder', deviceClass: 'Zigbee' },
   ZigbeeAquaraVibra: { name: 'Vibrationssensor', deviceClass: 'Zigbee' },
   ZigbeeAquaraWater: { name: 'Wassermelder', deviceClass: 'Zigbee' },
   ZigbeeBlitzShp: { name: 'Stecker', deviceClass: 'Zigbee' },
@@ -148,6 +149,7 @@ function createRooms(): void {
       ZigbeeAqaraMagnetContact: 'hoffmation-base/lib',
       ZigbeeAqaraOpple3Switch: 'hoffmation-base/lib',
       ZigbeeAquaraMotion: 'hoffmation-base/lib',
+      ZigbeeAqaraPresence: 'hoffmation-base/lib',
       ZigbeeAquaraVibra: 'hoffmation-base/lib',
       ZigbeeAquaraWater: 'hoffmation-base/lib',
       ZigbeeBlitzShp: 'hoffmation-base/lib',
@@ -805,6 +807,7 @@ ${this.className}.prepareDeviceAdding();`);
       switch (this.deviceType) {
         case 'HmIpBewegung':
         case 'ZigbeeAquaraMotion':
+        case 'ZigbeeAqaraPresence':
         case 'ZigbeeSonoffMotion':
         case 'ZigbeeTuyaMotion':
         case 'HmIpPraezenz':
