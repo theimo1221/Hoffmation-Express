@@ -274,8 +274,8 @@ export class RestService {
         res.status(404);
         return res.send();
       }
-      const startDate: Date | undefined = req.params.startDate ? new Date(req.params.startDate) : undefined;
-      const endDate: Date | undefined = req.params.endDate ? new Date(req.params.endDate) : undefined;
+      const startDate: Date | undefined = req.params.startDate ? new Date(parseInt(req.params.startDate, 10)) : undefined;
+      const endDate: Date | undefined = req.params.endDate ? new Date(parseInt(req.params.endDate, 10)) : undefined;
       return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(startDate, endDate));
     });
 
