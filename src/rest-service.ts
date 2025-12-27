@@ -10,6 +10,7 @@ import {
   CommandSource,
   DimmerSetLightCommand,
   iRestSettings,
+  iTemperatureCollector,
   LampSetLightCommand,
   LedSetLightCommand,
   LogLevel,
@@ -263,6 +264,19 @@ export class RestService {
       API.cameraInformPersonDetected(req.params.deviceId);
       res.status(200);
       return res.send();
+    });
+
+    this._app.get('/temperature/:deviceId/history/:startDate?/:endDate?', async (req, res) => {
+      const temperatureDevice: iTemperatureCollector | undefined = API.getDevice(req.params.deviceId) as
+        | iTemperatureCollector
+        | undefined;
+      if (temperatureDevice === undefined) {
+        res.status(404);
+        return res.send();
+      }
+      const startDate: Date | undefined = req.params.startDate ? new Date(req.params.startDate) : undefined;
+      const endDate: Date | undefined = req.params.endDate ? new Date(req.params.endDate) : undefined;
+      return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(startDate, endDate));
     });
 
     this._initialized = true;
