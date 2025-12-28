@@ -34,7 +34,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.21.1",
-    "hoffmation-base": "3.2.25"
+    "hoffmation-base": "3.2.28"
   },
   "devDependencies": {
     "@iobroker/types": "^7.0.6",
