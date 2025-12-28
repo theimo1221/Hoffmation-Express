@@ -872,11 +872,25 @@ Groups inherit settings from their devices but can have group-wide controls.
 - [x] **Link Quality Anzeige** - Für Zigbee-Geräte
   - Zeigt Link-Qualität Wert an
   - Farbcodierung: Rot bei ≤5 (kritisch), Orange bei ≤20 (schwach)
+- [x] **Grundriss Editiermodus** - Raum-Koordinaten bearbeiten
+  - Editiermodus-Button im Expert-Modus
+  - Ziehbare Ecken (startPoint/endPoint) für jeden Raum
+  - Echtzeit-Vorschau der Änderungen
+  - Speichern über `POST /roomSettings/:roomName` mit `trilaterationStartPoint`/`trilaterationEndPoint`
+  - Koordinaten-Anzeige (Ruler) im Editiermodus
+- [x] **Group Settings** - Heizgruppen-Einstellungen
+  - Automatik-Modus Toggle
+  - Fallback-Temperatur Slider (15-25°C)
+  - Manuelle Temperatur Slider (15-25°C)
+  - Speichern über `POST /groupSettings/:groupId`
+- [x] **Komfort-Favoriten** - Automatische Geräte-Listen
+  - Unerreichbare Geräte (available=false oder lastUpdate > 1h)
+  - Geräte mit schwacher Batterie (<20%)
+  - Einklappbare Sektionen mit Geräte-Anzahl
+  - Klick öffnet Geräte-Detail
 
 ### Pending ⏳
-- [ ] Group settings
 - [ ] Radial quick action menu (long-press - nice-to-have)
-- [ ] Floor plan canvas with room positions (nice-to-have)
 - [ ] Device position editing (nice-to-have)
 
 ### Implementation Notes 📝

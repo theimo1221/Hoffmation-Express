@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPostNoResponse } from './client';
 import type { Room, RoomSettings } from '@/stores/dataStore';
 
 export async function getRooms(): Promise<Record<string, Room>> {
@@ -10,5 +10,15 @@ export async function getRoom(roomId: string): Promise<Room> {
 }
 
 export async function updateRoomSettings(roomName: string, settings: Partial<RoomSettings>): Promise<void> {
-  await apiPost(`/roomSettings/${encodeURIComponent(roomName)}`, { settings });
+  await apiPostNoResponse(`/roomSettings/${encodeURIComponent(roomName)}`, { settings });
+}
+
+export interface HeatGroupSettings {
+  automaticMode?: boolean;
+  automaticFallBackTemperatur?: number;
+  manualTemperature?: number;
+}
+
+export async function updateGroupSettings(groupId: string, settings: Partial<HeatGroupSettings>): Promise<void> {
+  await apiPostNoResponse(`/groupSettings/${encodeURIComponent(groupId)}`, { settings });
 }

@@ -1,4 +1,4 @@
-import { apiGet, apiGetNoResponse, apiPost } from './client';
+import { apiGet, apiGetNoResponse, apiPostNoResponse } from './client';
 import type { Device } from '@/stores/dataStore';
 
 export async function getDevices(): Promise<Record<string, Device>> {
@@ -46,7 +46,11 @@ export async function setActuator(deviceId: string, state: boolean, duration?: n
 
 export async function updateDeviceSettings(deviceId: string, settings: unknown): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  await apiPost(`/deviceSettings/${encodedId}`, { settings });
+  await apiPostNoResponse(`/deviceSettings/${encodedId}`, { settings });
+}
+
+export async function setDevicePosition(deviceId: string, position: { x: number; y: number; z: number }): Promise<void> {
+  await updateDeviceSettings(deviceId, { trilaterationRoomPosition: position });
 }
 
 export async function setLed(
@@ -83,7 +87,7 @@ export async function endScene(deviceId: string): Promise<void> {
 
 export async function speakOnDevice(deviceId: string, message: string): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  await apiPost(`/speak/${encodedId}`, { message });
+  await apiPostNoResponse(`/speak/${encodedId}`, { message });
 }
 
 export async function blockAutomatic(deviceId: string, durationSeconds: number): Promise<void> {

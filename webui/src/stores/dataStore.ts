@@ -226,6 +226,9 @@ export interface RoomSettings {
   sonnenUntergangRolloAdditionalOffsetPerCloudiness?: number;
   includeLampsInNormalMovementLightning?: boolean;
   radioUrl?: string;
+  // Trilateration coordinates
+  trilaterationStartPoint?: { x: number; y: number; z: number };
+  trilaterationEndPoint?: { x: number; y: number; z: number };
 }
 
 export interface DeviceSettings {
@@ -310,6 +313,11 @@ export interface Device {
   // Zigbee
   linkQuality?: number;
   _linkQuality?: number;
+  available?: boolean;
+  _available?: boolean;
+  // Trilateration Position (from settings.trilaterationRoomPosition)
+  trilaterationRoomPosition?: { x: number; y: number; z: number };
+  _trilaterationRoomPosition?: { x: number; y: number; z: number };
 }
 
 export function getDeviceRoom(device: Device): string {

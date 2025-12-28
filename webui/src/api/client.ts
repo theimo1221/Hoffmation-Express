@@ -35,6 +35,31 @@ export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
   return response.json();
 }
 
+export async function apiPostNoResponse(endpoint: string, body: unknown): Promise<void> {
+  const url = `${getBaseUrl()}${endpoint}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    // Try to get error message from response body
+    let errorMessage = `API error: ${response.status} ${response.statusText} for ${url}`;
+    try {
+      const text = await response.text();
+      if (text) {
+        errorMessage += `: ${text}`;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    throw new Error(errorMessage);
+  }
+  // Don't try to parse success response body
+}
+
 export function setApiBaseUrl(url: string) {
   localStorage.setItem('hoffmation-api-url', url);
 }

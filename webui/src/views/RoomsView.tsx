@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage, getRoomStats, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { updateGroupSettings, type HeatGroupSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds, Search } from 'lucide-react';
+import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds, Search, Settings } from 'lucide-react';
 import { DeviceDetailView } from './DeviceDetailView';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { RoomSettingsSection } from '@/components/RoomSettingsSection';
@@ -323,6 +324,17 @@ interface GroupDetailViewProps {
 
 function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevice }: GroupDetailViewProps) {
   const roomName = getRoomName(room);
+  const { fetchData } = useDataStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Heat group settings state
+  const heatSettings = (group.settings as HeatGroupSettings | undefined) ?? {};
+  const [localHeatSettings, setLocalHeatSettings] = useState<HeatGroupSettings>({
+    automaticMode: heatSettings.automaticMode ?? true,
+    automaticFallBackTemperatur: heatSettings.automaticFallBackTemperatur ?? 20,
+    manualTemperature: heatSettings.manualTemperature ?? 20,
+  });
   
   const groupTypeNames: Record<string, string> = {
     '0': 'Fenster',
@@ -338,6 +350,7 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
   };
   
   const groupName = groupTypeNames[groupType] || `Gruppe ${groupType}`;
+  const isHeatGroup = groupType === '8';
   
   // Get devices for this room that match the group type
   const roomDevices = Object.values(devices).filter(
@@ -359,6 +372,21 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
         return relevantCaps.some(c => caps.includes(c));
       })
     : roomDevices;
+
+  const handleSaveSettings = async () => {
+    if (!group.id) return;
+    setIsSaving(true);
+    try {
+      await updateGroupSettings(group.id, localHeatSettings);
+      await fetchData();
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to save group settings:', error);
+      alert('Fehler beim Speichern der Einstellungen');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -391,6 +419,96 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
             </div>
           </div>
         </section>
+
+        {/* Heat Group Settings */}
+        {isHeatGroup && (
+          <section className="mb-6">
+            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Heizgruppen-Einstellungen
+            </h2>
+            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Bearbeiten</span>
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={cn(
+                    "relative h-7 w-12 rounded-full transition-colors",
+                    isEditing ? "bg-primary" : "bg-secondary"
+                  )}
+                >
+                  <span className={cn(
+                    "absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    isEditing ? "translate-x-6" : "translate-x-1"
+                  )} />
+                </button>
+              </div>
+
+              <div className={`space-y-4 ${!isEditing ? 'opacity-50 pointer-events-none' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <span>Automatik-Modus</span>
+                  <button
+                    onClick={() => setLocalHeatSettings(s => ({ ...s, automaticMode: !s.automaticMode }))}
+                    disabled={!isEditing}
+                    className={cn(
+                      "relative h-7 w-12 rounded-full transition-colors",
+                      localHeatSettings.automaticMode ? "bg-primary" : "bg-secondary"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                      localHeatSettings.automaticMode ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span>Fallback-Temperatur (Automatik)</span>
+                    <span className="font-mono">{localHeatSettings.automaticFallBackTemperatur}°C</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={15}
+                    max={25}
+                    step={0.5}
+                    value={localHeatSettings.automaticFallBackTemperatur}
+                    onChange={(e) => setLocalHeatSettings(s => ({ ...s, automaticFallBackTemperatur: parseFloat(e.target.value) }))}
+                    disabled={!isEditing}
+                    className="w-full accent-primary"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span>Manuelle Temperatur</span>
+                    <span className="font-mono">{localHeatSettings.manualTemperature}°C</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={15}
+                    max={25}
+                    step={0.5}
+                    value={localHeatSettings.manualTemperature}
+                    onChange={(e) => setLocalHeatSettings(s => ({ ...s, manualTemperature: parseFloat(e.target.value) }))}
+                    disabled={!isEditing}
+                    className="w-full accent-primary"
+                  />
+                </div>
+              </div>
+
+              {isEditing && (
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={isSaving}
+                  className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isSaving ? 'Speichern...' : 'Einstellungen speichern'}
+                </button>
+              )}
+            </div>
+          </section>
+        )}
 
         <section>
           <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">

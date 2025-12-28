@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useDataStore, type Device, getDeviceRoom } from '@/stores/dataStore';
-import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, RefreshCw } from 'lucide-react';
+import { useDataStore, type Device, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
+import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, RefreshCw, WifiOff, BatteryLow, ChevronRight, ChevronDown } from 'lucide-react';
 import { setLamp, setShutter, setActuator } from '@/api/devices';
+import { DeviceIcon } from '@/components/DeviceIcon';
 
 function getFavoriteIds(): string[] {
   const stored = localStorage.getItem('hoffmation-favorites');
@@ -20,14 +21,42 @@ export function FavoritesView() {
   const navigate = useNavigate();
   const { devices, fetchData, isLoading } = useDataStore();
   const [favoriteIds] = useState<string[]>(getFavoriteIds());
+  const [showUnreachable, setShowUnreachable] = useState(false);
+  const [showLowBattery, setShowLowBattery] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const favoriteDevices = Object.values(devices).filter(
+  const allDevices = Object.values(devices);
+  
+  const favoriteDevices = allDevices.filter(
     (d) => d.id && favoriteIds.includes(d.id)
   );
+
+  // Unreachable devices: Zigbee devices with available === false or lastUpdate > 1 hour
+  const unreachableDevices = allDevices.filter((d) => {
+    // Check available flag (Zigbee devices)
+    if (d.available === false || d._available === false) return true;
+    
+    // Check lastUpdate - if older than 1 hour, consider unreachable
+    const lastUpdateRaw = d.lastUpdate ?? d._lastUpdate;
+    if (lastUpdateRaw) {
+      const lastUpdateDate = new Date(lastUpdateRaw);
+      if (!isNaN(lastUpdateDate.getTime()) && lastUpdateDate.getTime() > 0) {
+        const diffMs = Date.now() - lastUpdateDate.getTime();
+        const diffHours = diffMs / 3600000;
+        if (diffHours > 1) return true;
+      }
+    }
+    return false;
+  });
+
+  // Low battery devices: batteryLevel < 20%
+  const lowBatteryDevices = allDevices.filter((d) => {
+    const batteryLevel = d.battery?.level ?? d.batteryLevel;
+    return batteryLevel !== undefined && batteryLevel < 20;
+  });
 
   if (isLoading && Object.keys(devices).length === 0) {
     return (
@@ -53,6 +82,68 @@ export function FavoritesView() {
       </header>
 
       <div className="flex-1 overflow-auto px-4 pb-tabbar">
+        {/* Unreachable Devices Section */}
+        {unreachableDevices.length > 0 && (
+          <section className="mb-6">
+            <button
+              onClick={() => setShowUnreachable(!showUnreachable)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="text-sm font-medium uppercase text-red-500 flex items-center gap-2">
+                <WifiOff className="h-4 w-4" />
+                Unerreichbare Geräte ({unreachableDevices.length})
+              </h2>
+              {showUnreachable ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            
+            {showUnreachable && (
+              <div className="space-y-2">
+                {unreachableDevices.map((device) => (
+                  <CompactDeviceCard 
+                    key={device.id} 
+                    device={device} 
+                    onSelect={() => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
+                    badge={<WifiOff className="h-4 w-4 text-red-500" />}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Low Battery Devices Section */}
+        {lowBatteryDevices.length > 0 && (
+          <section className="mb-6">
+            <button
+              onClick={() => setShowLowBattery(!showLowBattery)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="text-sm font-medium uppercase text-orange-500 flex items-center gap-2">
+                <BatteryLow className="h-4 w-4" />
+                Schwache Batterie ({lowBatteryDevices.length})
+              </h2>
+              {showLowBattery ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            
+            {showLowBattery && (
+              <div className="space-y-2">
+                {lowBatteryDevices.map((device) => {
+                  const batteryLevel = device.battery?.level ?? device.batteryLevel ?? 0;
+                  return (
+                    <CompactDeviceCard 
+                      key={device.id} 
+                      device={device} 
+                      onSelect={() => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
+                      badge={<span className="text-xs font-mono text-orange-500">{batteryLevel}%</span>}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Favorites Section */}
         <section className="mb-6">
           <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
             <Star className="h-4 w-4" />
@@ -75,6 +166,38 @@ export function FavoritesView() {
         </section>
       </div>
     </div>
+  );
+}
+
+interface CompactDeviceCardProps {
+  device: Device;
+  onSelect: () => void;
+  badge?: React.ReactNode;
+}
+
+function CompactDeviceCard({ device, onSelect, badge }: CompactDeviceCardProps) {
+  const name = getDeviceName(device);
+  const room = getDeviceRoom(device);
+
+  return (
+    <button
+      onClick={onSelect}
+      className="w-full flex items-center justify-between rounded-xl bg-card p-3 shadow-soft transition-all hover:shadow-soft-lg active:scale-[0.98]"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <DeviceIcon device={device} size="sm" />
+        </div>
+        <div className="flex flex-col min-w-0 text-left">
+          <span className="text-sm font-medium truncate">{name}</span>
+          <span className="text-xs text-muted-foreground truncate">{room}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {badge}
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </div>
+    </button>
   );
 }
 
