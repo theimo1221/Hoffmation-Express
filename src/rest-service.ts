@@ -1,5 +1,5 @@
 import cors from 'cors';
-import { Express, json, Request, static as expressStatic } from 'express';
+import { Express, json, Request, Response, NextFunction, static as expressStatic } from 'express';
 import * as path from 'path';
 import {
   AcMode,
@@ -55,13 +55,18 @@ export class RestService {
     this.app.use(json());
 
     this._app.listen(config.port, () => {
-      ServerLogService.writeLog(LogLevel.Info, `Example app listening at http://localhost:${config.port}`);
+      ServerLogService.writeLog(LogLevel.Info, `REST service listening at http://localhost:${config.port}`);
     });
 
     // Serve WebUI static files (only if enabled in config)
     if (config.webUi) {
-      const webuiPath = path.join(__dirname, '..', 'webui', 'dist');
-      this._app.use(expressStatic(webuiPath));
+      try {
+        const webuiPath = path.join(__dirname, '..', 'webui', 'dist');
+        this._app.use(expressStatic(webuiPath));
+        ServerLogService.writeLog(LogLevel.Info, `WebUI enabled, serving from ${webuiPath}`);
+      } catch (webUiError) {
+        ServerLogService.writeLog(LogLevel.Error, `Failed to initialize WebUI: ${webUiError}`);
+      }
     }
 
     this._app.get('/isAlive', (_req, res) => {
@@ -296,9 +301,21 @@ export class RestService {
     // SPA fallback - serve index.html for all non-API routes (only if WebUI enabled)
     if (config.webUi) {
       this._app.get('*', (_req, res) => {
-        res.sendFile(path.join(__dirname, '..', 'webui', 'dist', 'index.html'));
+        try {
+          res.sendFile(path.join(__dirname, '..', 'webui', 'dist', 'index.html'));
+        } catch (e) {
+          ServerLogService.writeLog(LogLevel.Error, `WebUI SPA fallback error: ${e}`);
+          res.status(500).send('WebUI not available');
+        }
       });
     }
+
+    // Global error handler - prevents crashes from propagating
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    this._app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+      ServerLogService.writeLog(LogLevel.Error, `REST API Error: ${err.message}\n${err.stack}`);
+      res.status(500).json({ error: 'Internal server error', message: err.message });
+    });
   }
 
   private static restartDevice(deviceId: string, clientInfo: string): Error | null {
