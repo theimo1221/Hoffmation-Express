@@ -340,7 +340,18 @@ export class RestService {
       try {
         ServerLogService.writeLog(LogLevel.Info, 'WebUI update started');
 
-        // Step 1: Git pull
+        // Step 1: Git fetch
+        try {
+          const fetchResult = await execAsync('git fetch', { cwd: path.join(__dirname, '..') });
+          steps.push({ step: 'git fetch', success: true, output: fetchResult.stdout.trim() || 'Fetched' });
+          ServerLogService.writeLog(LogLevel.Info, `Git fetch: ${fetchResult.stdout.trim() || 'OK'}`);
+        } catch (fetchError: unknown) {
+          const err = fetchError as { message?: string };
+          steps.push({ step: 'git fetch', success: false, error: err.message });
+          ServerLogService.writeLog(LogLevel.Error, `Git fetch failed: ${err.message}`);
+        }
+
+        // Step 2: Git pull
         try {
           const gitResult = await execAsync('git pull', { cwd: path.join(__dirname, '..') });
           steps.push({ step: 'git pull', success: true, output: gitResult.stdout.trim() });
@@ -351,7 +362,7 @@ export class RestService {
           ServerLogService.writeLog(LogLevel.Error, `Git pull failed: ${err.message}`);
         }
 
-        // Step 2: npm ci in webui
+        // Step 3: npm ci in webui
         try {
           const npmCiResult = await execAsync('npm ci', { cwd: webuiDir, timeout: 300000 });
           steps.push({ step: 'npm ci', success: true, output: 'Dependencies installed' });
@@ -363,7 +374,7 @@ export class RestService {
           return res.status(500).json({ success: false, steps });
         }
 
-        // Step 3: Build webui
+        // Step 4: Build webui
         try {
           const buildResult = await execAsync('npm run build', { cwd: webuiDir, timeout: 300000 });
           steps.push({ step: 'npm run build', success: true, output: 'Build completed' });

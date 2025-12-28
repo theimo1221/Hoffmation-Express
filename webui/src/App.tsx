@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { TabBar } from '@/components/layout/TabBar';
+import { Routes, Route } from 'react-router-dom';
 import { MenuBubble } from '@/components/layout/MenuBubble';
 import { FloorPlanView } from '@/views/FloorPlanView';
 import { FavoritesView } from '@/views/FavoritesView';
@@ -11,12 +10,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useDataStore } from '@/stores/dataStore';
 
 function App() {
-  const location = useLocation();
   const { darkMode, pollingInterval } = useSettingsStore();
   const { fetchData } = useDataStore();
-  
-  // Show menu bubble instead of tabbar on floor plan view
-  const isFloorPlanView = location.pathname === '/';
 
   useEffect(() => {
     const root = document.documentElement;
@@ -52,7 +47,7 @@ function App() {
           <Route path="/settings" element={<SettingsView />} />
         </Routes>
       </main>
-      {isFloorPlanView ? <MenuBubble /> : <TabBar />}
+      <MenuBubble />
     </div>
   );
 }

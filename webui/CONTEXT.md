@@ -1,6 +1,6 @@
 # Hoffmation WebUI - Development Context
 
-**Last Updated:** 2025-12-28 02:34 UTC+01:00
+**Last Updated:** 2025-12-29 00:40 UTC+01:00
 
 ## Project Overview
 
@@ -18,12 +18,18 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 
 | File | Purpose |
 |------|---------|
-| `src/views/DeviceDetailView.tsx` | Main device control view (~1200 lines) |
+| `src/views/DeviceDetailView.tsx` | Main device control view (~1387 lines) - needs refactoring |
+| `src/views/FloorPlanView.tsx` | Floor plan router (51 lines) |
+| `src/views/floorplan/` | Floor plan components (refactored) |
+| `src/views/floorplan/HouseCrossSection.tsx` | Floor selection view |
+| `src/views/floorplan/FloorPlan.tsx` | Floor detail + room editing |
+| `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning |
+| `src/views/floorplan/types.ts` | Shared interfaces |
 | `src/components/DeviceSettingsSection.tsx` | Device settings component |
 | `src/stores/dataStore.ts` | Zustand store for rooms/devices |
 | `src/stores/settingsStore.ts` | App settings (polling, dark mode, etc.) |
-| `src/api/devices.ts` | Device API functions |
-| `src/api/client.ts` | Base API client |
+| `src/api/devices.ts` | Device API functions (incl. setDevicePosition) |
+| `src/api/client.ts` | Base API client (apiPost, apiPostNoResponse) |
 
 ## Device Capabilities (from hoffmation-base)
 
@@ -61,6 +67,11 @@ const DeviceCapability = {
 - Expert mode and Exclude levels
 - Refresh buttons in all views
 - Dark mode, i18n (DE/EN)
+- **Floor Plan Room Editing** - Drag&Drop room positioning with coordinates
+- **Device Position Editing** - Place devices in rooms via trilaterationRoomPosition
+- **Comfort Favorites** - Unreachable devices, low battery devices
+- **Group Settings** - Heater group automatic mode, temperatures
+- **FloorPlanView Refactoring** - Split into 4 components (949→51 lines)
 
 ## Next Steps (Pending) ⏳
 
@@ -199,3 +210,45 @@ Add to RoomDetail view with all room settings:
 - Settings can be applied partially (only send changed fields)
 - Settings data is included in device/room API responses
 - Continue with implementing all device settings views
+
+## Session 29.12.2024 - Device Position Editing + Refactoring
+
+### Implementiert:
+- **Device Position Editing** - Geräte im Raum platzieren
+  - Klick auf Raum → RoomFloorPlanDetail Komponente
+  - Editiermodus: Drag&Drop, Plus-Button für unplatzierte Geräte
+  - API: `POST /deviceSettings/:id` mit `trilaterationRoomPosition`
+  - Default {0,0,0} = nicht platziert
+
+### Refactoring:
+- **FloorPlanView.tsx** aufgeteilt in `views/floorplan/`:
+  - `types.ts` - Interfaces
+  - `HouseCrossSection.tsx` - Etagen-Auswahl
+  - `FloorPlan.tsx` - Etagen-Detail + Raum-Editing
+  - `RoomFloorPlanDetail.tsx` - Raum-Detail + Geräte-Positionierung
+  - `index.ts` - Re-Exports
+
+### Wichtige Learnings:
+- **Keine scale-Transforms beim Drag&Drop** - verhindert präzises Alignment
+- **fixedScale State** beim Eintritt in Editiermodus setzen
+- **apiPostNoResponse** für Endpoints ohne JSON-Response
+
+### Nächste Schritte:
+- DeviceDetailView.tsx Refactoring (1387 Zeilen)
+- RoomsView.tsx Refactoring (546 Zeilen)
+- Child-Friendly Mode für Grundriss implementieren (Licht & Rolläden für 4+ Jahre)
+
+## Todo List (aktuell)
+
+### Completed ✅
+- [x] Device Position Editing implementieren
+- [x] FloorPlanView Refactoring (views/floorplan/)
+- [x] MenuBubble nach links unten verschieben
+- [x] Git fetch zum WebUI Update hinzufügen
+- [x] Child-Friendly Mode dokumentieren
+- [x] REQUIREMENTS.md + CONTEXT.md aktualisieren
+
+### Pending ⏳
+- [ ] DeviceDetailView.tsx Refactoring (1387 Zeilen)
+- [ ] RoomsView.tsx Refactoring (546 Zeilen)
+- [ ] Child-Friendly Mode für Grundriss implementieren

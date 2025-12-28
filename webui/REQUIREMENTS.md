@@ -7,6 +7,18 @@ An interactive map view for the smart home, inspired by robot vacuum apps:
 2. **Select room** – Floor plan of the level
 3. **Select device** – 2D view of the room with devices
 
+### Child-Friendly Mode (4+ years)
+
+The floor plan route should be designed so that a 4-year-old child without reading skills can control lights and shutters:
+
+- **Large, clear icons** - Lamp = light, window with stripes = shutter
+- **Color coding** - Yellow/bright = on, gray/dark = off
+- **Simple gestures** - Tap to toggle, no long press required
+- **Visual feedback** - Animation when switching (e.g., lamp lights up)
+- **No text dependency** - All actions recognizable by icons only
+- **Large touch targets** - Minimum 60x60px for children's fingers
+- **Direct control** - No detours through menus or dialogs
+
 ---
 
 ## Design Language
@@ -889,9 +901,21 @@ Groups inherit settings from their devices but can have group-wide controls.
   - Einklappbare Sektionen mit Geräte-Anzahl
   - Klick öffnet Geräte-Detail
 
+- [x] **Device Position Editing** - Geräte im Raum platzieren
+  - Klick auf Raum im Grundriss öffnet Raum-Detailansicht
+  - Zeigt platzierte Geräte an ihren Positionen (trilaterationRoomPosition)
+  - Editiermodus (Expert Mode): Geräte per Drag&Drop verschieben
+  - Plus-Button öffnet Popup mit unplatzierten Geräten
+  - Klick auf Gerät im Popup platziert es mittig im Raum
+  - Koordinaten-Anzeige beim Ziehen
+  - Speichern über `POST /deviceSettings/:deviceId` mit `trilaterationRoomPosition`
+  - Default-Position {0,0,0} wird als "nicht platziert" behandelt
+
 ### Pending ⏳
 - [ ] Radial quick action menu (long-press - nice-to-have)
-- [ ] Device position editing (nice-to-have)
+- [ ] Child-Friendly Mode for floor plan (lights & shutters control for 4+ year olds)
+- [ ] DeviceDetailView.tsx refactoring (1387 lines → split into components)
+- [ ] RoomsView.tsx refactoring (546 lines → split into components)
 
 ### Implementation Notes 📝
 

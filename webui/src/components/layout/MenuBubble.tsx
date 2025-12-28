@@ -17,7 +17,7 @@ export function MenuBubble() {
   ];
 
   return (
-    <div className="fixed top-4 left-4 z-50 safe-top">
+    <div className="fixed bottom-4 left-4 z-50 safe-bottom">
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -28,7 +28,7 @@ export function MenuBubble() {
 
       {/* Menu Dropdown */}
       {isOpen && (
-        <div className="absolute top-14 left-0 min-w-[180px] rounded-2xl bg-card/95 p-2 shadow-soft-lg backdrop-blur-xl">
+        <div className="absolute bottom-14 left-0 min-w-[180px] rounded-2xl bg-card/95 p-2 shadow-soft-lg backdrop-blur-xl">
           {tabs.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
