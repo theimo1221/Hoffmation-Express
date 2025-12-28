@@ -842,18 +842,23 @@ Groups inherit settings from their devices but can have group-wide controls.
 - [x] Fixed: API client uses dynamic base URL
 - [x] Fixed: automaticBlockedUntil parsing (Date/string/number formats)
 
+### Recently Completed ✅ (2025-12-28)
+- [x] **All Device Settings views** - Complete implementation
+  - [x] DimmerSettings: Brightness sliders per time period (day, dawn, dusk, night)
+  - [x] LedSettings: Color pickers per time period
+  - [x] HeaterSettings: manualDisabled, automaticMode, useOwnTemperatur, controlByPid, pidForcedMinimum, seasonalTurnOff
+  - [x] AcSettings: heatingAllowed, time pickers, temp sliders, noCoolingOnMovement, useAutomatic
+  - [x] HandleSettings: informOnOpen, informNotHelping, informIsHelping
+  - [x] CameraSettings: alertPersonOnTelegram, movementDetectionOnPersonOnly, movementDetectionOnDogsToo
+  - [x] MotionSensorSettings: seesWindow, excludeFromNightAlarm
+  - [x] SceneSettings: defaultTurnOffTimeout
+  - [x] SpeakerSettings: maxPlayOnAllVolume, defaultDayAnounceVolume, defaultNightAnounceVolume
+- [x] **Room Settings view** (in RoomDetail)
+  - [x] Light settings: ambientLightAfterSunset, lichtSonnenAufgangAus, lampenBeiBewegung, etc.
+  - [x] Shutter settings: rolloHeatReduction, sonnenAufgangRollos, sonnenUntergangRollos, time pickers
+  - [x] Other: movementResetTimer
+
 ### Pending ⏳
-- [ ] **Complete all Device Settings views** (priority)
-  - [ ] DimmerSettings: Add brightness sliders per time period
-  - [ ] LedSettings: Add color pickers per time period
-  - [ ] HeaterSettings: manualDisabled, pidForcedMinimum, useOwnTemperatur, controlByPid, etc.
-  - [ ] AcSettings: heatingAllowed, time pickers, temp sliders
-  - [ ] HandleSettings: informOnOpen, informNotHelping, informIsHelping
-  - [ ] CameraSettings: alertPersonOnTelegram, movementDetection options
-  - [ ] MotionSensorSettings: seesWindow, excludeFromNightAlarm
-  - [ ] SceneSettings: defaultTurnOffTimeout
-  - [ ] SpeakerSettings: volume settings
-- [ ] **Room Settings view** (in RoomDetail)
 - [ ] Group settings
 - [ ] Radial quick action menu (long-press - nice-to-have)
 - [ ] Floor plan canvas with room positions (nice-to-have)

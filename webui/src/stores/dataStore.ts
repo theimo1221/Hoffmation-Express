@@ -44,6 +44,7 @@ export interface Room {
   groupdict?: Record<string, GroupData>;
   startPoint?: TrilaterationPoint;
   endPoint?: TrilaterationPoint;
+  settings?: RoomSettings;
 }
 
 export function getRoomName(room: Room): string {
@@ -94,6 +95,27 @@ export interface ActuatorSettings {
   includeInAmbientLight?: boolean;
   isStromStoss?: boolean;
   resetToAutomaticOnForceOffAfterForceOn?: boolean;
+  stromStossResendTime?: number;
+}
+
+export interface DimmerSettings extends ActuatorSettings {
+  nightBrightness?: number;
+  dawnBrightness?: number;
+  duskBrightness?: number;
+  dayBrightness?: number;
+  turnOnThreshhold?: number;
+}
+
+export interface LedSettings extends DimmerSettings {
+  defaultColor?: string;
+  dayColor?: string;
+  dawnColor?: string;
+  duskColor?: string;
+  nightColor?: string;
+  dayColorTemp?: number;
+  dawnColorTemp?: number;
+  duskColorTemp?: number;
+  nightColorTemp?: number;
 }
 
 export interface ShutterSettings {
@@ -101,13 +123,124 @@ export interface ShutterSettings {
   heatReductionPosition?: number;
   heatReductionThreshold?: number;
   heatReductionDirectionThreshold?: number;
+  msTilTop?: number;
+  msTilBot?: number;
+  triggerPositionUpdateByTime?: boolean;
+}
+
+export interface HeaterSettings {
+  automaticMode?: boolean;
+  useOwnTemperatur?: boolean;
+  useOwnTemperatureForRoomTemperature?: boolean;
+  controlByPid?: boolean;
+  controlByTempDiff?: boolean;
+  seasonalTurnOffActive?: boolean;
+  seasonTurnOffDay?: number;
+  seasonTurnOnDay?: number;
+  pidForcedMinimum?: number;
+  manualDisabled?: boolean;
+}
+
+export interface AcSettings {
+  minimumHours?: number;
+  minimumMinutes?: number;
+  maximumHours?: number;
+  maximumMinutes?: number;
+  heatingAllowed?: boolean;
+  useOwnTemperature?: boolean;
+  useAutomatic?: boolean;
+  noCoolingOnMovement?: boolean;
+  manualDisabled?: boolean;
+  minOutdoorTempForCooling?: number;
+  overrideCoolingTargetTemp?: number;
+}
+
+export interface HandleSettings {
+  informOnOpen?: boolean;
+  informNotHelping?: boolean;
+  informIsHelping?: boolean;
+}
+
+export interface CameraSettings {
+  alertPersonOnTelegram?: boolean;
+  movementDetectionOnPersonOnly?: boolean;
+  movementDetectionOnDogsToo?: boolean;
+  hasAudio?: boolean;
+  hasSpeaker?: boolean;
+}
+
+export interface MotionSensorSettings {
+  seesWindow?: boolean;
+  excludeFromNightAlarm?: boolean;
+}
+
+export interface SceneSettings {
+  defaultTurnOffTimeout?: number;
+}
+
+export interface SpeakerSettings {
+  maxPlayOnAllVolume?: number;
+  defaultDayAnounceVolume?: number;
+  defaultNightAnounceVolume?: number;
+}
+
+export interface DachsSettings extends ActuatorSettings {
+  refreshIntervalTime?: number;
+  disableHeatingRod?: boolean;
+  disableDachsOwnWW?: boolean;
+  disableDachsTemporarily?: boolean;
+  batteryLevelTurnOnThreshold?: number;
+  batteryLevelBeforeNightTurnOnThreshold?: number;
+  batteryLevelAllowStartThreshold?: number;
+  batteryLevelPreventStartThreshold?: number;
+  batteryLevelPreventStartAtNightThreshold?: number;
+  batteryLevelHeatingRodThreshold?: number;
+  warmWaterDesiredMinTemp?: number;
+  warmWaterDesiredMaxTemp?: number;
+  heatStorageMaxStartTemp?: number;
+  winterMinimumHeatStorageTemp?: number;
+  winterMinimumPreNightHeatStorageTemp?: number;
+}
+
+export interface TimePair {
+  hours?: number;
+  minutes?: number;
+}
+
+export interface RoomSettings {
+  ambientLightAfterSunset?: boolean;
+  lichtSonnenAufgangAus?: boolean;
+  rolloHeatReduction?: boolean;
+  lampenBeiBewegung?: boolean;
+  lightIfNoWindows?: boolean;
+  movementResetTimer?: number;
+  roomIsAlwaysDark?: boolean;
+  sonnenAufgangRollos?: boolean;
+  sonnenAufgangRolloDelay?: number;
+  sonnenAufgangRolloMinTime?: TimePair;
+  sonnenAufgangLampenDelay?: number;
+  sonnenUntergangRollos?: boolean;
+  sonnenUntergangRolloDelay?: number;
+  sonnenUntergangRolloMaxTime?: TimePair;
+  sonnenUntergangLampenDelay?: number;
+  sonnenUntergangRolloAdditionalOffsetPerCloudiness?: number;
+  includeLampsInNormalMovementLightning?: boolean;
+  radioUrl?: string;
 }
 
 export interface DeviceSettings {
   actuatorSettings?: ActuatorSettings;
-  dimmerSettings?: ActuatorSettings;
-  ledSettings?: ActuatorSettings;
+  dimmerSettings?: DimmerSettings;
+  ledSettings?: LedSettings;
   shutterSettings?: ShutterSettings;
+  heaterSettings?: HeaterSettings;
+  acSettings?: AcSettings;
+  handleSettings?: HandleSettings;
+  cameraSettings?: CameraSettings;
+  motionSensorSettings?: MotionSensorSettings;
+  sceneSettings?: SceneSettings;
+  speakerSettings?: SpeakerSettings;
+  dachsSettings?: DachsSettings;
 }
 
 export interface DeviceInfo {

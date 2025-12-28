@@ -1,5 +1,6 @@
 import cors from 'cors';
-import { Express, json, Request } from 'express';
+import { Express, json, Request, static as expressStatic } from 'express';
+import * as path from 'path';
 import {
   AcMode,
   ActuatorSetStateCommand,
@@ -56,6 +57,12 @@ export class RestService {
     this._app.listen(config.port, () => {
       ServerLogService.writeLog(LogLevel.Info, `Example app listening at http://localhost:${config.port}`);
     });
+
+    // Serve WebUI static files (only if enabled in config)
+    if (config.webUi) {
+      const webuiPath = path.join(__dirname, '..', 'webui', 'dist');
+      this._app.use(expressStatic(webuiPath));
+    }
 
     this._app.get('/isAlive', (_req, res) => {
       res.send(`Hoffmation-Base active ${new Date()}`);
@@ -274,7 +281,9 @@ export class RestService {
         res.status(404);
         return res.send();
       }
-      const startDate: Date | undefined = req.params.startDate ? new Date(parseInt(req.params.startDate, 10)) : undefined;
+      const startDate: Date | undefined = req.params.startDate
+        ? new Date(parseInt(req.params.startDate, 10))
+        : undefined;
       const endDate: Date | undefined = req.params.endDate ? new Date(parseInt(req.params.endDate, 10)) : undefined;
       return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(startDate, endDate));
     });
@@ -282,6 +291,13 @@ export class RestService {
     this._initialized = true;
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
+    }
+
+    // SPA fallback - serve index.html for all non-API routes (only if WebUI enabled)
+    if (config.webUi) {
+      this._app.get('*', (_req, res) => {
+        res.sendFile(path.join(__dirname, '..', 'webui', 'dist', 'index.html'));
+      });
     }
   }
 

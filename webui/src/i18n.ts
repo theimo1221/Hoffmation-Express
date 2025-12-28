@@ -5,6 +5,7 @@ const resources = {
   en: {
     translation: {
       tabs: {
+        home: 'Home',
         floorPlan: 'Floor Plan',
         favorites: 'Favorites',
         rooms: 'Rooms',
@@ -54,6 +55,7 @@ const resources = {
   de: {
     translation: {
       tabs: {
+        home: 'Start',
         floorPlan: 'Grundriss',
         favorites: 'Favoriten',
         rooms: 'Räume',

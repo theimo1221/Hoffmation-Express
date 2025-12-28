@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds } from 'lucide-react';
 import { DeviceDetailView } from './DeviceDetailView';
 import { DeviceIcon } from '@/components/DeviceIcon';
+import { RoomSettingsSection } from '@/components/RoomSettingsSection';
 
 export function RoomsView() {
   const { t } = useTranslation();
@@ -281,6 +282,9 @@ function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGroup }: Ro
             )}
           </div>
         </section>
+
+        {/* Room Settings */}
+        <RoomSettingsSection room={room} onUpdate={() => {}} />
       </div>
     </div>
   );

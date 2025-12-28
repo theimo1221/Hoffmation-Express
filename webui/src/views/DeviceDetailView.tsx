@@ -236,11 +236,11 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
     setIsLoading(false);
   };
 
-  const handleAc = async (power: boolean) => {
+  const handleAc = async (power: boolean, mode?: number, temp?: number) => {
     if (!device.id) return;
     setIsLoading(true);
     try {
-      await setAc(device.id, power);
+      await setAc(device.id, power, mode, temp);
       await delay(300);
       await fetchDevice(device.id);
     } catch (e) {
@@ -312,10 +312,6 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
   const [blockHours, setBlockHours] = useState(1);
   const [blockUntilDate, setBlockUntilDate] = useState('');
 
-  // AC mode names
-  const acModeNames: Record<number, string> = {
-    0: 'Auto', 1: 'Kühlen', 2: 'Heizen', 3: 'Lüften', 4: 'Trocknen'
-  };
 
   // Handle position names
   const handlePositionNames: Record<number, string> = {
@@ -767,12 +763,39 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Modus</span>
-                  <span className="font-medium">{acModeNames[acMode] ?? 'Unbekannt'}</span>
+                  <select
+                    value={acMode}
+                    onChange={(e) => handleAc(true, Number(e.target.value))}
+                    disabled={isLoading}
+                    className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                  >
+                    <option value={0}>Auto</option>
+                    <option value={1}>Kühlen</option>
+                    <option value={2}>Entfeuchten</option>
+                    <option value={3}>Lüften</option>
+                    <option value={4}>Heizen</option>
+                  </select>
                 </div>
                 {desiredTemp !== -99 && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Zieltemperatur</span>
-                    <span className="font-medium">{desiredTemp.toFixed(1)}°C</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleAc(true, undefined, Math.max(16, desiredTemp - 0.5))}
+                        disabled={isLoading}
+                        className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
+                      >
+                        -
+                      </button>
+                      <span className="font-medium w-14 text-center">{desiredTemp.toFixed(1)}°C</span>
+                      <button
+                        onClick={() => handleAc(true, undefined, Math.min(30, desiredTemp + 0.5))}
+                        disabled={isLoading}
+                        className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 )}
                 {roomTemp !== -99 && (
