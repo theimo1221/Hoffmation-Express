@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { type Device, getDeviceRoom, useDataStore } from '@/stores/dataStore';
+import { type Device, getDeviceRoom, useDataStore, getCapabilityNames } from '@/stores/dataStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { 
   Star, ArrowLeft, Lightbulb, Blinds, Thermometer, Zap, 
   Power, Snowflake, Flame, Activity, Speaker, Play, 
@@ -33,11 +34,13 @@ interface DeviceDetailViewProps {
 
 export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetailViewProps) {
   const { devices, fetchDevice } = useDataStore();
+  const { expertMode } = useSettingsStore();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60); // minutes
   const [tempHistory, setTempHistory] = useState<TemperatureHistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(false);
 
   // Get live device from store (updates when store changes)
   const device = initialDevice.id ? (devices[initialDevice.id] ?? initialDevice) : initialDevice;
@@ -358,7 +361,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
         </button>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <div className="space-y-6">
           {/* Lamp Controls */}
           {hasLamp && (
@@ -474,7 +477,22 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               </h2>
               <div className="rounded-2xl bg-card p-6 shadow-soft space-y-4">
                 <div className="text-center">
-                  <span className="text-4xl font-bold">{temp.toFixed(1)}°C</span>
+                  <div className="flex items-center justify-center gap-6">
+                    <div>
+                      <span className="text-4xl font-bold">
+                        {temp === -99 ? '—' : `${temp.toFixed(1)}°C`}
+                      </span>
+                      {temp === -99 && (
+                        <p className="text-sm text-muted-foreground mt-1">Kein Messwert</p>
+                      )}
+                    </div>
+                    {humidity >= 0 && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Droplets className="h-5 w-5" />
+                        <span className="text-2xl font-semibold">{humidity.toFixed(0)}%</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={async () => {
@@ -499,12 +517,15 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                     <div className="h-32 relative">
                       <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="none">
                         {(() => {
-                          const temps = tempHistory.map(h => h.temperature);
+                          // Filter out -99 values (no data)
+                          const validHistory = tempHistory.filter(h => h.temperature !== -99);
+                          if (validHistory.length === 0) return null;
+                          const temps = validHistory.map(h => h.temperature);
                           const minT = Math.min(...temps) - 1;
                           const maxT = Math.max(...temps) + 1;
                           const range = maxT - minT || 1;
-                          const points = tempHistory.map((h, i) => {
-                            const x = (i / (tempHistory.length - 1)) * 100;
+                          const points = validHistory.map((h, i) => {
+                            const x = (i / (validHistory.length - 1)) * 100;
                             const y = 50 - ((h.temperature - minT) / range) * 50;
                             return `${x},${y}`;
                           }).join(' ');
@@ -1254,8 +1275,49 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Capabilities</span>
-                <span>{capabilities.join(', ') || 'N/A'}</span>
+                <span className="text-right text-xs max-w-[200px]" title={getCapabilityNames(capabilities)}>
+                  {capabilities.length > 0 ? `${capabilities.join(', ')} – ${getCapabilityNames(capabilities)}` : 'N/A'}
+                </span>
               </div>
+              {expertMode && (() => {
+                // Check for position data - either device.position (Espresense) or settings.trilaterationRoomPosition
+                const pos = (device as Record<string, unknown>).position as { x?: number; y?: number; z?: number; roomName?: string } | undefined;
+                const trilaterationPos = (device.settings as Record<string, unknown> | undefined)?.trilaterationRoomPosition as { x?: number; y?: number; z?: number } | undefined;
+                const displayPos = pos ?? trilaterationPos;
+                if (!displayPos) return null;
+                return (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Position (X/Y/Z)</span>
+                    <span className="font-mono text-xs">
+                      {displayPos.x?.toFixed(2) ?? '?'} / {displayPos.y?.toFixed(2) ?? '?'} / {displayPos.z?.toFixed(2) ?? '?'}
+                      {pos?.roomName && <span className="text-muted-foreground ml-1">({pos.roomName})</span>}
+                    </span>
+                  </div>
+                );
+              })()}
+              {expertMode && (
+                <button
+                  onClick={() => setShowRawJson(!showRawJson)}
+                  className="w-full mt-2 rounded-xl bg-secondary py-2 text-sm font-medium transition-all hover:bg-accent"
+                >
+                  {showRawJson ? 'Raw JSON ausblenden' : 'Raw JSON anzeigen'}
+                </button>
+              )}
+              {showRawJson && (
+                <div className="mt-2">
+                  <div className="flex justify-end mb-1">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(JSON.stringify(device, null, 2))}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Kopieren
+                    </button>
+                  </div>
+                  <pre className="bg-secondary rounded-xl p-3 text-xs overflow-auto max-h-96 font-mono whitespace-pre-wrap">
+                    {JSON.stringify(device, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </section>
         </div>

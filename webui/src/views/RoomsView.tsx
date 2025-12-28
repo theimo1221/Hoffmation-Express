@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage, getRoomStats, getDeviceRoom } from '@/stores/dataStore';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage, getRoomStats, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds } from 'lucide-react';
+import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds, Search } from 'lucide-react';
 import { DeviceDetailView } from './DeviceDetailView';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { RoomSettingsSection } from '@/components/RoomSettingsSection';
 
 export function RoomsView() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { roomId } = useParams<{ roomId?: string }>();
   const { rooms, devices, floors, fetchData, isLoading } = useDataStore();
   const { excludedLevels } = useSettingsStore();
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ room: Room; groupType: string; group: GroupData } | null>(null);
   const [floorFilter, setFloorFilter] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+
+  // Get selected room from URL param
+  const selectedRoom = roomId ? Object.values(rooms).find(r => (r.id ?? getRoomName(r)) === decodeURIComponent(roomId)) : null;
 
   useEffect(() => {
     fetchData();
@@ -25,7 +31,7 @@ export function RoomsView() {
     return <DeviceDetailView device={selectedDevice} onBack={() => setSelectedDevice(null)} />;
   }
 
-  if (selectedGroup) {
+  if (selectedGroup && selectedRoom) {
     return (
       <GroupDetailView 
         room={selectedGroup.room}
@@ -42,7 +48,12 @@ export function RoomsView() {
     (room) => {
       const level = getRoomEtage(room);
       if (excludedLevels.includes(level)) return false;
-      return floorFilter === null || level === floorFilter;
+      if (floorFilter !== null && level !== floorFilter) return false;
+      if (search) {
+        const roomName = getRoomName(room).toLowerCase();
+        return roomName.includes(search.toLowerCase());
+      }
+      return true;
     }
   );
 
@@ -62,7 +73,7 @@ export function RoomsView() {
       <RoomDetail 
         room={selectedRoom} 
         devices={devices} 
-        onBack={() => setSelectedRoom(null)} 
+        onBack={() => navigate('/rooms')} 
         onSelectDevice={setSelectedDevice}
         onSelectGroup={(room, groupType, group) => setSelectedGroup({ room, groupType, group })}
       />
@@ -82,6 +93,18 @@ export function RoomsView() {
             <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        <div className="relative mt-3">
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder={t('common.search')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-xl bg-secondary py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
         <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
           <button
             onClick={() => setFloorFilter(null)}
@@ -111,12 +134,12 @@ export function RoomsView() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <div className="space-y-3">
           {roomList.map((room) => (
             <button
               key={room.id ?? getRoomName(room)}
-              onClick={() => setSelectedRoom(room)}
+              onClick={() => navigate(`/rooms/${encodeURIComponent(room.id ?? getRoomName(room))}`)}
               className="flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-soft transition-all duration-200 hover:shadow-soft-lg active:scale-[0.98]"
             >
               <RoomCardContent room={room} devices={devices} />
@@ -195,7 +218,7 @@ function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGroup }: Ro
         <h1 className="text-xl font-semibold">{roomName}</h1>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         {groupTypes.length > 0 && (
           <section className="mb-6">
             <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
@@ -257,8 +280,7 @@ function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGroup }: Ro
           </h2>
           <div className="space-y-3">
             {roomDevices.map((device) => {
-              const info = device.info ?? device._info;
-              const name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
+              const name = getDeviceName(device, roomName);
               return (
                 <button
                   key={device.id ?? name}
@@ -353,7 +375,7 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <section className="mb-6">
           <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
             Gruppen-Info
@@ -376,8 +398,7 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
           </h2>
           <div className="space-y-3">
             {groupDevices.map((device) => {
-              const info = device.info ?? device._info;
-              const name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
+              const name = getDeviceName(device, roomName);
               return (
                 <button
                   key={device.id ?? name}

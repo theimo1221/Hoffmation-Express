@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useDataStore, type Device, getDeviceRoom } from '@/stores/dataStore';
 import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, RefreshCw } from 'lucide-react';
 import { setLamp, setShutter, setActuator } from '@/api/devices';
-import { DeviceDetailView } from './DeviceDetailView';
 
 function getFavoriteIds(): string[] {
   const stored = localStorage.getItem('hoffmation-favorites');
@@ -17,9 +17,9 @@ function getFavoriteIds(): string[] {
 
 export function FavoritesView() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { devices, fetchData, isLoading } = useDataStore();
   const [favoriteIds] = useState<string[]>(getFavoriteIds());
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -28,10 +28,6 @@ export function FavoritesView() {
   const favoriteDevices = Object.values(devices).filter(
     (d) => d.id && favoriteIds.includes(d.id)
   );
-
-  if (selectedDevice) {
-    return <DeviceDetailView device={selectedDevice} onBack={() => setSelectedDevice(null)} />;
-  }
 
   if (isLoading && Object.keys(devices).length === 0) {
     return (
@@ -56,7 +52,7 @@ export function FavoritesView() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <section className="mb-6">
           <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
             <Star className="h-4 w-4" />
@@ -72,7 +68,7 @@ export function FavoritesView() {
           ) : (
             <div className="space-y-3">
               {favoriteDevices.map((device) => (
-                <DeviceQuickCard key={device.id} device={device} onSelect={() => setSelectedDevice(device)} />
+                <DeviceQuickCard key={device.id} device={device} onSelect={() => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)} />
               ))}
             </div>
           )}

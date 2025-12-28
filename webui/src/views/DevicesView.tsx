@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useDataStore, type Device } from '@/stores/dataStore';
 import { cn } from '@/lib/utils';
 import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap, RefreshCw } from 'lucide-react';
@@ -29,17 +30,21 @@ const CAPABILITY_FILTERS = [
 
 export function DevicesView() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { deviceId } = useParams<{ deviceId?: string }>();
   const { devices, fetchData, isLoading } = useDataStore();
   const [search, setSearch] = useState('');
   const [capabilityFilter, setCapabilityFilter] = useState<number | null>(null);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+
+  // Get selected device from URL param
+  const selectedDevice = deviceId ? devices[decodeURIComponent(deviceId)] : null;
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   if (selectedDevice) {
-    return <DeviceDetailView device={selectedDevice} onBack={() => setSelectedDevice(null)} />;
+    return <DeviceDetailView device={selectedDevice} onBack={() => navigate('/devices')} />;
   }
 
   const deviceList = Object.values(devices).filter((device) => {
@@ -112,10 +117,10 @@ export function DevicesView() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <div className="space-y-3">
           {deviceList.map((device) => (
-            <DeviceCard key={device.id} device={device} onClick={() => setSelectedDevice(device)} />
+            <DeviceCard key={device.id} device={device} onClick={() => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)} />
           ))}
           {deviceList.length === 0 && (
             <div className="py-8 text-center text-muted-foreground">

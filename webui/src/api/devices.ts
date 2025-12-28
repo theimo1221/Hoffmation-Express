@@ -49,6 +49,17 @@ export async function updateDeviceSettings(deviceId: string, settings: unknown):
   await apiPost(`/deviceSettings/${encodedId}`, { settings });
 }
 
+export interface WebUIUpdateResult {
+  success: boolean;
+  steps: { step: string; success: boolean; output?: string; error?: string }[];
+  message?: string;
+  error?: string;
+}
+
+export async function updateWebUI(): Promise<WebUIUpdateResult> {
+  return apiPost<WebUIUpdateResult>('/webui/update', {});
+}
+
 export async function setLed(
   deviceId: string,
   state: boolean,

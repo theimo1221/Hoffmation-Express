@@ -310,12 +310,30 @@ export function getDeviceRoom(device: Device): string {
   return device.info?.room || device._info?.room || '';
 }
 
+export function getDeviceName(device: Device, stripRoomPrefix?: string): string {
+  const info = device.info ?? device._info;
+  let name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
+  
+  // Optionally strip room/floor prefix from name for cleaner display in room context
+  if (stripRoomPrefix && name.toLowerCase().startsWith(stripRoomPrefix.toLowerCase())) {
+    name = name.substring(stripRoomPrefix.length).trim();
+    // Remove leading dash or colon if present
+    if (name.startsWith('-') || name.startsWith(':')) {
+      name = name.substring(1).trim();
+    }
+  }
+  
+  return name;
+}
+
 export function isDeviceOn(device: Device): boolean {
   return device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
 }
 
 export function getDeviceTemperature(device: Device): number | undefined {
-  return device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  // -99 means no data
+  return temp === -99 ? undefined : temp;
 }
 
 export function hasCapability(device: Device, capability: number): boolean {
@@ -323,11 +341,62 @@ export function hasCapability(device: Device, capability: number): boolean {
 }
 
 export const DeviceCapability = {
+  ac: 0,
+  actuator: 1,
+  button: 2,
+  energyManager: 3,
+  garageDoor: 4,
+  heater: 5,
+  humiditySensor: 6,
+  vibrationSensor: 7,
   lamp: 8,
   dimmableLamp: 9,
+  motionSensor: 10,
+  shutter: 11,
   temperatureSensor: 12,
-  ac: 0,
+  speaker: 14,
+  led: 15,
+  handleSensor: 100,
+  presenceSensor: 101,
+  smokeSensor: 102,
+  waterSensor: 103,
+  scene: 104,
+  camera: 105,
+  battery: 106,
 };
+
+export const CAPABILITY_NAMES: Record<number, string> = {
+  0: 'Klimaanlage',
+  1: 'Aktor',
+  2: 'Taster',
+  3: 'Energie-Manager',
+  4: 'Garagentor',
+  5: 'Heizung',
+  6: 'Feuchtigkeitssensor',
+  7: 'Vibrationssensor',
+  8: 'Lampe',
+  9: 'Dimmbare Lampe',
+  10: 'Bewegungsmelder',
+  11: 'Rollladen',
+  12: 'Temperatursensor',
+  14: 'Lautsprecher',
+  15: 'LED',
+  100: 'Fenstersensor',
+  101: 'Präsenzsensor',
+  102: 'Rauchmelder',
+  103: 'Wassersensor',
+  104: 'Szene',
+  105: 'Kamera',
+  106: 'Batterie',
+};
+
+export function getCapabilityName(capability: number): string {
+  return CAPABILITY_NAMES[capability] ?? `Unbekannt (${capability})`;
+}
+
+export function getCapabilityNames(capabilities: number[]): string {
+  return capabilities.map(c => getCapabilityName(c)).join(', ');
+}
 
 export interface RoomStats {
   temperature?: number;

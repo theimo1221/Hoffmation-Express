@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers } from 'lucide-react';
+import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { updateWebUI, type WebUIUpdateResult } from '@/api/devices';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -41,13 +43,39 @@ export function SettingsView() {
     i18n.changeLanguage(lang);
   };
 
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<WebUIUpdateResult | null>(null);
+
+  const handleUpdateWebUI = async () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    setUpdateResult(null);
+    try {
+      const result = await updateWebUI();
+      setUpdateResult(result);
+      if (result.success) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      }
+    } catch (error) {
+      setUpdateResult({
+        success: false,
+        steps: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col">
       <header className="p-4">
         <h1 className="text-2xl font-bold">{t('tabs.settings')}</h1>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-24">
+      <div className="flex-1 overflow-auto px-4 pb-tabbar">
         <div className="space-y-6">
           {/* Server URL */}
           <section>
@@ -212,6 +240,69 @@ export function SettingsView() {
               <p className="text-xs text-muted-foreground mt-2">
                 Ausgewählte Etagen werden in der Raumübersicht ausgeblendet.
               </p>
+            </div>
+          </section>
+
+          {/* WebUI Update */}
+          <section>
+            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              WebUI Update
+            </h2>
+            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Aktualisiert die WebUI vom Git-Repository (git pull, npm ci, build).
+              </p>
+              <button
+                onClick={handleUpdateWebUI}
+                disabled={isUpdating}
+                className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Update läuft...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    WebUI aktualisieren
+                  </>
+                )}
+              </button>
+              {updateResult && (
+                <div className={`rounded-xl p-3 text-sm ${updateResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {updateResult.success ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    <span className="font-medium">
+                      {updateResult.success ? 'Update erfolgreich! Seite wird neu geladen...' : 'Update fehlgeschlagen'}
+                    </span>
+                  </div>
+                  {updateResult.steps.length > 0 && (
+                    <div className="space-y-1 text-xs">
+                      {updateResult.steps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          {step.success ? (
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+                          <span>{step.step}</span>
+                          {step.output && <span className="text-muted-foreground">– {step.output}</span>}
+                          {step.error && <span className="text-red-500">– {step.error}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {updateResult.error && !updateResult.steps.length && (
+                    <p className="text-xs">{updateResult.error}</p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
         </div>

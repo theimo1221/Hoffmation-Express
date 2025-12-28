@@ -1,6 +1,8 @@
 import cors from 'cors';
 import { Express, json, Request, Response, NextFunction, static as expressStatic } from 'express';
 import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import {
   AcMode,
   ActuatorSetStateCommand,
@@ -297,6 +299,59 @@ export class RestService {
     for (const handler of this._queuedCustomHandler) {
       this._app.get(handler.path, handler.handler);
     }
+
+    // WebUI update endpoint - git pull, npm ci, build
+    this._app.post('/webui/update', async (_req, res) => {
+      const execAsync = promisify(exec);
+      const webuiDir = path.join(__dirname, '..', 'webui');
+      const steps: { step: string; success: boolean; output?: string; error?: string }[] = [];
+
+      try {
+        ServerLogService.writeLog(LogLevel.Info, 'WebUI update started');
+
+        // Step 1: Git pull
+        try {
+          const gitResult = await execAsync('git pull', { cwd: path.join(__dirname, '..') });
+          steps.push({ step: 'git pull', success: true, output: gitResult.stdout.trim() });
+          ServerLogService.writeLog(LogLevel.Info, `Git pull: ${gitResult.stdout.trim()}`);
+        } catch (gitError: unknown) {
+          const err = gitError as { message?: string };
+          steps.push({ step: 'git pull', success: false, error: err.message });
+          ServerLogService.writeLog(LogLevel.Error, `Git pull failed: ${err.message}`);
+        }
+
+        // Step 2: npm ci in webui
+        try {
+          const npmCiResult = await execAsync('npm ci', { cwd: webuiDir, timeout: 300000 });
+          steps.push({ step: 'npm ci', success: true, output: 'Dependencies installed' });
+          ServerLogService.writeLog(LogLevel.Info, `npm ci completed: ${npmCiResult.stdout.substring(0, 200)}`);
+        } catch (npmError: unknown) {
+          const err = npmError as { message?: string };
+          steps.push({ step: 'npm ci', success: false, error: err.message });
+          ServerLogService.writeLog(LogLevel.Error, `npm ci failed: ${err.message}`);
+          return res.status(500).json({ success: false, steps });
+        }
+
+        // Step 3: Build webui
+        try {
+          const buildResult = await execAsync('npm run build', { cwd: webuiDir, timeout: 300000 });
+          steps.push({ step: 'npm run build', success: true, output: 'Build completed' });
+          ServerLogService.writeLog(LogLevel.Info, `Build completed: ${buildResult.stdout.substring(0, 200)}`);
+        } catch (buildError: unknown) {
+          const err = buildError as { message?: string };
+          steps.push({ step: 'npm run build', success: false, error: err.message });
+          ServerLogService.writeLog(LogLevel.Error, `Build failed: ${err.message}`);
+          return res.status(500).json({ success: false, steps });
+        }
+
+        ServerLogService.writeLog(LogLevel.Info, 'WebUI update completed successfully');
+        return res.json({ success: true, steps, message: 'WebUI updated. Refresh browser to see changes.' });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `WebUI update failed: ${err.message}`);
+        return res.status(500).json({ success: false, steps, error: err.message });
+      }
+    });
 
     // SPA fallback - serve index.html for all non-API routes (only if WebUI enabled)
     if (config.webUi) {
