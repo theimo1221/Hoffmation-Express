@@ -300,6 +300,37 @@ export class RestService {
       this._app.get(handler.path, handler.handler);
     }
 
+    // Hoffmation service restart endpoint
+    // The service script handles git pull, npm ci, build, start itself
+    this._app.post('/hoffmation/restart', async (_req, res) => {
+      const execAsync = promisify(exec);
+
+      try {
+        ServerLogService.writeLog(LogLevel.Info, 'Hoffmation restart requested');
+
+        // Send response before restart (process will be killed)
+        res.json({
+          success: true,
+          message: 'Hoffmation wird neu gestartet... (git pull, npm ci, build werden vom Service ausgeführt)',
+        });
+
+        // Restart service (delayed to allow response to be sent)
+        setTimeout(async () => {
+          try {
+            ServerLogService.writeLog(LogLevel.Info, 'Executing: sudo systemctl restart hoffmation');
+            await execAsync('sudo systemctl restart hoffmation', { timeout: 30000 });
+          } catch {
+            // Expected: process is killed during restart
+            ServerLogService.writeLog(LogLevel.Info, 'Service restart initiated');
+          }
+        }, 500);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Hoffmation restart failed: ${err.message}`);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
     // WebUI update endpoint - git pull, npm ci, build
     this._app.post('/webui/update', async (_req, res) => {
       const execAsync = promisify(exec);

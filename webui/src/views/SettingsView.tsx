@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { updateWebUI, type WebUIUpdateResult } from '@/api/devices';
+import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -45,6 +45,8 @@ export function SettingsView() {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateResult, setUpdateResult] = useState<WebUIUpdateResult | null>(null);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [restartResult, setRestartResult] = useState<HoffmationRestartResult | null>(null);
 
   const handleUpdateWebUI = async () => {
     if (isUpdating) return;
@@ -66,6 +68,24 @@ export function SettingsView() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleRestartHoffmation = async () => {
+    if (isRestarting) return;
+    if (!confirm('Hoffmation wirklich neu starten? Der Service wird kurz nicht erreichbar sein.')) return;
+    setIsRestarting(true);
+    setRestartResult(null);
+    try {
+      const result = await restartHoffmation();
+      setRestartResult(result);
+    } catch (error) {
+      setRestartResult({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setIsRestarting(false);
     }
   };
 
@@ -240,6 +260,50 @@ export function SettingsView() {
               <p className="text-xs text-muted-foreground mt-2">
                 Ausgewählte Etagen werden in der Raumübersicht ausgeblendet.
               </p>
+            </div>
+          </section>
+
+          {/* Hoffmation Restart */}
+          <section>
+            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Hoffmation Update & Restart
+            </h2>
+            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Aktualisiert Hoffmation vom Git-Repository und startet den Service neu.
+              </p>
+              <button
+                onClick={handleRestartHoffmation}
+                disabled={isRestarting}
+                className="w-full rounded-xl bg-orange-500 py-3 text-sm font-medium text-white transition-all hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isRestarting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Restart läuft...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Hoffmation neu starten
+                  </>
+                )}
+              </button>
+              {restartResult && (
+                <div className={`rounded-xl p-3 text-sm ${restartResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                  <div className="flex items-center gap-2">
+                    {restartResult.success ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    <span className="font-medium">
+                      {restartResult.success ? restartResult.message : restartResult.error ?? 'Restart fehlgeschlagen'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
