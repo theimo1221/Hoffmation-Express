@@ -244,6 +244,8 @@ export interface DeviceSettings {
   sceneSettings?: SceneSettings;
   speakerSettings?: SpeakerSettings;
   dachsSettings?: DachsSettings;
+  // Trilateration position in room
+  trilaterationRoomPosition?: { x: number; y: number; z: number };
 }
 
 export interface DeviceInfo {
