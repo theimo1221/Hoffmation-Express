@@ -857,6 +857,21 @@ Groups inherit settings from their devices but can have group-wide controls.
   - [x] Light settings: ambientLightAfterSunset, lichtSonnenAufgangAus, lampenBeiBewegung, etc.
   - [x] Shutter settings: rolloHeatReduction, sonnenAufgangRollos, sonnenUntergangRollos, time pickers
   - [x] Other: movementResetTimer
+- [x] **DeviceCapability Enum korrigiert** - Mapping stimmt jetzt mit hoffmation-base überein
+  - Vorher: Falsche Zuordnungen (z.B. 4=Garagentor statt excessEnergyConsumer)
+  - Jetzt: Alle 22+ Capabilities korrekt gemappt
+- [x] **Letztes Signal/Update Anzeige** - In Device-Info Sektion
+  - Relative Zeitanzeige (z.B. "vor 5 Min.", "vor 2 Std.")
+  - Capability-basierte Warnschwellen:
+    - Zigbee ohne Batterie: 10 Minuten
+    - Temperatursensor/Feuchtigkeitssensor: 15 Minuten
+    - Heizung: 30 Minuten
+    - Bewegungsmelder/Griffsensor: 24 Stunden
+    - Lampen/Aktoren/Rollläden: 1 Stunde
+  - Orange Warnung wenn Schwelle überschritten
+- [x] **Link Quality Anzeige** - Für Zigbee-Geräte
+  - Zeigt Link-Qualität Wert an
+  - Farbcodierung: Rot bei ≤5 (kritisch), Orange bei ≤20 (schwach)
 
 ### Pending ⏳
 - [ ] Group settings

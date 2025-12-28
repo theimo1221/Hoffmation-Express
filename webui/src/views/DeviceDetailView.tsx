@@ -1279,6 +1279,66 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                   {capabilities.length > 0 ? `${capabilities.join(', ')} – ${getCapabilityNames(capabilities)}` : 'N/A'}
                 </span>
               </div>
+              {(() => {
+                const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
+                if (!lastUpdateRaw) return null;
+                const lastUpdateDate = new Date(lastUpdateRaw);
+                const isValid = !isNaN(lastUpdateDate.getTime()) && lastUpdateDate.getTime() > 0;
+                if (!isValid) return null;
+                const now = new Date();
+                const diffMs = now.getTime() - lastUpdateDate.getTime();
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                let relativeTime: string;
+                if (diffMins < 1) relativeTime = 'gerade eben';
+                else if (diffMins < 60) relativeTime = `vor ${diffMins} Min.`;
+                else if (diffHours < 24) relativeTime = `vor ${diffHours} Std.`;
+                else relativeTime = `vor ${diffDays} Tag${diffDays > 1 ? 'en' : ''}`;
+                
+                // Capability-based stale thresholds (in minutes)
+                // Zigbee devices without battery report link_quality every ~10 min
+                // Battery devices only report on events
+                const linkQuality = device.linkQuality ?? device._linkQuality;
+                const isZigbee = linkQuality !== undefined;
+                const batteryLevel = device.battery?.level ?? device.batteryLevel;
+                const isBatteryDevice = hasBattery || batteryLevel !== undefined;
+                
+                let staleThresholdMins = 60; // default: 1 hour
+                if (isZigbee && !isBatteryDevice) {
+                  staleThresholdMins = 10; // Zigbee mains-powered devices report link_quality regularly
+                } else if (hasTemp || hasHumidity) {
+                  staleThresholdMins = 15; // Temperature/humidity sensors should report frequently
+                } else if (hasHeater) {
+                  staleThresholdMins = 30; // Heaters report valve position regularly
+                } else if (hasMotion || hasHandle) {
+                  staleThresholdMins = 24 * 60; // Motion sensors/handles only report on events
+                } else if (hasLamp || hasDimmable || hasLed || hasActuator) {
+                  staleThresholdMins = 60; // Actuators should respond within an hour
+                } else if (hasShutter) {
+                  staleThresholdMins = 60; // Shutters report position changes
+                }
+                
+                const isStale = diffMins >= staleThresholdMins;
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Letztes Signal</span>
+                      <span className={`text-right ${isStale ? 'text-orange-500' : ''}`} title={lastUpdateDate.toLocaleString('de-DE')}>
+                        {relativeTime}
+                      </span>
+                    </div>
+                    {linkQuality !== undefined && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Link-Qualität</span>
+                        <span className={`text-right ${linkQuality <= 5 ? 'text-red-500' : linkQuality <= 20 ? 'text-orange-500' : ''}`}>
+                          {linkQuality}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               {expertMode && (() => {
                 // Check for position data - either device.position (Espresense) or settings.trilaterationRoomPosition
                 const pos = (device as Record<string, unknown>).position as { x?: number; y?: number; z?: number; roomName?: string } | undefined;

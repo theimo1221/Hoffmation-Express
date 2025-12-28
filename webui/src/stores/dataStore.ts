@@ -304,6 +304,12 @@ export interface Device {
   mpegStreamLink?: string;
   // Settings
   settings?: DeviceSettings;
+  // Last Update
+  lastUpdate?: string;
+  _lastUpdate?: string;
+  // Zigbee
+  linkQuality?: number;
+  _linkQuality?: number;
 }
 
 export function getDeviceRoom(device: Device): string {
@@ -343,26 +349,33 @@ export function hasCapability(device: Device, capability: number): boolean {
 export const DeviceCapability = {
   ac: 0,
   actuator: 1,
-  button: 2,
+  buttonSwitch: 2,
   energyManager: 3,
-  garageDoor: 4,
+  excessEnergyConsumer: 4,
   heater: 5,
   humiditySensor: 6,
-  vibrationSensor: 7,
+  illuminationSensor: 7,
   lamp: 8,
   dimmableLamp: 9,
   motionSensor: 10,
   shutter: 11,
   temperatureSensor: 12,
+  vibrationSensor: 13,
   speaker: 14,
-  led: 15,
-  handleSensor: 100,
-  presenceSensor: 101,
-  smokeSensor: 102,
-  waterSensor: 103,
-  scene: 104,
+  handleSensor: 15,
+  batteryDriven: 16,
+  tv: 17,
+  ledLamp: 18,
+  smokeSensor: 19,
+  loadMetering: 20,
+  garageDoorOpener: 21,
+  magnetSensor: 22,
+  bluetoothDetector: 101,
+  trackableDevice: 102,
+  scene: 103,
+  blockAutomatic: 104,
   camera: 105,
-  battery: 106,
+  doorbell: 106,
 };
 
 export const CAPABILITY_NAMES: Record<number, string> = {
@@ -370,24 +383,31 @@ export const CAPABILITY_NAMES: Record<number, string> = {
   1: 'Aktor',
   2: 'Taster',
   3: 'Energie-Manager',
-  4: 'Garagentor',
+  4: 'Überschuss-Verbraucher',
   5: 'Heizung',
   6: 'Feuchtigkeitssensor',
-  7: 'Vibrationssensor',
+  7: 'Helligkeitssensor',
   8: 'Lampe',
   9: 'Dimmbare Lampe',
   10: 'Bewegungsmelder',
   11: 'Rollladen',
   12: 'Temperatursensor',
+  13: 'Vibrationssensor',
   14: 'Lautsprecher',
-  15: 'LED',
-  100: 'Fenstersensor',
-  101: 'Präsenzsensor',
-  102: 'Rauchmelder',
-  103: 'Wassersensor',
-  104: 'Szene',
+  15: 'Griffsensor',
+  16: 'Batterie',
+  17: 'TV',
+  18: 'LED',
+  19: 'Rauchmelder',
+  20: 'Lastmessung',
+  21: 'Garagentor',
+  22: 'Magnetsensor',
+  101: 'Bluetooth-Detektor',
+  102: 'Trackbares Gerät',
+  103: 'Szene',
+  104: 'Automatik-Sperre',
   105: 'Kamera',
-  106: 'Batterie',
+  106: 'Türklingel',
 };
 
 export function getCapabilityName(capability: number): string {
