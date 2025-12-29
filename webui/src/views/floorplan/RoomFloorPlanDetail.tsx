@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { setDevicePosition } from '@/api/devices';
+import { setDevicePosition, setLamp, setDimmer, setShutter, setAc } from '@/api/devices';
 import { cn } from '@/lib/utils';
 import { Edit3, Save, X, Plus } from 'lucide-react';
-import { DeviceIcon } from '@/components/DeviceIcon';
+import { DeviceIcon, DeviceCapability } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { RadialMenu, getDeviceMenuItems, getDeviceStatus } from '@/components/RadialMenu';
 import type { RoomFloorPlanDetailProps } from './types';
 
 export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: RoomFloorPlanDetailProps) {
@@ -18,8 +19,13 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   const [editedPositions, setEditedPositions] = useState<Record<string, { x: number; y: number; z: number }>>({});
   const [draggingDevice, setDraggingDevice] = useState<string | null>(null);
   const [fixedScale, setFixedScale] = useState<number | null>(null);
+  const [radialMenu, setRadialMenu] = useState<{ device: Device; position: { x: number; y: number } } | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPress, setIsLongPress] = useState(false);
   const { expertMode } = useSettingsStore();
-  const { fetchData } = useDataStore();
+  const { fetchData, fetchDevice } = useDataStore();
+
+  const LONG_PRESS_DURATION = 400; // ms
 
   const startPoint = room.startPoint ?? room.settings?.trilaterationStartPoint;
   const endPoint = room.endPoint ?? room.settings?.trilaterationEndPoint;
@@ -95,6 +101,221 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   const handleMouseUp = () => {
     setDraggingDevice(null);
   };
+
+  // Check if device is a lamp (can be toggled)
+  const isLampDevice = (device: Device) => {
+    const caps = device.deviceCapabilities ?? [];
+    return caps.includes(DeviceCapability.lamp) || 
+           caps.includes(DeviceCapability.dimmableLamp) || 
+           caps.includes(DeviceCapability.ledLamp);
+  };
+
+  // Check if device is a shutter (can be toggled)
+  const isShutterDevice = (device: Device) => {
+    const caps = device.deviceCapabilities ?? [];
+    return caps.includes(DeviceCapability.shutter);
+  };
+
+  // Check if device is AC (can be toggled)
+  const isAcDevice = (device: Device) => {
+    const caps = device.deviceCapabilities ?? [];
+    return caps.includes(DeviceCapability.ac);
+  };
+
+  const isAcOn = (device: Device) => {
+    return (device as Record<string, unknown>).acOn ?? (device as Record<string, unknown>)._acOn ?? device.on ?? device._on ?? false;
+  };
+
+  const isLampOn = (device: Device) => {
+    return device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+  };
+
+  const getShutterLevel = (device: Device) => {
+    let level = device._currentLevel ?? -1;
+    // Normalize to 0-100
+    if (level >= 0 && level <= 1) level = level * 100;
+    return level;
+  };
+
+  // Toggle lamp on/off - LED/Dimmer/Lamp all extend Actuator, so setLamp works for all
+  const handleToggleLamp = async (device: Device) => {
+    if (!device.id) return;
+    const currentState = isLampOn(device);
+    
+    try {
+      await setLamp(device.id, !currentState);
+      // Refresh device data after short delay
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to toggle lamp:', error);
+    }
+  };
+
+  // Toggle shutter open/closed (0 = open, 100 = closed)
+  const handleToggleShutter = async (device: Device) => {
+    if (!device.id) return;
+    const currentLevel = getShutterLevel(device);
+    // If mostly open (< 50%), close it. Otherwise open it.
+    const newLevel = currentLevel < 50 ? 100 : 0;
+    
+    try {
+      await setShutter(device.id, newLevel);
+      // Refresh device data after short delay
+      setTimeout(() => fetchDevice(device.id!), 500);
+    } catch (error) {
+      console.error('Failed to toggle shutter:', error);
+    }
+  };
+
+  // Toggle AC on/off
+  const handleToggleAc = async (device: Device) => {
+    if (!device.id) return;
+    const currentState = isAcOn(device);
+    
+    try {
+      await setAc(device.id, !currentState);
+      // Refresh device data after short delay
+      setTimeout(() => fetchDevice(device.id!), 500);
+    } catch (error) {
+      console.error('Failed to toggle AC:', error);
+    }
+  };
+
+  // Handle device interaction (tap vs hold)
+  const handleDevicePointerDown = (device: Device, e: React.PointerEvent) => {
+    if (editMode) return;
+    
+    e.preventDefault();
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    const position = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+
+    setIsLongPress(false);
+    
+    const timer = setTimeout(() => {
+      setIsLongPress(true);
+      // Open radial menu on long press
+      setRadialMenu({ device, position });
+    }, LONG_PRESS_DURATION);
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleDevicePointerUp = (device: Device) => {
+    if (editMode) return;
+    
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+
+    // If it wasn't a long press, handle as tap
+    if (!isLongPress) {
+      if (isLampDevice(device)) {
+        // Quick tap on lamp = toggle
+        handleToggleLamp(device);
+      } else if (isShutterDevice(device)) {
+        // Quick tap on shutter = toggle open/closed
+        handleToggleShutter(device);
+      } else if (isAcDevice(device)) {
+        // Quick tap on AC = toggle on/off
+        handleToggleAc(device);
+      } else {
+        // Other devices go to detail view
+        onSelectDevice(device);
+      }
+    }
+    
+    setIsLongPress(false);
+  };
+
+  const handleDevicePointerLeave = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Lamp control handlers for radial menu
+  const handleLampOn = async (device: Device) => {
+    if (!device.id) return;
+    const caps = device.deviceCapabilities ?? [];
+    try {
+      if (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
+        await setDimmer(device.id, true, 100);
+      } else {
+        await setLamp(device.id, true);
+      }
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to turn lamp on:', error);
+    }
+  };
+
+  const handleLampOff = async (device: Device) => {
+    if (!device.id) return;
+    try {
+      await setLamp(device.id, false);
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to turn lamp off:', error);
+    }
+  };
+
+  const handleLamp50 = async (device: Device) => {
+    if (!device.id) return;
+    try {
+      await setDimmer(device.id, true, 50);
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to set lamp to 50%:', error);
+    }
+  };
+
+  // Shutter control handlers for radial menu
+  const handleShutterLevel = async (device: Device, level: number) => {
+    if (!device.id) return;
+    try {
+      await setShutter(device.id, level);
+      setTimeout(() => fetchDevice(device.id!), 500);
+    } catch (error) {
+      console.error('Failed to set shutter level:', error);
+    }
+  };
+
+  // AC control handlers for radial menu
+  const handleAcPower = async (device: Device, power: boolean) => {
+    if (!device.id) return;
+    try {
+      await setAc(device.id, power);
+      setTimeout(() => fetchDevice(device.id!), 500);
+    } catch (error) {
+      console.error('Failed to set AC power:', error);
+    }
+  };
+
+  // Get radial menu items for current device
+  const getRadialMenuItems = useCallback(() => {
+    if (!radialMenu) return [];
+    const device = radialMenu.device;
+    
+    return getDeviceMenuItems(device, {
+      onDetails: () => {
+        setRadialMenu(null);
+        onSelectDevice(device);
+      },
+      onLampOn: () => handleLampOn(device),
+      onLampOff: () => handleLampOff(device),
+      onLamp50: () => handleLamp50(device),
+      onShutterUp: () => handleShutterLevel(device, 0),
+      onShutter50: () => handleShutterLevel(device, 50),
+      onShutterDown: () => handleShutterLevel(device, 100),
+      onAcOn: () => handleAcPower(device, true),
+      onAcOff: () => handleAcPower(device, false),
+    });
+  }, [radialMenu, onSelectDevice]);
 
   return (
     <div 
@@ -191,13 +412,15 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
             return (
               <div
                 key={device.id ?? deviceName}
-                onClick={editMode ? undefined : () => onSelectDevice(device)}
+                onPointerDown={editMode ? undefined : (e) => handleDevicePointerDown(device, e)}
+                onPointerUp={editMode ? undefined : () => handleDevicePointerUp(device)}
+                onPointerLeave={editMode ? undefined : handleDevicePointerLeave}
                 onMouseDown={editMode && device.id ? (e) => {
                   e.preventDefault();
                   setDraggingDevice(device.id!);
                 } : undefined}
                 className={cn(
-                  "absolute flex flex-col items-center justify-center p-2 rounded-xl shadow-soft",
+                  "absolute flex flex-col items-center justify-center p-2 rounded-xl shadow-soft select-none touch-none",
                   editMode
                     ? isDragging
                       ? "cursor-grabbing bg-primary/40 border-2 border-primary z-50"
@@ -291,6 +514,17 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
           </div>
         </div>
       )}
+
+      {/* Radial Menu for device quick actions */}
+      <RadialMenu
+        items={getRadialMenuItems()}
+        isOpen={radialMenu !== null}
+        onClose={() => setRadialMenu(null)}
+        position={radialMenu?.position ?? { x: 0, y: 0 }}
+        centerIcon={radialMenu ? <DeviceIcon device={radialMenu.device} size="md" /> : undefined}
+        deviceStatus={radialMenu ? getDeviceStatus(radialMenu.device) : undefined}
+        deviceName={radialMenu ? getDeviceName(radialMenu.device, roomName) : undefined}
+      />
     </div>
   );
 }

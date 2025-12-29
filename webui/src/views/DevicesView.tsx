@@ -5,7 +5,7 @@ import { useDataStore, type Device, filterDevicesForExpertMode } from '@/stores/
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap } from 'lucide-react';
-import { DeviceDetailView } from './DeviceDetailView';
+import { DeviceDetailView } from './device';
 import { DeviceIcon, getDeviceStatusColor } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 

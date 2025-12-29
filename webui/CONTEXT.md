@@ -1,6 +1,6 @@
 # Hoffmation WebUI - Development Context
 
-**Last Updated:** 2025-12-29 18:30 UTC+01:00
+**Last Updated:** 2025-12-29 20:10 UTC+01:00
 
 ## Project Overview
 
@@ -23,12 +23,15 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 | `src/views/floorplan/` | Floor plan components (refactored) |
 | `src/views/floorplan/HouseCrossSection.tsx` | Floor selection view |
 | `src/views/floorplan/FloorPlan.tsx` | Floor detail + room editing |
-| `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning |
+| `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning + Radial Menu |
 | `src/views/floorplan/types.ts` | Shared interfaces |
 | `src/components/DeviceSettingsSection.tsx` | Device settings component |
 | `src/stores/dataStore.ts` | Zustand store for rooms/devices |
 | `src/stores/settingsStore.ts` | App settings (polling, dark mode, etc.) |
 | `src/api/devices.ts` | Device API functions (incl. setDevicePosition) |
+| `src/views/device/` | Refactored DeviceDetailView components |
+| `src/views/rooms/` | Refactored RoomsView components |
+| `src/components/RadialMenu.tsx` | Radial quick-action menu for floor plan |
 | `src/api/client.ts` | Base API client (apiPost, apiPostNoResponse) |
 
 ## Device Capabilities (from hoffmation-base)
@@ -72,6 +75,10 @@ const DeviceCapability = {
 - **Comfort Favorites** - Unreachable devices, low battery devices
 - **Group Settings** - Heater group automatic mode, temperatures
 - **FloorPlanView Refactoring** - Split into 4 components (949→51 lines)
+- **DeviceDetailView Refactoring** - Split into views/device/ with control components
+- **RoomsView Refactoring** - Split into views/rooms/ with sub-components
+- **Badge-Text Fix** - Capability priority for LED/Lamp/Dimmer badges
+- **Radial Menu** - Tap=Toggle, Hold=Radial with child-friendly icons
 
 ## Next Steps (Pending) ⏳
 
@@ -310,8 +317,87 @@ Add to RoomDetail view with all room settings:
 - [x] MenuButton in header (RoomDetail, DeviceDetailView)
 - [x] Device repositioning fix (relative coordinates)
 - [x] Expert Mode Device Filtering
+- [x] DeviceDetailView.tsx refactoring → views/device/
+- [x] RoomsView.tsx refactoring → views/rooms/
+- [x] Badge-Text fix (Capability priority for LED/Lamp)
+- [x] Sync React primaryCap with Swift
+- [x] Radial Menu: Tap=Toggle, Hold=Radial
+- [x] Child-friendly icons (same icon, different fill/color)
 
 ### Pending ⏳
-- [ ] DeviceDetailView.tsx refactoring (1398 lines)
-- [ ] RoomsView.tsx refactoring (742 lines)
-- [ ] Child-Friendly Mode for floor plan
+- [ ] Child-Friendly Mode for floor plan (full implementation)
+
+---
+
+## Session 2024-12-29 (Evening) - Refactoring + Radial Menu
+
+### Implemented:
+
+#### 1. DeviceDetailView Refactoring
+- Split 1387-line file into `views/device/`:
+  - `types.ts` - Interfaces and capability constants
+  - `DeviceHeader.tsx` - Back button, name, room, favorite
+  - `DeviceInfo.tsx` - Device info section (ID, type, capabilities, signal)
+  - `controls/LampControls.tsx` - Lamp on/off with force duration
+  - `controls/DimmerControls.tsx` - Brightness slider
+  - `controls/LedControls.tsx` - Color picker + brightness
+  - `controls/ShutterControls.tsx` - Quick buttons + position slider
+  - `controls/ActuatorControls.tsx` - Actuator on/off
+  - `controls/ClimateControls.tsx` - Temperature, AC, Heater, Humidity
+  - `controls/SensorControls.tsx` - Motion, Handle sensors
+  - `controls/MediaControls.tsx` - Speaker, Scene, Camera
+  - `controls/AutomaticControls.tsx` - Block automatic
+  - `controls/EnergyControls.tsx` - Energy manager, Battery
+  - `controls/index.ts` - Re-exports
+  - `index.ts` - Main exports
+
+#### 2. RoomsView Refactoring
+- Split into `views/rooms/`:
+  - `types.ts` - Interfaces and constants
+  - `DeviceStatusBadges.tsx` - Device status badges
+  - `RoomCardContent.tsx` - Room card in list
+  - `RoomDetail.tsx` - Room detail view
+  - `GroupDetailView.tsx` - Group detail view
+  - `RoomsView.tsx` - Main view
+  - `index.ts` - Re-exports
+
+#### 3. Badge-Text Bug Fix
+- **Problem:** Actuator badge shown for LED/Lamp devices
+- **Cause:** Badge logic only excluded `CAP_LAMP`, not `CAP_DIMMABLE` or `CAP_LED`
+- **Fix:** Added exclusion for all light capabilities in `DeviceStatusBadges.tsx`
+
+#### 4. primaryCap Sync with Swift
+- Aligned React `getPrimaryCap()` order with Swift `Device.primaryCap`
+- New priority: scene → handleSensor → ledLamp → dimmableLamp → lamp → actuator → ...
+
+#### 5. Radial Menu for Floor Plan
+- **New component:** `src/components/RadialMenu.tsx`
+- **Tap behavior:**
+  - Lamp/Dimmer/LED → Toggle on/off
+  - Shutter → Toggle open/closed
+  - AC → Toggle on/off
+  - Other devices → Open detail view
+- **Hold behavior (≥400ms):** Opens radial menu with:
+  - Info button (always) → Details view
+  - Device-specific quick actions
+
+#### 6. Child-Friendly Icons (like SwiftUI)
+- **Concept:** Same icon per device type, only fill/color changes
+- **Lamp:** Lightbulb - yellow filled (100%), orange filled (50%), gray outline (off)
+- **Shutter:** Square - green outline (open), orange half-filled (50%), brown filled (closed)
+- **AC:** Wind - red (heating), blue (cooling), green (auto), gray (off)
+- **Mode detection:** AC mode from device, seasonal default (May-Oct = cooling)
+
+### Changed Files:
+- `src/views/device/` - New directory with 15 files
+- `src/views/rooms/` - New directory with 7 files
+- `src/views/DeviceDetailView.tsx` - Re-export wrapper
+- `src/views/RoomsView.tsx` - Re-export wrapper
+- `src/components/DeviceIcon.tsx` - primaryCap order sync
+- `src/components/RadialMenu.tsx` - New radial menu component
+- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Tap/Hold + Radial integration
+
+### Key Learnings:
+- **Inheritance:** LED extends Dimmer extends Lamp extends Actuator → `setLamp` works for all
+- **SwiftUI Icons:** SF Symbols use same icon with `.fill` suffix for active state
+- **Child-friendly:** Visual distinction through color/fill, not different icons

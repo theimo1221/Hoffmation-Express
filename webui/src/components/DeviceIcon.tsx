@@ -54,21 +54,22 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     lg: 'h-6 w-6',
   }[size];
 
-  // Priority order for display capability (like SwiftUI primaryCap)
+  // Priority order for display capability (matching SwiftUI primaryCap order)
   const getPrimaryCap = (): number | null => {
-    if (capabilities.includes(DeviceCapability.lamp)) return DeviceCapability.lamp;
-    if (capabilities.includes(DeviceCapability.dimmableLamp)) return DeviceCapability.dimmableLamp;
+    if (capabilities.includes(DeviceCapability.scene)) return DeviceCapability.scene;
+    if (capabilities.includes(DeviceCapability.handleSensor)) return DeviceCapability.handleSensor;
     if (capabilities.includes(DeviceCapability.ledLamp)) return DeviceCapability.ledLamp;
-    if (capabilities.includes(DeviceCapability.shutter)) return DeviceCapability.shutter;
+    if (capabilities.includes(DeviceCapability.dimmableLamp)) return DeviceCapability.dimmableLamp;
+    if (capabilities.includes(DeviceCapability.lamp)) return DeviceCapability.lamp;
+    if (capabilities.includes(DeviceCapability.actuator)) return DeviceCapability.actuator;
     if (capabilities.includes(DeviceCapability.ac)) return DeviceCapability.ac;
-    if (capabilities.includes(DeviceCapability.heater)) return DeviceCapability.heater;
+    if (capabilities.includes(DeviceCapability.shutter)) return DeviceCapability.shutter;
     if (capabilities.includes(DeviceCapability.speaker)) return DeviceCapability.speaker;
     if (capabilities.includes(DeviceCapability.co2Sensor)) return DeviceCapability.co2Sensor;
-    if (capabilities.includes(DeviceCapability.temperatureSensor)) return DeviceCapability.temperatureSensor;
     if (capabilities.includes(DeviceCapability.motionSensor)) return DeviceCapability.motionSensor;
-    if (capabilities.includes(DeviceCapability.handleSensor)) return DeviceCapability.handleSensor;
-    if (capabilities.includes(DeviceCapability.actuator)) return DeviceCapability.actuator;
-    if (capabilities.includes(DeviceCapability.scene)) return DeviceCapability.scene;
+    if (capabilities.includes(DeviceCapability.heater)) return DeviceCapability.heater;
+    if (capabilities.includes(DeviceCapability.temperatureSensor)) return DeviceCapability.temperatureSensor;
+    if (capabilities.includes(DeviceCapability.batteryDriven)) return DeviceCapability.batteryDriven;
     return null;
   };
 

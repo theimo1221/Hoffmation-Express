@@ -439,17 +439,24 @@ The Express backend already provides:
    - [x] Tablet-first (touch-optimized, larger touch targets)
    - Responsive down to mobile, up to desktop
 
-### Quick Actions UI Pattern
-**Radial Menu (GTA-style Weapon Wheel)** for device quick actions:
-- Long-press on device → radial menu appears
-- Swipe/drag to select action → release to execute
-- Actions based on device capabilities:
-  - Lamp: On/Off, Brightness presets (25%, 50%, 75%, 100%)
-  - Dimmer: On/Off, Brightness slider in center
-  - Shutter: Open, Close, 50%, Stop
-  - AC: On/Off, Mode (Cool/Heat/Auto), Temp +/-
-  - Scene: Start/Stop
-- Cancel by releasing in center or outside menu
+### Quick Actions UI Pattern ✅ IMPLEMENTED
+**Radial Menu** for device quick actions in Floor Plan view:
+- **Tap** on device → Quick toggle (Lamp on/off, Shutter open/close, AC on/off)
+- **Hold** (≥400ms) on device → Radial menu appears with:
+  - Info button (always) → Opens device detail view
+  - Device-specific quick actions (consistent positions)
+
+**Child-Friendly Icons** (same icon, different fill/color):
+- Lamp: Lightbulb - yellow filled (100%), orange filled (50%), gray outline (off)
+- Shutter: Square - green outline (open), orange half-filled (50%), brown filled (closed)  
+- AC: Wind - red (heating), blue (cooling), green (auto), gray (off)
+
+**Center displays:**
+- Device icon
+- Device name
+- Status badges (battery, link quality, temperature, brightness, level)
+
+**Implementation:** `src/components/RadialMenu.tsx`, integrated in `RoomFloorPlanDetail.tsx`
 
 5. **Polling interval:** ✅ Decided
    - [x] Configurable, default 30 seconds
