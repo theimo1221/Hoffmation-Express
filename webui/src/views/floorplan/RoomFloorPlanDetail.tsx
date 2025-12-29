@@ -225,8 +225,17 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
         // Quick tap on AC = toggle on/off
         handleToggleAc(device);
       } else {
-        // Other devices go to detail view
-        onSelectDevice(device);
+        // Sensors and other devices: open radial menu on tap (child-friendly)
+        // This includes handle sensors, motion sensors, temperature sensors
+        const rect = (document.querySelector('.room-canvas') as HTMLElement)?.getBoundingClientRect();
+        if (rect) {
+          setRadialMenu({ 
+            device, 
+            position: { x: rect.width / 2, y: rect.height / 2 } 
+          });
+        } else {
+          onSelectDevice(device);
+        }
       }
     }
     

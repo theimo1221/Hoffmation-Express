@@ -39,7 +39,7 @@ export const DeviceCapability = {
 
 interface DeviceIconProps {
   device: Device;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   showStatus?: boolean;
 }
 
@@ -49,6 +49,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
   const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
   
   const sizeClass = {
+    xs: 'h-3 w-3',
     sm: 'h-4 w-4',
     md: 'h-5 w-5',
     lg: 'h-6 w-6',
@@ -83,9 +84,18 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     return <LightbulbOff className={`${sizeClass} text-muted-foreground`} />;
   }
 
-  // Shutter icons
+  // Shutter icons - green when closed (level < 10), orange when partially open, gray when open
   if (primaryCap === DeviceCapability.shutter) {
-    return <Blinds className={`${sizeClass} text-primary`} />;
+    const level = device._currentLevel ?? -1;
+    if (level >= 0 && level < 10) {
+      // Closed = green (secure)
+      return <Blinds className={`${sizeClass} text-green-500`} />;
+    } else if (level >= 10 && level < 90) {
+      // Partially open = orange
+      return <Blinds className={`${sizeClass} text-orange-500`} />;
+    }
+    // Open or unknown = muted
+    return <Blinds className={`${sizeClass} text-muted-foreground`} />;
   }
 
   // AC icons
@@ -119,8 +129,20 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     return <PersonStanding className={`${sizeClass} text-muted-foreground`} />;
   }
 
-  // Handle sensor
+  // Handle sensor - green when closed, orange when tilted, red when open
   if (primaryCap === DeviceCapability.handleSensor) {
+    const position = device.position ?? device.handleSensor?.position ?? -1;
+    if (position === 0) {
+      // Closed = green (secure)
+      return <Lock className={`${sizeClass} text-green-500`} />;
+    } else if (position === 1) {
+      // Tilted = orange (partially open)
+      return <Lock className={`${sizeClass} text-orange-500`} />;
+    } else if (position === 2) {
+      // Open = red (insecure)
+      return <Lock className={`${sizeClass} text-red-500`} />;
+    }
+    // Unknown
     return <Lock className={`${sizeClass} text-muted-foreground`} />;
   }
 

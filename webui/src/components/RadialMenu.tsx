@@ -219,9 +219,11 @@ export function getDeviceStatus(device: Device): DeviceStatus {
     status.linkQuality = lq;
   }
   
-  // Temperature
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
-  if (temp !== undefined) status.temperature = temp;
+  // Temperature (check all possible sources - handles with temp sensors use temperatureSensor.temperature)
+  const temp = device.temperatureSensor?.roomTemperature ?? 
+               device.temperatureSensor?.temperature ?? 
+               device._roomTemperature;
+  if (temp !== undefined && temp !== -99) status.temperature = temp;
   
   // Brightness (for dimmers/LEDs)
   const brightness = device.brightness ?? device._brightness;

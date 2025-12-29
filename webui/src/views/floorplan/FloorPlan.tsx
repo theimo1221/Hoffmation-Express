@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, type Room } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, type Room, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
 import { Edit3, Save, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { DeviceIcon } from '@/components/DeviceIcon';
 import type { FloorPlanProps, RoomCoords, FixedBounds, DraggingState } from './types';
 
 export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { expertMode } = useSettingsStore();
-  const { fetchData } = useDataStore();
+  const { fetchData, devices } = useDataStore();
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [editMode, setEditMode] = useState(false);
   const [editedCoords, setEditedCoords] = useState<Record<string, RoomCoords>>({});
@@ -25,6 +26,18 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
     const startPoint = room.startPoint ?? room.settings?.trilaterationStartPoint;
     const endPoint = room.endPoint ?? room.settings?.trilaterationEndPoint;
     return { startPoint, endPoint, hasCoords: !!(startPoint && endPoint) };
+  };
+
+  // Helper to get placed devices for a room
+  const getPlacedDevicesForRoom = (roomName: string): Device[] => {
+    return Object.values(devices).filter((d) => {
+      if (getDeviceRoom(d).toLowerCase() !== roomName.toLowerCase()) return false;
+      const pos = d.trilaterationRoomPosition ?? d._trilaterationRoomPosition ?? 
+                  d.settings?.trilaterationRoomPosition;
+      // Filter out default (0,0,0) positions
+      if (!pos || (pos.x === 0 && pos.y === 0 && pos.z === 0)) return false;
+      return true;
+    });
   };
 
   const roomsWithCoords = floor.rooms.filter((r) => getRoomCoords(r).hasCoords);
@@ -379,7 +392,7 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                     setDragging({ roomName, corner: 'move', offsetX, offsetY });
                   } : undefined}
                   className={cn(
-                    "flex items-center justify-center rounded-xl border-2",
+                    "relative rounded-xl border-2",
                     editMode 
                       ? isUnplaced
                         ? "bg-orange-500/30 border-orange-500 cursor-move"
@@ -393,14 +406,64 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                     height: Math.max(h, 40),
                   }}
                 >
-                  <span className={cn(
-                    "text-xs font-medium text-center px-1 flex items-center gap-1",
-                    isUnplaced && editMode && "text-orange-700",
-                    isModified && "italic"
-                  )}>
-                    {isModified && <Edit3 className="h-3 w-3 inline-block" />}
-                    {roomName}
-                  </span>
+                  {/* Room name centered */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className={cn(
+                      "text-[10px] font-medium text-center px-1 flex items-center gap-1 leading-tight bg-secondary/80 rounded px-1",
+                      isUnplaced && editMode && "text-orange-700",
+                      isModified && "italic"
+                    )}>
+                      {isModified && <Edit3 className="h-2.5 w-2.5 inline-block" />}
+                      {roomName}
+                    </span>
+                  </div>
+                  
+                  {/* Device icons at their actual positions (only in view mode) */}
+                  {!editMode && (() => {
+                    const placedDevices = getPlacedDevicesForRoom(roomName);
+                    if (placedDevices.length === 0) return null;
+                    
+                    // Room dimensions in meters
+                    const roomWidth = coords.endPoint.x - coords.startPoint.x;
+                    const roomHeight = coords.endPoint.y - coords.startPoint.y;
+                    const roomW = Math.max(w, 60);
+                    const roomH = Math.max(h, 40);
+                    
+                    // Determine icon size based on room pixel size
+                    const minDim = Math.min(roomW, roomH);
+                    const iconSize = minDim >= 120 ? 24 : minDim >= 80 ? 20 : 16; // lg/md/sm
+                    const sizeClass = minDim >= 120 ? 'lg' : minDim >= 80 ? 'md' : 'sm';
+                    const sizeClassName = minDim >= 120 ? 'h-6 w-6' : minDim >= 80 ? 'h-5 w-5' : 'h-4 w-4';
+                    
+                    return placedDevices.map((device) => {
+                      const pos = device.trilaterationRoomPosition ?? device._trilaterationRoomPosition ?? 
+                                  device.settings?.trilaterationRoomPosition;
+                      if (!pos) return null;
+                      
+                      // Calculate position within room (0-1 normalized)
+                      const normX = roomWidth > 0 ? Math.max(0, Math.min(1, pos.x / roomWidth)) : 0.5;
+                      const normY = roomHeight > 0 ? Math.max(0, Math.min(1, pos.y / roomHeight)) : 0.5;
+                      
+                      // Convert to pixel position within room box (with padding to keep icons inside)
+                      const padding = 4;
+                      const pixelX = padding + normX * (roomW - iconSize - padding * 2);
+                      const pixelY = padding + (1 - normY) * (roomH - iconSize - padding * 2); // Invert Y (0 = bottom)
+                      
+                      return (
+                        <div 
+                          key={device.id}
+                          className={`absolute ${sizeClassName} flex items-center justify-center pointer-events-none`}
+                          style={{ 
+                            left: pixelX,
+                            top: pixelY,
+                          }}
+                          title={device.info?.customName ?? device.info?.fullName}
+                        >
+                          <DeviceIcon device={device} size={sizeClass as 'sm' | 'md' | 'lg'} />
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
 
                 {/* Draggable corners in edit mode */}
