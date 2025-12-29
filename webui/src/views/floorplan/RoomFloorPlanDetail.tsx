@@ -74,8 +74,11 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   const screenToRoom = (screenX: number, screenY: number) => {
     if (!startPoint || !endPoint) return { x: 0, y: 0 };
     // Position is relative to room (0,0 = bottom-left corner of room)
-    const roomX = screenX / scale;
-    const roomY = roomHeight - screenY / scale;
+    let roomX = screenX / scale;
+    let roomY = roomHeight - screenY / scale;
+    // Clamp to room bounds (0 to roomWidth/Height, edge positions allowed)
+    roomX = Math.max(0, Math.min(roomWidth, roomX));
+    roomY = Math.max(0, Math.min(roomHeight, roomY));
     return { x: Math.round(roomX * 10) / 10, y: Math.round(roomY * 10) / 10 };
   };
 
@@ -141,6 +144,8 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   const handleToggleLamp = async (device: Device) => {
     if (!device.id) return;
     const currentState = isLampOn(device);
+    console.log('Toggle lamp:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
+    console.log('Device props:', { lightOn: device.lightOn, _lightOn: device._lightOn, on: device.on, _on: device._on });
     
     try {
       await setLamp(device.id, !currentState);
@@ -241,6 +246,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   // Lamp control handlers for radial menu
   const handleLampOn = async (device: Device) => {
     if (!device.id) return;
+    setRadialMenu(null); // Close menu immediately
     const caps = device.deviceCapabilities ?? [];
     try {
       if (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
@@ -256,6 +262,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
 
   const handleLampOff = async (device: Device) => {
     if (!device.id) return;
+    setRadialMenu(null); // Close menu immediately
     try {
       await setLamp(device.id, false);
       setTimeout(() => fetchDevice(device.id!), 300);
@@ -266,6 +273,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
 
   const handleLamp50 = async (device: Device) => {
     if (!device.id) return;
+    setRadialMenu(null); // Close menu immediately
     try {
       await setDimmer(device.id, true, 50);
       setTimeout(() => fetchDevice(device.id!), 300);
@@ -277,6 +285,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   // Shutter control handlers for radial menu
   const handleShutterLevel = async (device: Device, level: number) => {
     if (!device.id) return;
+    setRadialMenu(null); // Close menu immediately
     try {
       await setShutter(device.id, level);
       setTimeout(() => fetchDevice(device.id!), 500);
@@ -288,6 +297,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   // AC control handlers for radial menu
   const handleAcPower = async (device: Device, power: boolean) => {
     if (!device.id) return;
+    setRadialMenu(null); // Close menu immediately
     try {
       await setAc(device.id, power);
       setTimeout(() => fetchDevice(device.id!), 500);
@@ -391,14 +401,25 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
           {roomDevices.map((device) => {
             const deviceName = getDeviceName(device, roomName);
             const localPos = device.id ? editedPositions[device.id] : undefined;
-            const devicePos = localPos ?? getDevicePos(device);
-            const isUnplaced = !devicePos;
+            const rawDevicePos = localPos ?? getDevicePos(device);
+            const isUnplaced = !rawDevicePos;
+            
+            // Clamp device position to room bounds
+            const devicePos = rawDevicePos ? {
+              x: Math.max(0, Math.min(roomWidth, rawDevicePos.x)),
+              y: Math.max(0, Math.min(roomHeight, rawDevicePos.y)),
+              z: rawDevicePos.z
+            } : undefined;
+            
             let x = 0, y = 0;
             
             if (devicePos && startPoint && endPoint) {
               // Position is relative to room (0,0 = bottom-left corner)
               x = (devicePos.x / roomWidth) * scaledWidth;
               y = ((roomHeight - devicePos.y) / roomHeight) * scaledHeight;
+              // Clamp screen position to stay within canvas
+              x = Math.max(0, Math.min(scaledWidth - 40, x));
+              y = Math.max(0, Math.min(scaledHeight - 40, y));
             } else if (editMode) {
               const unplacedIdx = unplacedDevices.indexOf(device);
               const spacing = scaledWidth / (unplacedDevices.length + 1);
