@@ -12,6 +12,7 @@ import {
   getTemperatureHistory, type TemperatureHistoryEntry
 } from '@/api/devices';
 import { DeviceSettingsSection } from '@/components/DeviceSettingsSection';
+import { MenuButton } from '@/components/layout/MenuBubble';
 
 function getFavoriteIds(): string[] {
   const stored = localStorage.getItem('hoffmation-favorites');
@@ -338,31 +339,38 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold">{name}</h1>
-            <p className="text-sm text-muted-foreground">{room}</p>
+      <header className="bg-background/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-40">
+        <div className="mx-auto max-w-6xl flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <MenuButton />
+            <button
+              onClick={onBack}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold">{name}</h1>
+              <p className="text-sm text-muted-foreground">{room}</p>
+            </div>
           </div>
+          <button
+            onClick={toggleFavorite}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-soft transition-all active:scale-95 ${
+              isFavorite ? 'bg-yellow-500 text-white' : 'bg-card hover:bg-accent'
+            }`}
+          >
+            <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
         </div>
-        <button
-          onClick={toggleFavorite}
-          className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-soft transition-all active:scale-95 ${
-            isFavorite ? 'bg-yellow-500 text-white' : 'bg-card hover:bg-accent'
-          }`}
-        >
-          <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
-        </button>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        <div className="space-y-6">
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          {/* 2-column layout: Controls left (2/5), Settings right (3/5) */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left column: Device Controls */}
+            <div className="lg:col-span-2 space-y-6">
           {/* Lamp Controls */}
           {hasLamp && (
             <section>
@@ -1255,8 +1263,11 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
             </section>
           )}
 
-          {/* Device Settings */}
-          <DeviceSettingsSection device={device} onUpdate={() => device.id && fetchDevice(device.id)} />
+            </div>
+
+            {/* Right column: Device Settings */}
+            <div className="lg:col-span-3 lg:sticky lg:top-20 lg:self-start space-y-6">
+              <DeviceSettingsSection device={device} onUpdate={() => device.id && fetchDevice(device.id)} />
 
           {/* Device Info */}
           <section>
@@ -1380,6 +1391,8 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               )}
             </div>
           </section>
+            </div>
+          </div>
         </div>
       </div>
     </div>

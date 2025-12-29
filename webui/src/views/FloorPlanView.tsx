@@ -1,19 +1,27 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDataStore, type Floor, type Room, getRoomName } from '@/stores/dataStore';
+import { useDataStore, getRoomName } from '@/stores/dataStore';
 import { HouseCrossSection, FloorPlan, RoomFloorPlanDetail } from './floorplan';
 
 export function FloorPlanView() {
   useTranslation();
   const navigate = useNavigate();
+  const { floorLevel, roomId } = useParams<{ floorLevel?: string; roomId?: string }>();
   const { floors, devices, fetchData, isLoading } = useDataStore();
-  const [selectedFloor, setSelectedFloor] = useState<Floor | null>(null);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Find selected floor and room from URL params
+  const selectedFloor = floorLevel 
+    ? floors.find(f => f.level === parseInt(floorLevel, 10)) 
+    : null;
+  
+  const selectedRoom = selectedFloor && roomId
+    ? selectedFloor.rooms.find(r => (r.id ?? getRoomName(r)) === decodeURIComponent(roomId))
+    : null;
 
   if (isLoading && floors.length === 0) {
     return (
@@ -24,7 +32,12 @@ export function FloorPlanView() {
   }
 
   if (!selectedFloor) {
-    return <HouseCrossSection floors={floors} onSelectFloor={setSelectedFloor} />;
+    return (
+      <HouseCrossSection 
+        floors={floors} 
+        onSelectFloor={(floor) => navigate(`/floor/${floor.level}`)} 
+      />
+    );
   }
 
   if (selectedRoom) {
@@ -32,7 +45,7 @@ export function FloorPlanView() {
       <RoomFloorPlanDetail
         room={selectedRoom}
         devices={devices}
-        onBack={() => setSelectedRoom(null)}
+        onBack={() => navigate(`/floor/${floorLevel}`)}
         onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
       />
     );
@@ -41,11 +54,8 @@ export function FloorPlanView() {
   return (
     <FloorPlan
       floor={selectedFloor}
-      onBack={() => setSelectedFloor(null)}
-      onSelectRoom={(roomId) => {
-        const room = selectedFloor.rooms.find(r => (r.id ?? getRoomName(r)) === roomId);
-        if (room) setSelectedRoom(room);
-      }}
+      onBack={() => navigate('/')}
+      onSelectRoom={(roomIdParam) => navigate(`/floor/${floorLevel}/${encodeURIComponent(roomIdParam)}`)}
     />
   );
 }

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -91,12 +92,10 @@ export function SettingsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="p-4">
-        <h1 className="text-2xl font-bold">{t('tabs.settings')}</h1>
-      </header>
+      <PageHeader title={t('tabs.settings')} />
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        <div className="space-y-6">
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="content-container space-y-6 py-4">
           {/* Server URL */}
           <section>
             <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

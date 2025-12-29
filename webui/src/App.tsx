@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { MenuBubble } from '@/components/layout/MenuBubble';
 import { FloorPlanView } from '@/views/FloorPlanView';
 import { FavoritesView } from '@/views/FavoritesView';
 import { RoomsView } from '@/views/RoomsView';
@@ -39,6 +38,8 @@ function App() {
       <main className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<FloorPlanView />} />
+          <Route path="/floor/:floorLevel" element={<FloorPlanView />} />
+          <Route path="/floor/:floorLevel/:roomId" element={<FloorPlanView />} />
           <Route path="/favorites" element={<FavoritesView />} />
           <Route path="/rooms" element={<RoomsView />} />
           <Route path="/rooms/:roomId" element={<RoomsView />} />
@@ -47,7 +48,6 @@ function App() {
           <Route path="/settings" element={<SettingsView />} />
         </Routes>
       </main>
-      <MenuBubble />
     </div>
   );
 }

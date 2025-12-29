@@ -869,53 +869,82 @@ Groups inherit settings from their devices but can have group-wide controls.
   - [x] Light settings: ambientLightAfterSunset, lichtSonnenAufgangAus, lampenBeiBewegung, etc.
   - [x] Shutter settings: rolloHeatReduction, sonnenAufgangRollos, sonnenUntergangRollos, time pickers
   - [x] Other: movementResetTimer
-- [x] **DeviceCapability Enum korrigiert** - Mapping stimmt jetzt mit hoffmation-base überein
-  - Vorher: Falsche Zuordnungen (z.B. 4=Garagentor statt excessEnergyConsumer)
-  - Jetzt: Alle 22+ Capabilities korrekt gemappt
-- [x] **Letztes Signal/Update Anzeige** - In Device-Info Sektion
-  - Relative Zeitanzeige (z.B. "vor 5 Min.", "vor 2 Std.")
-  - Capability-basierte Warnschwellen:
-    - Zigbee ohne Batterie: 10 Minuten
-    - Temperatursensor/Feuchtigkeitssensor: 15 Minuten
-    - Heizung: 30 Minuten
-    - Bewegungsmelder/Griffsensor: 24 Stunden
-    - Lampen/Aktoren/Rollläden: 1 Stunde
-  - Orange Warnung wenn Schwelle überschritten
-- [x] **Link Quality Anzeige** - Für Zigbee-Geräte
-  - Zeigt Link-Qualität Wert an
-  - Farbcodierung: Rot bei ≤5 (kritisch), Orange bei ≤20 (schwach)
-- [x] **Grundriss Editiermodus** - Raum-Koordinaten bearbeiten
-  - Editiermodus-Button im Expert-Modus
-  - Ziehbare Ecken (startPoint/endPoint) für jeden Raum
-  - Echtzeit-Vorschau der Änderungen
-  - Speichern über `POST /roomSettings/:roomName` mit `trilaterationStartPoint`/`trilaterationEndPoint`
-  - Koordinaten-Anzeige (Ruler) im Editiermodus
-- [x] **Group Settings** - Heizgruppen-Einstellungen
-  - Automatik-Modus Toggle
-  - Fallback-Temperatur Slider (15-25°C)
-  - Manuelle Temperatur Slider (15-25°C)
-  - Speichern über `POST /groupSettings/:groupId`
-- [x] **Komfort-Favoriten** - Automatische Geräte-Listen
-  - Unerreichbare Geräte (available=false oder lastUpdate > 1h)
-  - Geräte mit schwacher Batterie (<20%)
-  - Einklappbare Sektionen mit Geräte-Anzahl
-  - Klick öffnet Geräte-Detail
+- [x] **DeviceCapability Enum corrected** - Mapping now matches hoffmation-base
+  - Before: Wrong mappings (e.g., 4=garageDoor instead of excessEnergyConsumer)
+  - Now: All 22+ capabilities correctly mapped
+- [x] **Last Signal/Update Display** - In Device Info section
+  - Relative time display (e.g., "5 min ago", "2 hrs ago")
+  - Capability-based warning thresholds:
+    - Zigbee without battery: 10 minutes
+    - Temperature/humidity sensor: 15 minutes
+    - Heater: 30 minutes
+    - Motion sensor/handle sensor: 24 hours
+    - Lamps/actuators/shutters: 1 hour
+  - Orange warning when threshold exceeded
+- [x] **Link Quality Display** - For Zigbee devices
+  - Shows link quality value
+  - Color coding: Red at ≤5 (critical), Orange at ≤20 (weak)
+- [x] **Floor Plan Edit Mode** - Edit room coordinates
+  - Edit mode button in Expert Mode
+  - Draggable corners (startPoint/endPoint) for each room
+  - Real-time preview of changes
+  - Save via `POST /roomSettings/:roomName` with `trilaterationStartPoint`/`trilaterationEndPoint`
+  - Coordinate display (ruler) in edit mode
+- [x] **Group Settings** - Heat group settings
+  - Automatic mode toggle
+  - Fallback temperature slider (15-25°C)
+  - Manual temperature slider (15-25°C)
+  - Save via `POST /groupSettings/:groupId`
+- [x] **Comfort Favorites** - Automatic device lists
+  - Unreachable devices (available=false or lastUpdate > 1h)
+  - Low battery devices (<20%)
+  - Collapsible sections with device count
+  - Click opens device detail
 
-- [x] **Device Position Editing** - Geräte im Raum platzieren
-  - Klick auf Raum im Grundriss öffnet Raum-Detailansicht
-  - Zeigt platzierte Geräte an ihren Positionen (trilaterationRoomPosition)
-  - Editiermodus (Expert Mode): Geräte per Drag&Drop verschieben
-  - Plus-Button öffnet Popup mit unplatzierten Geräten
-  - Klick auf Gerät im Popup platziert es mittig im Raum
-  - Koordinaten-Anzeige beim Ziehen
-  - Speichern über `POST /deviceSettings/:deviceId` mit `trilaterationRoomPosition`
-  - Default-Position {0,0,0} wird als "nicht platziert" behandelt
+- [x] **Device Position Editing** - Place devices in rooms
+  - Click on room in floor plan opens room detail view
+  - Shows placed devices at their positions (trilaterationRoomPosition)
+  - Edit mode (Expert Mode): Move devices via drag&drop
+  - Plus button opens popup with unplaced devices
+  - Click on device in popup places it in room center
+  - Coordinate display while dragging
+  - Save via `POST /deviceSettings/:deviceId` with `trilaterationRoomPosition`
+  - Default position {0,0,0} treated as "not placed"
+
+### Recently Completed ✅ (2025-12-29)
+- [x] **DeviceStatusBadges Component** - Detailed device status in lists
+  - Motion sensor: Count today + active motion ("Motion!" green)
+  - Heater: Current/target temperature + valve level
+  - Dimmer/LED: Brightness % + color (LED)
+  - Shutter: Position % (normalized to 0-100)
+  - Window handle: Status with color coding (open=red, tilted=orange, closed=green)
+  - Lamp: On/Off status
+- [x] **DeviceIcon Extensions**
+  - Speaker icon
+  - CO2 Sensor icon (CloudFog)
+  - Motion sensor green when movement actively detected
+- [x] **LED/Dimmer Status Fix**
+  - `lightOn ?? _lightOn ?? on ?? _on` fallback chain (like DeviceIcon)
+  - Brightness alone doesn't mean "on" (stored value for next turn-on)
+- [x] **Layout Improvements**
+  - RoomDetail Header with max-w-6xl constraint
+  - DeviceDetailView Header with max-w-6xl constraint
+  - MenuButton component (inline variant for headers)
+- [x] **Device Repositioning Fix**
+  - Bug: New devices were placed with absolute instead of relative coordinates
+  - Fix: `roomWidth / 2` instead of `(startPoint.x + endPoint.x) / 2`
+- [x] **Expert Mode Device Filtering** (like SwiftUI)
+  - Complex devices only visible in expert mode
+  - Based on `isCapabilityComplex` from SwiftUI
+  - Complex capabilities: vibrationSensor, speaker, tv, smokeSensor, loadMetering, buttonSwitch, energyManager, excessEnergyConsumer, bluetoothDetector, trackableDevice, camera
+  - New functions: `isDeviceComplex()`, `filterDevicesForExpertMode()`
+  - Applied in: RoomsView (RoomDetail), DevicesView
 
 ### Pending ⏳
 - [ ] Radial quick action menu (long-press - nice-to-have)
 - [ ] Child-Friendly Mode for floor plan (lights & shutters control for 4+ year olds)
-- [ ] DeviceDetailView.tsx refactoring (1387 lines → split into components)
-- [ ] RoomsView.tsx refactoring (546 lines → split into components)
+- [ ] DeviceDetailView.tsx refactoring (1398 lines → split into components)
+- [ ] RoomsView.tsx refactoring (742 lines → split into components)
 
 ### Implementation Notes 📝
 

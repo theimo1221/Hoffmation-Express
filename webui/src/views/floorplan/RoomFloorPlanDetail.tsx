@@ -3,8 +3,9 @@ import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, type Device } 
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, ArrowLeft, Plus } from 'lucide-react';
+import { Edit3, Save, X, Plus } from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
+import { PageHeader } from '@/components/layout/PageHeader';
 import type { RoomFloorPlanDetailProps } from './types';
 
 export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: RoomFloorPlanDetailProps) {
@@ -66,8 +67,9 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
 
   const screenToRoom = (screenX: number, screenY: number) => {
     if (!startPoint || !endPoint) return { x: 0, y: 0 };
-    const roomX = screenX / scale + startPoint.x;
-    const roomY = endPoint.y - screenY / scale;
+    // Position is relative to room (0,0 = bottom-left corner of room)
+    const roomX = screenX / scale;
+    const roomY = roomHeight - screenY / scale;
     return { x: Math.round(roomX * 10) / 10, y: Math.round(roomY * 10) / 10 };
   };
 
@@ -101,73 +103,59 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
       onMouseUp={editMode ? handleMouseUp : undefined}
       onMouseLeave={editMode ? handleMouseUp : undefined}
     >
-      <header className="flex items-center justify-between p-4 relative z-10">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={editMode ? () => {
-              setEditMode(false);
-              setFixedScale(null);
-              setEditedPositions({});
-            } : onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-          >
-            {editMode ? <X className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold">
-              {roomName}
-              {editMode && <span className="text-primary ml-2">(Bearbeiten)</span>}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {placedDevices.length} platziert
-              {unplacedDevices.length > 0 && editMode && (
-                <span className="text-orange-500"> • {unplacedDevices.length} unplatziert</span>
-              )}
-            </p>
-          </div>
-        </div>
-        {editMode ? (
-          hasChanges && (
-            <button
-              onClick={async () => {
-                setIsSaving(true);
-                try {
-                  for (const [deviceId, position] of Object.entries(editedPositions)) {
-                    await setDevicePosition(deviceId, position);
+      <PageHeader
+        title={editMode ? `${roomName} (Bearbeiten)` : roomName}
+        subtitle={`${placedDevices.length} platziert${unplacedDevices.length > 0 && editMode ? ` • ${unplacedDevices.length} unplatziert` : ''}`}
+        onBack={editMode ? () => {
+          setEditMode(false);
+          setFixedScale(null);
+          setEditedPositions({});
+        } : onBack}
+        backIcon={editMode ? <X className="h-5 w-5" /> : undefined}
+        rightContent={
+          editMode ? (
+            hasChanges ? (
+              <button
+                onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    for (const [deviceId, position] of Object.entries(editedPositions)) {
+                      await setDevicePosition(deviceId, position);
+                    }
+                    await fetchData();
+                    setEditedPositions({});
+                    setFixedScale(null);
+                    setEditMode(false);
+                  } catch (error) {
+                    console.error('Failed to save device positions:', error);
+                    alert('Fehler beim Speichern der Gerätepositionen');
+                  } finally {
+                    setIsSaving(false);
                   }
-                  await fetchData();
-                  setEditedPositions({});
-                  setFixedScale(null);
-                  setEditMode(false);
-                } catch (error) {
-                  console.error('Failed to save device positions:', error);
-                  alert('Fehler beim Speichern der Gerätepositionen');
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Speichern...' : 'Speichern'}
-            </button>
+                }}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving ? 'Speichern...' : 'Speichern'}
+              </button>
+            ) : undefined
+          ) : (
+            expertMode ? (
+              <button
+                onClick={() => {
+                  setFixedScale(calculatedScale);
+                  setEditMode(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
+              >
+                <Edit3 className="h-4 w-4" />
+                Bearbeiten
+              </button>
+            ) : undefined
           )
-        ) : (
-          expertMode && (
-            <button
-              onClick={() => {
-                setFixedScale(calculatedScale);
-                setEditMode(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
-            >
-              <Edit3 className="h-4 w-4" />
-              Bearbeiten
-            </button>
-          )
-        )}
-      </header>
+        }
+      />
 
       <div ref={containerRef} className="flex-1 overflow-hidden p-4 flex items-center justify-center">
         <div
@@ -187,8 +175,9 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
             let x = 0, y = 0;
             
             if (devicePos && startPoint && endPoint) {
-              x = ((devicePos.x - startPoint.x) / roomWidth) * scaledWidth;
-              y = ((endPoint.y - devicePos.y) / roomHeight) * scaledHeight;
+              // Position is relative to room (0,0 = bottom-left corner)
+              x = (devicePos.x / roomWidth) * scaledWidth;
+              y = ((roomHeight - devicePos.y) / roomHeight) * scaledHeight;
             } else if (editMode) {
               const unplacedIdx = unplacedDevices.indexOf(device);
               const spacing = scaledWidth / (unplacedDevices.length + 1);
@@ -279,8 +268,9 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
                     key={device.id ?? deviceName}
                     onClick={() => {
                       if (!device.id || !startPoint || !endPoint) return;
-                      const centerX = (startPoint.x + endPoint.x) / 2;
-                      const centerY = (startPoint.y + endPoint.y) / 2;
+                      // Position is relative to room (0,0 = bottom-left corner)
+                      const centerX = roomWidth / 2;
+                      const centerY = roomHeight / 2;
                       const centerZ = startPoint.z ?? 0;
                       setEditedPositions(prev => ({
                         ...prev,

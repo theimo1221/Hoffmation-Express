@@ -1,6 +1,6 @@
 # Hoffmation WebUI - Development Context
 
-**Last Updated:** 2025-12-29 00:40 UTC+01:00
+**Last Updated:** 2025-12-29 18:30 UTC+01:00
 
 ## Project Overview
 
@@ -211,44 +211,107 @@ Add to RoomDetail view with all room settings:
 - Settings data is included in device/room API responses
 - Continue with implementing all device settings views
 
-## Session 29.12.2024 - Device Position Editing + Refactoring
+## Session 2024-12-29 (Morning) - Device Position Editing + Refactoring
 
-### Implementiert:
-- **Device Position Editing** - Geräte im Raum platzieren
-  - Klick auf Raum → RoomFloorPlanDetail Komponente
-  - Editiermodus: Drag&Drop, Plus-Button für unplatzierte Geräte
-  - API: `POST /deviceSettings/:id` mit `trilaterationRoomPosition`
-  - Default {0,0,0} = nicht platziert
+### Implemented:
+- **Device Position Editing** - Place devices in rooms
+  - Click on room → RoomFloorPlanDetail component
+  - Edit mode: Drag&Drop, Plus button for unplaced devices
+  - API: `POST /deviceSettings/:id` with `trilaterationRoomPosition`
+  - Default {0,0,0} = not placed
 
 ### Refactoring:
-- **FloorPlanView.tsx** aufgeteilt in `views/floorplan/`:
+- **FloorPlanView.tsx** split into `views/floorplan/`:
   - `types.ts` - Interfaces
-  - `HouseCrossSection.tsx` - Etagen-Auswahl
-  - `FloorPlan.tsx` - Etagen-Detail + Raum-Editing
-  - `RoomFloorPlanDetail.tsx` - Raum-Detail + Geräte-Positionierung
-  - `index.ts` - Re-Exports
+  - `HouseCrossSection.tsx` - Floor selection
+  - `FloorPlan.tsx` - Floor detail + room editing
+  - `RoomFloorPlanDetail.tsx` - Room detail + device positioning
+  - `index.ts` - Re-exports
 
-### Wichtige Learnings:
-- **Keine scale-Transforms beim Drag&Drop** - verhindert präzises Alignment
-- **fixedScale State** beim Eintritt in Editiermodus setzen
-- **apiPostNoResponse** für Endpoints ohne JSON-Response
+### Key Learnings:
+- **No scale transforms during drag&drop** - prevents precise alignment
+- **fixedScale state** set when entering edit mode
+- **apiPostNoResponse** for endpoints without JSON response
 
-### Nächste Schritte:
-- DeviceDetailView.tsx Refactoring (1387 Zeilen)
-- RoomsView.tsx Refactoring (546 Zeilen)
-- Child-Friendly Mode für Grundriss implementieren (Licht & Rolläden für 4+ Jahre)
+---
 
-## Todo List (aktuell)
+## Session 2024-12-29 (Afternoon) - UI Improvements + Device Filtering
+
+### Implemented:
+
+#### 1. Device Status Badges Improved
+- **DeviceStatusBadges component** in RoomsView for detailed device status
+- Motion sensor: Count today + active motion ("Motion!" green)
+- Heater: Current/target temperature + valve level
+- Dimmer/LED: Brightness % + color (LED)
+- Shutter: Position % (normalized to 0-100)
+- Window handle: Status with color coding (open=red, tilted=orange, closed=green)
+- Lamp: On/Off status
+
+#### 2. DeviceIcon Extensions
+- **Speaker Icon**
+- **CO2 Sensor Icon** (CloudFog)
+- **Motion sensor green** when movement actively detected
+
+#### 3. LED/Dimmer Status Fix
+- `lightOn ?? _lightOn ?? on ?? _on` fallback chain (like DeviceIcon)
+- Brightness alone doesn't mean "on" (stored value for next turn-on)
+
+#### 4. Layout Improvements
+- **RoomDetail Header** with max-w-6xl constraint
+- **DeviceDetailView Header** with max-w-6xl constraint
+- **MenuButton component** (inline variant for headers)
+  - Refactored from MenuBubble
+  - `variant='inline'` for header integration
+  - Backdrop to close on outside click
+
+#### 5. Device Repositioning Fix
+- **Bug:** New devices were placed with absolute instead of relative coordinates
+- **Fix:** `roomWidth / 2` instead of `(startPoint.x + endPoint.x) / 2`
+- Position is relative to room (0,0 = bottom-left corner)
+
+#### 6. Expert Mode Device Filtering
+- **Complex devices** only visible in expert mode (like SwiftUI)
+- Based on `isCapabilityComplex` from SwiftUI
+- Complex capabilities:
+  - vibrationSensor (13), speaker (14), tv (17), smokeSensor (19)
+  - loadMetering (20), buttonSwitch (2), energyManager (3)
+  - excessEnergyConsumer (4), bluetoothDetector (101)
+  - trackableDevice (102), camera (105)
+- New functions in dataStore.ts:
+  - `isDeviceComplex(device)` - checks if all capabilities are complex
+  - `filterDevicesForExpertMode(devices, expertMode)` - filters device list
+- Applied in: RoomsView (RoomDetail), DevicesView
+
+### Changed Files:
+- `src/views/RoomsView.tsx` - DeviceStatusBadges, MenuButton, Expert filter
+- `src/views/DevicesView.tsx` - Expert filter
+- `src/views/DeviceDetailView.tsx` - MenuButton, Header max-width
+- `src/components/DeviceIcon.tsx` - Speaker, CO2, Motion status icons
+- `src/components/layout/MenuBubble.tsx` - MenuButton component
+- `src/stores/dataStore.ts` - Device filtering functions
+- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Position fix
+
+---
+
+## Todo List (Current)
 
 ### Completed ✅
-- [x] Device Position Editing implementieren
+- [x] Device Position Editing implementation
 - [x] FloorPlanView Refactoring (views/floorplan/)
-- [x] MenuBubble nach links unten verschieben
-- [x] Git fetch zum WebUI Update hinzufügen
-- [x] Child-Friendly Mode dokumentieren
-- [x] REQUIREMENTS.md + CONTEXT.md aktualisieren
+- [x] Move MenuBubble to bottom-left
+- [x] Add git fetch for WebUI update
+- [x] Document Child-Friendly Mode
+- [x] Update REQUIREMENTS.md + CONTEXT.md
+- [x] DeviceStatusBadges with detailed status
+- [x] Speaker + CO2 icons
+- [x] Motion sensor active status (green)
+- [x] LED/Dimmer status fix (on/_on fallback)
+- [x] MenuButton in header (RoomDetail, DeviceDetailView)
+- [x] Device repositioning fix (relative coordinates)
+- [x] Expert Mode Device Filtering
 
 ### Pending ⏳
-- [ ] DeviceDetailView.tsx Refactoring (1387 Zeilen)
-- [ ] RoomsView.tsx Refactoring (546 Zeilen)
-- [ ] Child-Friendly Mode für Grundriss implementieren
+- [ ] DeviceDetailView.tsx refactoring (1398 lines)
+- [ ] RoomsView.tsx refactoring (742 lines)
+- [ ] Child-Friendly Mode for floor plan

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage, getRoomStats, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
+import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage, getRoomStats, getDeviceRoom, getDeviceName, filterDevicesForExpertMode } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateGroupSettings, type HeatGroupSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
-import { ChevronRight, Thermometer, Lightbulb, AirVent, RefreshCw, ArrowLeft, Blinds, Search, Settings } from 'lucide-react';
+import { ChevronRight, Thermometer, Lightbulb, AirVent, ArrowLeft, Blinds, Search, Settings } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { MenuButton } from '@/components/layout/MenuBubble';
 import { DeviceDetailView } from './DeviceDetailView';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { RoomSettingsSection } from '@/components/RoomSettingsSection';
@@ -74,7 +76,7 @@ export function RoomsView() {
       <RoomDetail 
         room={selectedRoom} 
         devices={devices} 
-        onBack={() => navigate('/rooms')} 
+        onBack={() => navigate(-1)} 
         onSelectDevice={setSelectedDevice}
         onSelectGroup={(room, groupType, group) => setSelectedGroup({ room, groupType, group })}
       />
@@ -83,18 +85,11 @@ export function RoomsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t('tabs.rooms')}</h1>
-          <button
-            onClick={() => fetchData()}
-            disabled={isLoading}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
+      <PageHeader
+        title={t('tabs.rooms')}
+        onRefresh={fetchData}
+        isLoading={isLoading}
+      >
         <div className="relative mt-3">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -133,10 +128,10 @@ export function RoomsView() {
             </button>
           ))}
         </div>
-      </header>
+      </PageHeader>
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        <div className="space-y-3">
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="mx-auto max-w-3xl px-4 py-4 space-y-3">
           {roomList.map((room) => (
             <button
               key={room.id ?? getRoomName(room)}
@@ -199,115 +194,134 @@ function RoomCardContent({ room, devices }: RoomCardContentProps) {
 }
 
 function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGroup }: RoomDetailProps) {
+  const { expertMode } = useSettingsStore();
   const groupTypes = room.groupdict ? Object.keys(room.groupdict) : [];
   const roomName = getRoomName(room);
   
-  // Get devices for this room
-  const roomDevices = Object.values(devices).filter(
+  // Get devices for this room, filtered by expert mode
+  const allRoomDevices = Object.values(devices).filter(
     (d) => getDeviceRoom(d).toLowerCase() === roomName.toLowerCase()
   );
+  const roomDevices = filterDevicesForExpertMode(allRoomDevices, expertMode);
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-4 p-4">
-        <button
-          onClick={onBack}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-        >
-          ←
-        </button>
-        <h1 className="text-xl font-semibold">{roomName}</h1>
+      <header className="bg-background/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-40">
+        <div className="mx-auto max-w-6xl flex items-center gap-4 p-4">
+          <MenuButton />
+          <button
+            onClick={onBack}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-xl font-bold">{roomName}</h1>
+        </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        {groupTypes.length > 0 && (
-          <section className="mb-6">
-            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
-              Gruppen
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {groupTypes.includes('3') && room.groupdict?.['3'] && (
-                <button 
-                  onClick={() => onSelectGroup(room, '3', room.groupdict!['3'])}
-                  className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
-                >
-                  <Lightbulb className="inline h-4 w-4 mr-2" />
-                  Licht
-                </button>
-              )}
-              {groupTypes.includes('8') && room.groupdict?.['8'] && (
-                <button 
-                  onClick={() => onSelectGroup(room, '8', room.groupdict!['8'])}
-                  className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
-                >
-                  <Thermometer className="inline h-4 w-4 mr-2" />
-                  Heizung
-                </button>
-              )}
-              {groupTypes.includes('0') && room.groupdict?.['0'] && (
-                <button 
-                  onClick={() => onSelectGroup(room, '0', room.groupdict!['0'])}
-                  className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
-                >
-                  <Blinds className="inline h-4 w-4 mr-2" />
-                  Fenster
-                </button>
-              )}
-              {groupTypes.includes('9') && room.groupdict?.['9'] && (
-                <button 
-                  onClick={() => onSelectGroup(room, '9', room.groupdict!['9'])}
-                  className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
-                >
-                  <AirVent className="inline h-4 w-4 mr-2" />
-                  Klimaanlage
-                </button>
-              )}
-            </div>
-          </section>
-        )}
-
-        <section>
-          <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
-            Raum-Info
-          </h2>
-          <div className="rounded-2xl bg-card p-4 shadow-soft text-muted-foreground">
-            <p>Etage: {room.info?.etage ?? 'Unbekannt'}</p>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
-            Geräte ({roomDevices.length})
-          </h2>
-          <div className="space-y-3">
-            {roomDevices.map((device) => {
-              const name = getDeviceName(device, roomName);
-              return (
-                <button
-                  key={device.id ?? name}
-                  onClick={() => onSelectDevice(device)}
-                  className="flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-soft transition-all hover:shadow-soft-lg active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                      <DeviceIcon device={device} size="md" />
-                    </div>
-                    <span className="font-medium">{name}</span>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </button>
-              );
-            })}
-            {roomDevices.length === 0 && (
-              <div className="text-center text-muted-foreground py-4">
-                Keine Geräte gefunden
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="mx-auto max-w-6xl px-4 py-4">
+          {/* Groups - full width on top */}
+          {groupTypes.length > 0 && (
+            <section className="mb-6">
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
+                Gruppen
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {groupTypes.includes('3') && room.groupdict?.['3'] && (
+                  <button 
+                    onClick={() => onSelectGroup(room, '3', room.groupdict!['3'])}
+                    className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
+                  >
+                    <Lightbulb className="inline h-4 w-4 mr-2" />
+                    Licht
+                  </button>
+                )}
+                {groupTypes.includes('8') && room.groupdict?.['8'] && (
+                  <button 
+                    onClick={() => onSelectGroup(room, '8', room.groupdict!['8'])}
+                    className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
+                  >
+                    <Thermometer className="inline h-4 w-4 mr-2" />
+                    Heizung
+                  </button>
+                )}
+                {groupTypes.includes('0') && room.groupdict?.['0'] && (
+                  <button 
+                    onClick={() => onSelectGroup(room, '0', room.groupdict!['0'])}
+                    className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
+                  >
+                    <Blinds className="inline h-4 w-4 mr-2" />
+                    Fenster
+                  </button>
+                )}
+                {groupTypes.includes('9') && room.groupdict?.['9'] && (
+                  <button 
+                    onClick={() => onSelectGroup(room, '9', room.groupdict!['9'])}
+                    className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
+                  >
+                    <AirVent className="inline h-4 w-4 mr-2" />
+                    Klimaanlage
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        </section>
+            </section>
+          )}
 
-        {/* Room Settings */}
-        <RoomSettingsSection room={room} onUpdate={() => {}} />
+          {/* 2-column layout: Devices left (2/5), Settings right (3/5) */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Left column: Devices (2/5 on large screens) */}
+            <div className="lg:col-span-2 space-y-4">
+              <section>
+                <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
+                  Raum-Info
+                </h2>
+                <div className="rounded-2xl bg-card p-4 shadow-soft text-muted-foreground">
+                  <p>Etage: {room.info?.etage ?? 'Unbekannt'}</p>
+                </div>
+              </section>
+
+              <section>
+                <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
+                  Geräte ({roomDevices.length})
+                </h2>
+                <div className="space-y-3">
+                  {roomDevices.map((device) => {
+                    const name = getDeviceName(device, roomName);
+                    return (
+                      <button
+                        key={device.id ?? name}
+                        onClick={() => onSelectDevice(device)}
+                        className="flex w-full items-center justify-between rounded-2xl bg-card p-4 shadow-soft transition-all hover:shadow-soft-lg active:scale-[0.98]"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                            <DeviceIcon device={device} size="md" />
+                          </div>
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">{name}</span>
+                            <DeviceStatusBadges device={device} />
+                          </div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </button>
+                    );
+                  })}
+                  {roomDevices.length === 0 && (
+                    <div className="text-center text-muted-foreground py-4">
+                      Keine Geräte gefunden
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {/* Right column: Room Settings (3/5 on large screens) */}
+            <div className="lg:col-span-3 lg:sticky lg:top-20 lg:self-start">
+              <RoomSettingsSection room={room} onUpdate={() => {}} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -541,6 +555,189 @@ function GroupDetailView({ room, groupType, group, devices, onBack, onSelectDevi
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function DeviceStatusBadges({ device }: { device: Device }) {
+  const capabilities = device.deviceCapabilities ?? [];
+  const badges: React.ReactNode[] = [];
+
+  // Capability constants
+  const CAP_MOTION_SENSOR = 10;
+  const CAP_HEATER = 5;
+  const CAP_DIMMABLE = 9;
+  const CAP_LED = 18;
+  const CAP_LAMP = 8;
+  const CAP_SHUTTER = 11;
+  const CAP_TEMP_SENSOR = 12;
+  const CAP_ACTUATOR = 1;
+  const CAP_HANDLE_SENSOR = 15;
+
+  // Window handle sensor: show position (priority over temp)
+  if (capabilities.includes(CAP_HANDLE_SENSOR)) {
+    const position = device.handleSensor?.position ?? device.position ?? -1;
+    if (position >= 0) {
+      const positionText = position === 0 ? 'Geschlossen' : position === 1 ? 'Gekippt' : 'Offen';
+      const positionColor = position === 0 ? 'text-green-500' : position === 1 ? 'text-orange-500' : 'text-red-500';
+      badges.push(
+        <span key="handle" className={`text-xs ${positionColor}`}>
+          {positionText}
+        </span>
+      );
+    }
+  }
+
+  // Motion sensor: show active status and detections today
+  if (capabilities.includes(CAP_MOTION_SENSOR)) {
+    const movementDetected = device.movementDetected ?? device._movementDetected ?? false;
+    const detectionsToday = device._detectionsToday ?? device.detectionsToday ?? -1;
+    
+    if (movementDetected) {
+      badges.push(
+        <span key="motion-active" className="text-xs text-green-500 font-medium">
+          Bewegung!
+        </span>
+      );
+    }
+    if (detectionsToday >= 0) {
+      badges.push(
+        <span key="motion" className="text-xs text-muted-foreground">
+          {detectionsToday}x heute
+        </span>
+      );
+    }
+  }
+
+  // Heater: show ist/soll temps and valve level
+  if (capabilities.includes(CAP_HEATER)) {
+    const istTemp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+    const sollTemp = device.desiredTemp ?? device._desiredTemperatur ?? -99;
+    const valveLevel = (device._level ?? -0.01) * 100;
+    
+    const parts: string[] = [];
+    if (istTemp !== undefined && istTemp !== -99) {
+      parts.push(`${istTemp.toFixed(1)}°`);
+    }
+    if (sollTemp !== -99) {
+      parts.push(`→${sollTemp.toFixed(1)}°`);
+    }
+    if (valveLevel >= 0 && valveLevel <= 100) {
+      parts.push(`${Math.round(valveLevel)}%`);
+    }
+    
+    if (parts.length > 0) {
+      badges.push(
+        <span key="heater" className="text-xs text-muted-foreground">
+          {parts.join(' ')}
+        </span>
+      );
+    }
+  }
+
+  // Temperature sensor (only if not a heater - heater already shows temp)
+  if (capabilities.includes(CAP_TEMP_SENSOR) && !capabilities.includes(CAP_HEATER) && !capabilities.includes(CAP_HANDLE_SENSOR)) {
+    const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+    if (temp !== undefined && temp !== -99) {
+      badges.push(
+        <span key="temp" className="text-xs text-muted-foreground">
+          {temp.toFixed(1)}°C
+        </span>
+      );
+    }
+  }
+
+  // Dimmable lamp: show brightness
+  if (capabilities.includes(CAP_DIMMABLE) && !capabilities.includes(CAP_LED)) {
+    const brightness = device.brightness ?? device._brightness ?? -1;
+    const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+    if (isOn) {
+      badges.push(
+        <span key="dimmer" className="text-xs text-green-500">
+          {brightness >= 0 ? `${brightness}%` : 'An'}
+        </span>
+      );
+    } else {
+      badges.push(
+        <span key="dimmer-off" className="text-xs text-gray-400">
+          Aus
+        </span>
+      );
+    }
+  }
+
+  // LED: show color and brightness
+  if (capabilities.includes(CAP_LED)) {
+    const brightness = device.brightness ?? device._brightness ?? -1;
+    const color = device._color ?? '';
+    const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+    if (isOn) {
+      badges.push(
+        <span key="led" className="flex items-center gap-1 text-xs text-green-500">
+          {color && (
+            <span 
+              className="inline-block w-3 h-3 rounded-full border border-border" 
+              style={{ backgroundColor: color.startsWith('#') ? color : `#${color}` }}
+            />
+          )}
+          {brightness >= 0 ? `${brightness}%` : 'An'}
+        </span>
+      );
+    } else {
+      badges.push(
+        <span key="led-off" className="text-xs text-gray-400">
+          Aus
+        </span>
+      );
+    }
+  }
+
+  // Simple lamp: show on/off
+  if (capabilities.includes(CAP_LAMP) && !capabilities.includes(CAP_DIMMABLE) && !capabilities.includes(CAP_LED)) {
+    const isOn = device.lightOn ?? device._lightOn ?? false;
+    badges.push(
+      <span key="lamp" className={`text-xs ${isOn ? 'text-green-500' : 'text-gray-400'}`}>
+        {isOn ? 'An' : 'Aus'}
+      </span>
+    );
+  }
+
+  // Shutter: show level (0-100 or 0-1 depending on device)
+  if (capabilities.includes(CAP_SHUTTER)) {
+    let level = device._currentLevel ?? -1;
+    // Normalize level to 0-100 range
+    if (level > 1 && level <= 100) {
+      // Already in 0-100 range
+    } else if (level >= 0 && level <= 1) {
+      level = level * 100;
+    } else {
+      level = -1; // Invalid
+    }
+    
+    if (level >= 0 && level <= 100) {
+      badges.push(
+        <span key="shutter" className="text-xs text-muted-foreground">
+          {Math.round(level)}%
+        </span>
+      );
+    }
+  }
+
+  // Actuator (not lamp): show on/off
+  if (capabilities.includes(CAP_ACTUATOR) && !capabilities.includes(CAP_LAMP)) {
+    const isOn = device.actuatorOn ?? device._actuatorOn ?? false;
+    badges.push(
+      <span key="actuator" className={`text-xs ${isOn ? 'text-green-500' : 'text-gray-400'}`}>
+        {isOn ? 'An' : 'Aus'}
+      </span>
+    );
+  }
+
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+      {badges}
     </div>
   );
 }

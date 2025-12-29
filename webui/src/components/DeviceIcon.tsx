@@ -10,7 +10,9 @@ import {
   Lock,
   PersonStanding,
   Activity,
-  Flame
+  Flame,
+  Speaker,
+  CloudFog
 } from 'lucide-react';
 
 // Device capabilities from hoffmation-base DeviceCapability enum
@@ -20,6 +22,7 @@ export const DeviceCapability = {
   energyManager: 3,
   heater: 5,
   humiditySensor: 6,
+  co2Sensor: 7,
   lamp: 8,
   dimmableLamp: 9,
   motionSensor: 10,
@@ -59,6 +62,8 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     if (capabilities.includes(DeviceCapability.shutter)) return DeviceCapability.shutter;
     if (capabilities.includes(DeviceCapability.ac)) return DeviceCapability.ac;
     if (capabilities.includes(DeviceCapability.heater)) return DeviceCapability.heater;
+    if (capabilities.includes(DeviceCapability.speaker)) return DeviceCapability.speaker;
+    if (capabilities.includes(DeviceCapability.co2Sensor)) return DeviceCapability.co2Sensor;
     if (capabilities.includes(DeviceCapability.temperatureSensor)) return DeviceCapability.temperatureSensor;
     if (capabilities.includes(DeviceCapability.motionSensor)) return DeviceCapability.motionSensor;
     if (capabilities.includes(DeviceCapability.handleSensor)) return DeviceCapability.handleSensor;
@@ -106,6 +111,10 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
   // Motion sensor
   if (primaryCap === DeviceCapability.motionSensor) {
+    const movementDetected = device.movementDetected ?? device._movementDetected ?? false;
+    if (showStatus && movementDetected) {
+      return <PersonStanding className={`${sizeClass} text-green-500`} />;
+    }
     return <PersonStanding className={`${sizeClass} text-muted-foreground`} />;
   }
 
@@ -128,6 +137,16 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
       return <Activity className={`${sizeClass} text-green-500`} />;
     }
     return <Activity className={`${sizeClass} text-muted-foreground`} />;
+  }
+
+  // Speaker
+  if (primaryCap === DeviceCapability.speaker) {
+    return <Speaker className={`${sizeClass} text-primary`} />;
+  }
+
+  // CO2 Sensor
+  if (primaryCap === DeviceCapability.co2Sensor) {
+    return <CloudFog className={`${sizeClass} text-muted-foreground`} />;
   }
 
   // Default

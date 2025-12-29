@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useDataStore, type Device, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
-import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, RefreshCw, WifiOff, BatteryLow, ChevronRight, ChevronDown } from 'lucide-react';
+import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, WifiOff, BatteryLow, ChevronRight, ChevronDown } from 'lucide-react';
 import { setLamp, setShutter, setActuator } from '@/api/devices';
 import { DeviceIcon } from '@/components/DeviceIcon';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 function getFavoriteIds(): string[] {
   const stored = localStorage.getItem('hoffmation-favorites');
@@ -68,21 +69,15 @@ export function FavoritesView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t('tabs.home')}</h1>
-          <button
-            onClick={() => fetchData()}
-            disabled={isLoading}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title={t('tabs.home')}
+        onRefresh={fetchData}
+        isLoading={isLoading}
+      />
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        {/* Unreachable Devices Section */}
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="content-container py-4">
+          {/* Unreachable Devices Section */}
         {unreachableDevices.length > 0 && (
           <section className="mb-6">
             <button
@@ -164,6 +159,7 @@ export function FavoritesView() {
             </div>
           )}
         </section>
+        </div>
       </div>
     </div>
   );

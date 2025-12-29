@@ -331,15 +331,81 @@ export function getDeviceName(device: Device, stripRoomPrefix?: string): string 
   let name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
   
   // Optionally strip room/floor prefix from name for cleaner display in room context
-  if (stripRoomPrefix && name.toLowerCase().startsWith(stripRoomPrefix.toLowerCase())) {
-    name = name.substring(stripRoomPrefix.length).trim();
-    // Remove leading dash or colon if present
-    if (name.startsWith('-') || name.startsWith(':')) {
-      name = name.substring(1).trim();
+  if (stripRoomPrefix) {
+    // Normalize both strings for comparison (handle umlauts: ü/ue, ö/oe, ä/ae)
+    const roomVariants = getRoomNameVariants(stripRoomPrefix);
+    
+    // Try to find and remove room name anywhere in the device name
+    // Common patterns: "1. OG Buero Rollo", "EG Bad Licht", "Buero Steckdose", "Sonos Büro"
+    for (const roomVariant of roomVariants) {
+      const patterns = [
+        // Room name anywhere in string with space after (e.g., "Sonos Büro" -> "Sonos")
+        new RegExp(`\\s+${escapeRegex(roomVariant)}\\s*$`, 'i'),
+        // Floor + room pattern at start (e.g., "1. OG Buero Rollo" -> "Rollo")
+        new RegExp(`^.*?${escapeRegex(roomVariant)}\\s+`, 'i'),
+        // Room name at start (e.g., "Buero Steckdose" -> "Steckdose")
+        new RegExp(`^${escapeRegex(roomVariant)}\\s*[-:]?\\s*`, 'i'),
+      ];
+      
+      for (const pattern of patterns) {
+        if (pattern.test(name)) {
+          name = name.replace(pattern, '').trim();
+          break;
+        }
+      }
+      
+      // If name changed, stop trying variants
+      if (name !== (info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt')) {
+        break;
+      }
+    }
+    
+    // Capitalize first letter if needed
+    if (name.length > 0 && name[0] === name[0].toLowerCase()) {
+      name = name.charAt(0).toUpperCase() + name.slice(1);
     }
   }
   
-  return name;
+  return name || 'Gerät';
+}
+
+function getRoomNameVariants(roomName: string): string[] {
+  const variants = new Set<string>();
+  const lower = roomName.toLowerCase();
+  
+  // Add original
+  variants.add(lower);
+  
+  // Add umlaut variants (both directions)
+  const umlautMap: Record<string, string> = {
+    'ü': 'ue', 'ue': 'ü',
+    'ö': 'oe', 'oe': 'ö',
+    'ä': 'ae', 'ae': 'ä',
+    'ß': 'ss', 'ss': 'ß',
+  };
+  
+  let variant = lower;
+  for (const [from, to] of Object.entries(umlautMap)) {
+    if (variant.includes(from)) {
+      variant = variant.replace(new RegExp(from, 'g'), to);
+      variants.add(variant);
+    }
+  }
+  
+  // Also try the reverse direction
+  variant = lower;
+  for (const [to, from] of Object.entries(umlautMap)) {
+    if (variant.includes(from)) {
+      variant = variant.replace(new RegExp(escapeRegex(from), 'g'), to);
+      variants.add(variant);
+    }
+  }
+  
+  return Array.from(variants);
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function isDeviceOn(device: Device): boolean {
@@ -426,6 +492,38 @@ export function getCapabilityName(capability: number): string {
 
 export function getCapabilityNames(capabilities: number[]): string {
   return capabilities.map(c => getCapabilityName(c)).join(', ');
+}
+
+// Complex capabilities that should only be shown in expert mode
+// Based on SwiftUI isCapabilityComplex
+const COMPLEX_CAPABILITIES = new Set([
+  DeviceCapability.vibrationSensor,      // 13
+  DeviceCapability.speaker,              // 14
+  DeviceCapability.tv,                   // 17
+  DeviceCapability.smokeSensor,          // 19
+  DeviceCapability.loadMetering,         // 20
+  DeviceCapability.buttonSwitch,         // 2
+  DeviceCapability.energyManager,        // 3
+  DeviceCapability.excessEnergyConsumer, // 4
+  DeviceCapability.bluetoothDetector,    // 101
+  DeviceCapability.trackableDevice,      // 102
+  DeviceCapability.camera,               // 105
+]);
+
+export function isDeviceComplex(device: Device): boolean {
+  const capabilities = device.deviceCapabilities ?? [];
+  // Device is complex if ALL its capabilities are complex
+  // (i.e., it has no simple capabilities that would make it useful for non-experts)
+  if (capabilities.length === 0) return true;
+  
+  // Check if device has at least one non-complex capability
+  const hasSimpleCapability = capabilities.some(cap => !COMPLEX_CAPABILITIES.has(cap));
+  return !hasSimpleCapability;
+}
+
+export function filterDevicesForExpertMode(devices: Device[], expertMode: boolean): Device[] {
+  if (expertMode) return devices;
+  return devices.filter(d => !isDeviceComplex(d));
 }
 
 export interface RoomStats {

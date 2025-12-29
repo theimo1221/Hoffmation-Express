@@ -4,6 +4,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
 import { Edit3, Save, X } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
 import type { FloorPlanProps, RoomCoords, FixedBounds, DraggingState } from './types';
 
 export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
@@ -152,26 +153,21 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
   if (roomsWithCoords.length === 0 && !editMode) {
     return (
       <div className="flex h-full flex-col">
-        <header className="flex items-center justify-between p-4 relative z-10">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-            >
-              ←
-            </button>
-            <h1 className="text-xl font-semibold">{floor.name}</h1>
-          </div>
-          {expertMode && floor.rooms.length > 0 && (
-            <button
-              onClick={enterEditMode}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
-            >
-              <Edit3 className="h-4 w-4" />
-              Räume platzieren
-            </button>
-          )}
-        </header>
+        <PageHeader
+          title={floor.name}
+          onBack={onBack}
+          rightContent={
+            expertMode && floor.rooms.length > 0 ? (
+              <button
+                onClick={enterEditMode}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
+              >
+                <Edit3 className="h-4 w-4" />
+                Räume platzieren
+              </button>
+            ) : undefined
+          }
+        />
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center text-muted-foreground">
             <p>Keine Raumkoordinaten verfügbar</p>
@@ -284,22 +280,13 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
       onMouseUp={editMode ? handleMouseUp : undefined}
       onMouseLeave={editMode ? handleMouseUp : undefined}
     >
-      <header className="flex items-center justify-between p-4 relative z-10">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={editMode ? cancelEditMode : onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-          >
-            {editMode ? <X className="h-5 w-5" /> : '←'}
-          </button>
-          <h1 className="text-xl font-semibold">
-            {floor.name}
-            {editMode && <span className="text-primary ml-2">(Bearbeiten)</span>}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {editMode ? (
-            hasChanges && (
+      <PageHeader
+        title={editMode ? `${floor.name} (Bearbeiten)` : floor.name}
+        onBack={editMode ? cancelEditMode : onBack}
+        backIcon={editMode ? <X className="h-5 w-5" /> : undefined}
+        rightContent={
+          editMode ? (
+            hasChanges ? (
               <button
                 onClick={saveChanges}
                 disabled={isSaving}
@@ -308,9 +295,9 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                 <Save className="h-4 w-4" />
                 {isSaving ? 'Speichern...' : 'Speichern'}
               </button>
-            )
+            ) : undefined
           ) : (
-            expertMode && (
+            expertMode ? (
               <button
                 onClick={enterEditMode}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
@@ -318,10 +305,10 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                 <Edit3 className="h-4 w-4" />
                 Bearbeiten
               </button>
-            )
-          )}
-        </div>
-      </header>
+            ) : undefined
+          )
+        }
+      />
 
       <div ref={containerRef} className="flex-1 overflow-hidden p-4 flex items-center justify-center">
         <div

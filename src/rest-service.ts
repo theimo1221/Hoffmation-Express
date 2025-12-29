@@ -60,12 +60,17 @@ export class RestService {
       ServerLogService.writeLog(LogLevel.Info, `REST service listening at http://localhost:${config.port}`);
     });
 
-    // Serve WebUI static files (only if enabled in config)
+    // Serve WebUI static files under /ui (only if enabled in config)
     if (config.webUi) {
       try {
         const webuiPath = path.join(__dirname, '..', 'webui', 'dist');
-        this._app.use(expressStatic(webuiPath));
-        ServerLogService.writeLog(LogLevel.Info, `WebUI enabled, serving from ${webuiPath}`);
+        // Redirect root to /ui/
+        this._app.get('/', (_req, res) => {
+          res.redirect('/ui/');
+        });
+        // Serve static files under /ui
+        this._app.use('/ui', expressStatic(webuiPath));
+        ServerLogService.writeLog(LogLevel.Info, `WebUI enabled, serving from ${webuiPath} at /ui`);
       } catch (webUiError) {
         ServerLogService.writeLog(LogLevel.Error, `Failed to initialize WebUI: ${webUiError}`);
       }
@@ -395,9 +400,9 @@ export class RestService {
       }
     });
 
-    // SPA fallback - serve index.html for all non-API routes (only if WebUI enabled)
+    // SPA fallback - serve index.html for all /ui/* routes (only if WebUI enabled)
     if (config.webUi) {
-      this._app.get('*', (_req, res) => {
+      this._app.get('/ui/*', (_req, res) => {
         try {
           res.sendFile(path.join(__dirname, '..', 'webui', 'dist', 'index.html'));
         } catch (e) {

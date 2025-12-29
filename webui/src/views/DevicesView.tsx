@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Device } from '@/stores/dataStore';
+import { useDataStore, type Device, filterDevicesForExpertMode } from '@/stores/dataStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
-import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap, RefreshCw } from 'lucide-react';
-// Note: Some icons kept for CAPABILITY_FILTERS
+import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap } from 'lucide-react';
 import { DeviceDetailView } from './DeviceDetailView';
 import { DeviceIcon, getDeviceStatusColor } from '@/components/DeviceIcon';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export enum DeviceCapability {
   ac = 0,
@@ -33,6 +34,7 @@ export function DevicesView() {
   const navigate = useNavigate();
   const { deviceId } = useParams<{ deviceId?: string }>();
   const { devices, fetchData, isLoading } = useDataStore();
+  const { expertMode } = useSettingsStore();
   const [search, setSearch] = useState('');
   const [capabilityFilter, setCapabilityFilter] = useState<number | null>(null);
 
@@ -44,10 +46,13 @@ export function DevicesView() {
   }, [fetchData]);
 
   if (selectedDevice) {
-    return <DeviceDetailView device={selectedDevice} onBack={() => navigate('/devices')} />;
+    return <DeviceDetailView device={selectedDevice} onBack={() => navigate(-1)} />;
   }
 
-  const deviceList = Object.values(devices).filter((device) => {
+  // Filter devices by expert mode first, then by search/capability
+  const filteredByExpertMode = filterDevicesForExpertMode(Object.values(devices), expertMode);
+  
+  const deviceList = filteredByExpertMode.filter((device) => {
     const info = device.info ?? device._info;
     const name = info?.customName ?? info?._customName ?? info?.fullName ?? '';
     const room = info?.room ?? '';
@@ -75,18 +80,11 @@ export function DevicesView() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t('tabs.devices')}</h1>
-          <button
-            onClick={() => fetchData()}
-            disabled={isLoading}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
+      <PageHeader
+        title={t('tabs.devices')}
+        onRefresh={fetchData}
+        isLoading={isLoading}
+      >
         <div className="relative mt-3">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -115,10 +113,10 @@ export function DevicesView() {
             </button>
           ))}
         </div>
-      </header>
+      </PageHeader>
 
-      <div className="flex-1 overflow-auto px-4 pb-tabbar">
-        <div className="space-y-3">
+      <div className="flex-1 overflow-auto pb-tabbar">
+        <div className="mx-auto max-w-3xl px-4 py-4 space-y-3">
           {deviceList.map((device) => (
             <DeviceCard key={device.id} device={device} onClick={() => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)} />
           ))}
