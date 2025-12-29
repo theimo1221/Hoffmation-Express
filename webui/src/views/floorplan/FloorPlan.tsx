@@ -406,10 +406,10 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                     height: Math.max(h, 40),
                   }}
                 >
-                  {/* Room name centered */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {/* Room name - positioned at bottom to avoid icon overlap */}
+                  <div className="absolute bottom-0.5 left-0 right-0 flex justify-center pointer-events-none z-10">
                     <span className={cn(
-                      "text-[10px] font-medium text-center px-1 flex items-center gap-1 leading-tight bg-secondary/80 rounded px-1",
+                      "text-[10px] sm:text-xs font-medium text-center px-1.5 py-0.5 flex items-center gap-1 leading-tight bg-secondary/90 rounded shadow-sm",
                       isUnplaced && editMode && "text-orange-700",
                       isModified && "italic"
                     )}>

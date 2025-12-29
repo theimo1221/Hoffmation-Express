@@ -82,15 +82,16 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
     return { x: Math.round(roomX * 10) / 10, y: Math.round(roomY * 10) / 10 };
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  // Unified move handler for mouse and touch
+  const handleMove = useCallback((clientX: number, clientY: number) => {
     if (!draggingDevice || !containerRef.current || !startPoint || !endPoint) return;
     
     const canvas = containerRef.current.querySelector('.room-canvas');
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const screenX = e.clientX - rect.left - 16;
-    const screenY = e.clientY - rect.top - 16;
+    const screenX = clientX - rect.left - 16;
+    const screenY = clientY - rect.top - 16;
     
     const { x, y } = screenToRoom(screenX, screenY);
     const z = startPoint.z ?? 0;
@@ -99,11 +100,40 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
       ...prev,
       [draggingDevice]: { x, y, z }
     }));
+  }, [draggingDevice, startPoint, endPoint, screenToRoom]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    handleMove(e.clientX, e.clientY);
   };
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!draggingDevice) return;
+    e.preventDefault(); // Prevent scrolling while dragging
+    const touch = e.touches[0];
+    if (touch) {
+      handleMove(touch.clientX, touch.clientY);
+    }
+  }, [draggingDevice, handleMove]);
 
   const handleMouseUp = () => {
     setDraggingDevice(null);
   };
+
+  const handleTouchEnd = useCallback(() => {
+    setDraggingDevice(null);
+  }, []);
+
+  // Add touch event listeners for iOS drag support
+  useEffect(() => {
+    if (editMode && draggingDevice) {
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      return () => {
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [editMode, draggingDevice, handleTouchMove, handleTouchEnd]);
 
   // Check if device is a lamp (can be toggled)
   const isLampDevice = (device: Device) => {
@@ -398,8 +428,10 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
         <div
           className="room-canvas relative rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
           style={{
-            width: scaledWidth + 32,
-            height: scaledHeight + 32,
+            width: Math.min(scaledWidth + 32, containerSize.width),
+            height: Math.min(scaledHeight + 32, containerSize.height),
+            maxWidth: '100%',
+            maxHeight: '100%',
           }}
         >
           <div className="absolute inset-4 border-2 border-dashed border-primary/20 rounded-lg" />
@@ -446,6 +478,10 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
                   e.preventDefault();
                   setDraggingDevice(device.id!);
                 } : undefined}
+                onTouchStart={editMode && device.id ? (e) => {
+                  e.preventDefault();
+                  setDraggingDevice(device.id!);
+                } : undefined}
                 className={cn(
                   "absolute flex flex-col items-center justify-center p-2 rounded-xl shadow-soft select-none touch-none",
                   editMode
@@ -463,10 +499,10 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
                 title={deviceName}
               >
                 <div className={cn(
-                  "flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-lg",
+                  "flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-lg",
                   isUnplaced && editMode ? "bg-orange-500/20" : "bg-primary/10"
                 )}>
-                  <DeviceIcon device={device} size="md" />
+                  <DeviceIcon device={device} size="lg" />
                 </div>
                 {isDragging && devicePos && (
                   <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-black/80 text-white text-[10px] rounded whitespace-nowrap z-50">

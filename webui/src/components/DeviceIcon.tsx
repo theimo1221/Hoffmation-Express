@@ -98,12 +98,25 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     return <Blinds className={`${sizeClass} text-muted-foreground`} />;
   }
 
-  // AC icons
+  // AC icons - color based on mode: off=gray, cooling=blue, heating=red, auto=green
   if (primaryCap === DeviceCapability.ac) {
-    if (showStatus && isOn) {
-      return <Snowflake className={`${sizeClass} text-blue-500`} />;
+    const mode = device._mode ?? (device.settings as Record<string, unknown>)?.mode;
+    if (!showStatus || !isOn) {
+      return <Wind className={`${sizeClass} text-muted-foreground`} />;
     }
-    return <Wind className={`${sizeClass} text-muted-foreground`} />;
+    // Mode: 0=auto, 1=cool, 2=dry, 3=fan, 4=heat
+    if (mode === 4) {
+      // Heating
+      return <Wind className={`${sizeClass} text-red-500`} />;
+    } else if (mode === 1 || mode === 2) {
+      // Cooling or Dry
+      return <Snowflake className={`${sizeClass} text-blue-500`} />;
+    } else if (mode === 0) {
+      // Auto
+      return <Wind className={`${sizeClass} text-green-500`} />;
+    }
+    // Fan or unknown - just show on
+    return <Wind className={`${sizeClass} text-blue-500`} />;
   }
 
   // Heater icons

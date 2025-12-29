@@ -1,6 +1,6 @@
 # Hoffmation WebUI - Development Context
 
-**Last Updated:** 2025-12-29 21:50 UTC+01:00
+**Last Updated:** 2025-12-29 22:45 UTC+01:00
 
 ## Project Overview
 
@@ -401,3 +401,52 @@ Add to RoomDetail view with all room settings:
 - **Inheritance:** LED extends Dimmer extends Lamp extends Actuator → `setLamp` works for all
 - **SwiftUI Icons:** SF Symbols use same icon with `.fill` suffix for active state
 - **Child-friendly:** Visual distinction through color/fill, not different icons
+
+---
+
+## Session 2024-12-29 (Late Evening) - Bug Fixes + iOS Mobile Support
+
+### Implemented:
+
+#### 1. Zentrale Device-Hilfsfunktionen (Swift-kompatibel)
+- Neue Funktionen in `dataStore.ts` mit korrekter Property-Reihenfolge wie Swift:
+  - `isDeviceOn()` - actuatorOn → _actuatorOn → lightOn → _lightOn → on
+  - `getDeviceBrightness()`, `getDeviceShutterLevel()`, `getDeviceValveLevel()`
+  - `getDeviceDesiredTemp()`, `getDeviceHumidity()`, `getDeviceHandlePosition()`
+  - `isMotionDetected()`, `getDeviceDetectionsToday()`, `getDeviceLinkQuality()`
+  - `isDeviceAvailable()`, `getDeviceBattery()`, `getAutomaticBlockedUntil()`
+
+#### 2. Etagenansicht mit Geräte-Icons
+- `FloorPlan.tsx` zeigt platzierte Geräte als Icons in Raum-Boxen
+- Icons an tatsächlichen Positionen (nicht gebündelt)
+- Responsive Icon-Größe basierend auf Raum-Pixel-Größe
+- Raumname am unteren Rand (keine Icon-Überlagerung)
+
+#### 3. DeviceIcon Farbcodierung
+- **Handle-Sensor:** Grün (geschlossen), Orange (gekippt), Rot (offen)
+- **Shutter:** Grün (< 10% = geschlossen), Orange (10-90%), Grau (offen)
+- **AC:** Grau (aus), Blau (kühlen), Rot (heizen), Grün (auto)
+
+#### 4. iOS Mobile Support
+- Touch-Events für Geräte-Drag&Drop (`onTouchStart`, `touchmove`, `touchend`)
+- Radial-Menü Screen-Edge Clamping (bleibt im Viewport)
+- Auto-Skalierung ohne Scrollbalken (`maxWidth/maxHeight: 100%`)
+- Größere Device-Icons in Raumansicht (`lg` statt `md`)
+
+### Bug Fixes:
+- **Lampen-Toggle:** `isDeviceOn()` mit Swift-Reihenfolge
+- **Handle-Sensor Tap:** Öffnet jetzt Radial-Menü statt Details
+- **Temperatur im Radial:** Prüft auch `temperatureSensor.temperature`
+- **Clipboard Fallback:** Für non-HTTPS Umgebungen
+
+### Backend Issue (hoffmation-base):
+- Temperatursensoren/Rauchmelder haben `settings: null`
+- `trilaterationRoomPosition` kann nicht gespeichert werden
+- **Lösung:** Patch in hoffmation-base vorbereitet (DeviceSettings für alle Geräte)
+
+### Changed Files:
+- `src/stores/dataStore.ts` - Zentrale Device-Hilfsfunktionen
+- `src/components/DeviceIcon.tsx` - Farbcodierung für Handle/Shutter/AC
+- `src/components/RadialMenu.tsx` - Screen-Edge Clamping
+- `src/views/floorplan/FloorPlan.tsx` - Geräte-Icons in Räumen
+- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Touch-Events, Auto-Skalierung

@@ -447,9 +447,21 @@ The Express backend already provides:
   - Device-specific quick actions (consistent positions)
 
 **Child-Friendly Icons** (same icon, different fill/color):
-- Lamp: Lightbulb - yellow filled (100%), orange filled (50%), gray outline (off)
-- Shutter: Square - green outline (open), orange half-filled (50%), brown filled (closed)  
-- AC: Wind - red (heating), blue (cooling), green (auto), gray (off)
+- Lamp: Lightbulb - yellow filled (on), gray outline (off)
+- Shutter: Blinds - green (closed < 10%), orange (10-90%), gray (open)
+- AC: Wind/Snowflake - gray (off), blue (cooling), red (heating), green (auto)
+- Handle: Lock - green (closed), orange (tilted), red (open)
+
+**iOS Mobile Support** ✅ IMPLEMENTED:
+- Touch events for device drag&drop (`onTouchStart`, `touchmove`, `touchend`)
+- Radial menu screen-edge clamping (stays within viewport)
+- Auto-scaling without scrollbars (`maxWidth/maxHeight: 100%`)
+- Larger device icons in room view (`lg` size)
+
+**Floor Plan Device Display** ✅ IMPLEMENTED:
+- Device icons shown at actual positions within room boxes
+- Responsive icon size based on room pixel dimensions
+- Room name positioned at bottom to avoid icon overlap
 
 **Center displays:**
 - Device icon

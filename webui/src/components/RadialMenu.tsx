@@ -78,6 +78,12 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
   const angleStep = (2 * Math.PI) / items.length;
   const startAngle = -Math.PI / 2; // Start from top
 
+  // Clamp position to keep menu within screen bounds
+  const menuSize = radius * 2 + 60; // Approximate menu size
+  const padding = 20;
+  const clampedX = Math.max(menuSize / 2 + padding, Math.min(window.innerWidth - menuSize / 2 - padding, position.x));
+  const clampedY = Math.max(menuSize / 2 + padding, Math.min(window.innerHeight - menuSize / 2 - padding, position.y));
+
   return (
     <div className="fixed inset-0 z-[100]" style={{ pointerEvents: 'auto' }}>
       {/* Backdrop */}
@@ -94,8 +100,8 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
         ref={menuRef}
         className="absolute"
         style={{
-          left: position.x,
-          top: position.y,
+          left: clampedX,
+          top: clampedY,
           transform: 'translate(-50%, -50%)',
         }}
       >
