@@ -143,7 +143,20 @@ export function DeviceInfo({
           <div className="mt-2">
             <div className="flex justify-end mb-1">
               <button
-                onClick={() => navigator.clipboard.writeText(JSON.stringify(device, null, 2))}
+                onClick={() => {
+                  const text = JSON.stringify(device, null, 2);
+                  if (navigator.clipboard?.writeText) {
+                    navigator.clipboard.writeText(text);
+                  } else {
+                    // Fallback for non-HTTPS
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                  }
+                }}
                 className="text-xs text-primary hover:underline"
               >
                 Kopieren

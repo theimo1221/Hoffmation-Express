@@ -408,8 +408,106 @@ function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Check if device is on (actuator state) - matches Swift Device.actuatorOn logic
+ * Order: actuatorOn → _actuatorOn → lightOn → _lightOn → on → false
+ */
 export function isDeviceOn(device: Device): boolean {
-  return device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
+  return device.actuatorOn ?? device._actuatorOn ?? device.lightOn ?? device._lightOn ?? device.on ?? false;
+}
+
+/**
+ * Get device brightness (0-100) - matches Swift Device.brightness logic
+ */
+export function getDeviceBrightness(device: Device): number {
+  return device.brightness ?? device._brightness ?? 0;
+}
+
+/**
+ * Get shutter level (0-100) - matches Swift Device.currentLevel logic
+ * Returns -1 if not available
+ */
+export function getDeviceShutterLevel(device: Device): number {
+  return device._currentLevel ?? -1;
+}
+
+/**
+ * Get heater valve level (0-100) - matches Swift Device.valveLevel logic
+ * Returns -1 if not available
+ */
+export function getDeviceValveLevel(device: Device): number {
+  const level = device._level;
+  if (level === undefined) return -1;
+  return level * 100;
+}
+
+/**
+ * Get desired temperature - matches Swift Device.desiredTemp logic
+ */
+export function getDeviceDesiredTemp(device: Device): number | undefined {
+  const temp = device.desiredTemp ?? device._desiredTemperatur;
+  return temp === -99 ? undefined : temp;
+}
+
+/**
+ * Get humidity - matches Swift Device.humidity logic
+ */
+export function getDeviceHumidity(device: Device): number | undefined {
+  const humidity = device.humiditySensor?.humidity ?? device._humidity;
+  return humidity === -1 ? undefined : humidity;
+}
+
+/**
+ * Get handle/window position - matches Swift Device.position logic
+ * 0 = closed, 1 = tilted, 2 = open
+ */
+export function getDeviceHandlePosition(device: Device): number {
+  return device.position ?? device.handleSensor?.position ?? -1;
+}
+
+/**
+ * Check if motion detected - matches Swift Device.movementDetected logic
+ */
+export function isMotionDetected(device: Device): boolean {
+  return device.movementDetected ?? device._movementDetected ?? false;
+}
+
+/**
+ * Get motion detections today - matches Swift Device.detectionsToday logic
+ */
+export function getDeviceDetectionsToday(device: Device): number {
+  return device._detectionsToday ?? device.detectionsToday ?? -1;
+}
+
+/**
+ * Get link quality (0-255) - matches Swift Device.linkQuality logic
+ */
+export function getDeviceLinkQuality(device: Device): number | undefined {
+  return device.linkQuality ?? device._linkQuality;
+}
+
+/**
+ * Check if device is available - matches Swift Device.available logic
+ */
+export function isDeviceAvailable(device: Device): boolean | undefined {
+  return device.available ?? device._available;
+}
+
+/**
+ * Get battery level - matches Swift Device.battery logic
+ */
+export function getDeviceBattery(device: Device): number | undefined {
+  const level = device.battery?.level ?? device.batteryLevel;
+  return level === -99 ? undefined : level;
+}
+
+/**
+ * Get automatic blocked until timestamp - matches Swift Device.automaticBlocked logic
+ */
+export function getAutomaticBlockedUntil(device: Device): Date | undefined {
+  const ms = device.blockAutomationHandler?.automaticBlockedUntil;
+  if (!ms || ms === 0) return undefined;
+  return new Date(ms);
 }
 
 export function getDeviceTemperature(device: Device): number | undefined {

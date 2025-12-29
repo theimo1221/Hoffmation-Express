@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, type Device } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition, setLamp, setDimmer, setShutter, setAc } from '@/api/devices';
 import { cn } from '@/lib/utils';
@@ -129,9 +129,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
     return (device as Record<string, unknown>).acOn ?? (device as Record<string, unknown>)._acOn ?? device.on ?? device._on ?? false;
   };
 
-  const isLampOn = (device: Device) => {
-    return device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
-  };
+  // Use central isDeviceOn from dataStore (matches Swift logic)
 
   const getShutterLevel = (device: Device) => {
     let level = device._currentLevel ?? -1;
@@ -143,9 +141,8 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   // Toggle lamp on/off - LED/Dimmer/Lamp all extend Actuator, so setLamp works for all
   const handleToggleLamp = async (device: Device) => {
     if (!device.id) return;
-    const currentState = isLampOn(device);
+    const currentState = isDeviceOn(device);
     console.log('Toggle lamp:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
-    console.log('Device props:', { lightOn: device.lightOn, _lightOn: device._lightOn, on: device.on, _on: device._on });
     
     try {
       await setLamp(device.id, !currentState);
