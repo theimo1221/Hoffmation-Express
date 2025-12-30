@@ -417,27 +417,53 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                       {roomName}
                     </span>
                     {editMode && (
-                      <div className="flex items-center gap-1 bg-secondary/95 rounded px-1.5 py-0.5 shadow-sm pointer-events-auto">
-                        <label className="text-[9px] text-muted-foreground">Z:</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={coords.startPoint.z ?? 0}
-                          onChange={(e) => {
-                            const newZ = parseFloat(e.target.value) || 0;
-                            setEditedCoords(prev => ({
-                              ...prev,
-                              [roomName]: {
-                                roomName,
-                                startPoint: { ...coords.startPoint, z: newZ },
-                                endPoint: { ...coords.endPoint, z: newZ }
-                              }
-                            }));
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          className="w-12 text-[10px] px-1 py-0.5 bg-background border border-border rounded text-center"
-                        />
+                      <div className="flex items-center gap-1.5 bg-secondary/95 rounded px-1.5 py-0.5 shadow-sm pointer-events-auto">
+                        <div className="flex items-center gap-0.5">
+                          <label className="text-[9px] text-muted-foreground">Z↓:</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={coords.startPoint.z ?? 0}
+                            onChange={(e) => {
+                              const newZ = parseFloat(e.target.value) || 0;
+                              setEditedCoords(prev => ({
+                                ...prev,
+                                [roomName]: {
+                                  roomName,
+                                  startPoint: { ...coords.startPoint, z: newZ },
+                                  endPoint: coords.endPoint
+                                }
+                              }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-11 text-[10px] px-1 py-0.5 bg-background border border-border rounded text-center"
+                            title="Bodenhöhe (Start Z)"
+                          />
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          <label className="text-[9px] text-muted-foreground">Z↑:</label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={coords.endPoint.z ?? 0}
+                            onChange={(e) => {
+                              const newZ = parseFloat(e.target.value) || 0;
+                              setEditedCoords(prev => ({
+                                ...prev,
+                                [roomName]: {
+                                  roomName,
+                                  startPoint: coords.startPoint,
+                                  endPoint: { ...coords.endPoint, z: newZ }
+                                }
+                              }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-11 text-[10px] px-1 py-0.5 bg-background border border-border rounded text-center"
+                            title="Deckenhöhe (End Z)"
+                          />
+                        </div>
                         <span className="text-[9px] text-muted-foreground">m</span>
                       </div>
                     )}
