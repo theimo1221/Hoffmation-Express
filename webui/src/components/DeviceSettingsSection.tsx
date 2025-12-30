@@ -96,119 +96,69 @@ export function DeviceSettingsSection({ device, onUpdate }: DeviceSettingsSectio
   const speakerSettings = hasSpeakerProps ? flatSettings as unknown as SpeakerSettings : (device.settings?.speakerSettings ?? deviceAny.speakerSettings as SpeakerSettings | undefined);
   const dachsSettings = hasDachsProps ? flatSettings as unknown as DachsSettings : (device.settings?.dachsSettings ?? deviceAny.dachsSettings as DachsSettings | undefined);
   
-  // Determine which settings to show based on capability
-  // For LED/Dimmer: show settings if capability exists (settings may have defaults)
-  // For Dachs: show if dachs-specific props exist (no specific capability)
-  const showActuator = isLampOrActuator && !hasDachsProps;
-  const showDimmer = isDimmable || isLed;
-  const showLed = isLed;
-  const showShutter = isShutter && shutterSettings;
-  const showHeater = isHeater && heaterSettings;
-  const showAc = isAc && acSettings;
-  const showHandle = isHandle && handleSettings;
-  const showCamera = isCamera && cameraSettings;
-  const showMotionSensor = isMotionSensor && motionSensorSettings;
-  const showScene = isScene && sceneSettings;
-  const showSpeaker = isSpeaker && speakerSettings;
-  const showDachs = hasDachsProps && dachsSettings;
+  // Local state for all settings - only use backend values, no fallback defaults
+  const [localActuator, setLocalActuator] = useState<ActuatorSettings | undefined>(
+    actuatorSettings ?? dimmerSettings ?? ledSettings
+  );
   
-  // Local state for all settings
-  const [localActuator, setLocalActuator] = useState<ActuatorSettings>({
-    dayOn: actuatorSettings?.dayOn ?? dimmerSettings?.dayOn ?? ledSettings?.dayOn ?? false,
-    dawnOn: actuatorSettings?.dawnOn ?? dimmerSettings?.dawnOn ?? ledSettings?.dawnOn ?? false,
-    duskOn: actuatorSettings?.duskOn ?? dimmerSettings?.duskOn ?? ledSettings?.duskOn ?? false,
-    nightOn: actuatorSettings?.nightOn ?? dimmerSettings?.nightOn ?? ledSettings?.nightOn ?? false,
-    includeInAmbientLight: actuatorSettings?.includeInAmbientLight ?? dimmerSettings?.includeInAmbientLight ?? ledSettings?.includeInAmbientLight ?? false,
-  });
+  const [localDimmer, setLocalDimmer] = useState<DimmerSettings | undefined>(
+    dimmerSettings ?? ledSettings
+  );
   
-  const [localDimmer, setLocalDimmer] = useState<DimmerSettings>({
-    ...localActuator,
-    dayBrightness: dimmerSettings?.dayBrightness ?? ledSettings?.dayBrightness ?? 100,
-    dawnBrightness: dimmerSettings?.dawnBrightness ?? ledSettings?.dawnBrightness ?? 75,
-    duskBrightness: dimmerSettings?.duskBrightness ?? ledSettings?.duskBrightness ?? 75,
-    nightBrightness: dimmerSettings?.nightBrightness ?? ledSettings?.nightBrightness ?? 50,
-  });
+  const [localLed, setLocalLed] = useState<LedSettings | undefined>(
+    ledSettings
+  );
   
-  const [localLed, setLocalLed] = useState<LedSettings>({
-    ...localDimmer,
-    dayColor: ledSettings?.dayColor ?? '#FFFFFF',
-    dawnColor: ledSettings?.dawnColor ?? '#FBBC32',
-    duskColor: ledSettings?.duskColor ?? '#FBBC32',
-    nightColor: ledSettings?.nightColor ?? '#FF6B35',
-  });
+  const [localShutter, setLocalShutter] = useState<ShutterSettings | undefined>(
+    shutterSettings
+  );
   
-  const [localShutter, setLocalShutter] = useState<ShutterSettings>({
-    direction: shutterSettings?.direction ?? 180,
-    heatReductionPosition: shutterSettings?.heatReductionPosition ?? 40,
-    heatReductionThreshold: shutterSettings?.heatReductionThreshold ?? 27,
-    heatReductionDirectionThreshold: shutterSettings?.heatReductionDirectionThreshold ?? 24,
-  });
+  const [localHeater, setLocalHeater] = useState<HeaterSettings | undefined>(
+    heaterSettings
+  );
   
-  const [localHeater, setLocalHeater] = useState<HeaterSettings>({
-    automaticMode: heaterSettings?.automaticMode ?? true,
-    useOwnTemperatur: heaterSettings?.useOwnTemperatur ?? true,
-    useOwnTemperatureForRoomTemperature: heaterSettings?.useOwnTemperatureForRoomTemperature ?? false,
-    controlByPid: heaterSettings?.controlByPid ?? false,
-    controlByTempDiff: heaterSettings?.controlByTempDiff ?? false,
-    seasonalTurnOffActive: heaterSettings?.seasonalTurnOffActive ?? true,
-    seasonTurnOffDay: heaterSettings?.seasonTurnOffDay ?? 99,
-    seasonTurnOnDay: heaterSettings?.seasonTurnOnDay ?? 267,
-    pidForcedMinimum: heaterSettings?.pidForcedMinimum ?? 1,
-    manualDisabled: heaterSettings?.manualDisabled ?? false,
-  });
+  const [localAc, setLocalAc] = useState<AcSettings | undefined>(
+    acSettings
+  );
   
-  const [localAc, setLocalAc] = useState<AcSettings>({
-    minimumHours: acSettings?.minimumHours ?? 0,
-    minimumMinutes: acSettings?.minimumMinutes ?? 0,
-    maximumHours: acSettings?.maximumHours ?? 23,
-    maximumMinutes: acSettings?.maximumMinutes ?? 59,
-    heatingAllowed: acSettings?.heatingAllowed ?? true,
-    useOwnTemperature: acSettings?.useOwnTemperature ?? false,
-    useAutomatic: acSettings?.useAutomatic ?? false,
-    noCoolingOnMovement: acSettings?.noCoolingOnMovement ?? false,
-    manualDisabled: acSettings?.manualDisabled ?? false,
-    minOutdoorTempForCooling: acSettings?.minOutdoorTempForCooling ?? 20,
-    overrideCoolingTargetTemp: acSettings?.overrideCoolingTargetTemp ?? -1,
-  });
+  const [localHandle, setLocalHandle] = useState<HandleSettings | undefined>(
+    handleSettings
+  );
   
-  const [localHandle, setLocalHandle] = useState<HandleSettings>({
-    informOnOpen: handleSettings?.informOnOpen ?? false,
-    informNotHelping: handleSettings?.informNotHelping ?? false,
-    informIsHelping: handleSettings?.informIsHelping ?? false,
-  });
+  const [localCamera, setLocalCamera] = useState<CameraSettings | undefined>(
+    cameraSettings
+  );
   
-  const [localCamera, setLocalCamera] = useState<CameraSettings>({
-    alertPersonOnTelegram: cameraSettings?.alertPersonOnTelegram ?? false,
-    movementDetectionOnPersonOnly: cameraSettings?.movementDetectionOnPersonOnly ?? false,
-    movementDetectionOnDogsToo: cameraSettings?.movementDetectionOnDogsToo ?? false,
-  });
+  const [localMotionSensor, setLocalMotionSensor] = useState<MotionSensorSettings | undefined>(
+    motionSensorSettings
+  );
   
-  const [localMotionSensor, setLocalMotionSensor] = useState<MotionSensorSettings>({
-    seesWindow: motionSensorSettings?.seesWindow ?? true,
-    excludeFromNightAlarm: motionSensorSettings?.excludeFromNightAlarm ?? false,
-  });
+  const [localScene, setLocalScene] = useState<SceneSettings | undefined>(
+    sceneSettings
+  );
   
-  const [localScene, setLocalScene] = useState<SceneSettings>({
-    defaultTurnOffTimeout: sceneSettings?.defaultTurnOffTimeout ?? 0,
-  });
+  const [localSpeaker, setLocalSpeaker] = useState<SpeakerSettings | undefined>(
+    speakerSettings
+  );
   
-  const [localSpeaker, setLocalSpeaker] = useState<SpeakerSettings>({
-    maxPlayOnAllVolume: speakerSettings?.maxPlayOnAllVolume ?? 80,
-    defaultDayAnounceVolume: speakerSettings?.defaultDayAnounceVolume ?? 80,
-    defaultNightAnounceVolume: speakerSettings?.defaultNightAnounceVolume ?? 40,
-  });
+  const [localDachs, setLocalDachs] = useState<DachsSettings | undefined>(
+    dachsSettings
+  );
   
-  const [localDachs, setLocalDachs] = useState<DachsSettings>({
-    disableHeatingRod: dachsSettings?.disableHeatingRod ?? false,
-    disableDachsOwnWW: dachsSettings?.disableDachsOwnWW ?? false,
-    disableDachsTemporarily: dachsSettings?.disableDachsTemporarily ?? false,
-    batteryLevelTurnOnThreshold: dachsSettings?.batteryLevelTurnOnThreshold ?? 25,
-    batteryLevelAllowStartThreshold: dachsSettings?.batteryLevelAllowStartThreshold ?? 50,
-    batteryLevelPreventStartThreshold: dachsSettings?.batteryLevelPreventStartThreshold ?? 90,
-    warmWaterDesiredMinTemp: dachsSettings?.warmWaterDesiredMinTemp ?? 55,
-    warmWaterDesiredMaxTemp: dachsSettings?.warmWaterDesiredMaxTemp ?? 67,
-    heatStorageMaxStartTemp: dachsSettings?.heatStorageMaxStartTemp ?? 70,
-  });
+  // Determine which settings to show based on capability AND backend data
+  // Only show settings if they exist from backend (no fallback defaults)
+  const showActuator = isLampOrActuator && !hasDachsProps && localActuator;
+  const showDimmer = (isDimmable || isLed) && localDimmer;
+  const showLed = isLed && localLed;
+  const showShutter = isShutter && localShutter;
+  const showHeater = isHeater && localHeater;
+  const showAc = isAc && localAc;
+  const showHandle = isHandle && localHandle;
+  const showCamera = isCamera && localCamera;
+  const showMotionSensor = isMotionSensor && localMotionSensor;
+  const showScene = isScene && localScene;
+  const showSpeaker = isSpeaker && localSpeaker;
+  const showDachs = hasDachsProps && localDachs;
 
   const hasAnySettings = showActuator || showDimmer || showLed || showShutter || 
     showHeater || showAc || showHandle || showCamera || showMotionSensor || showScene || showSpeaker || showDachs;
