@@ -599,8 +599,8 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
         <div 
           className="relative"
           style={{
-            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0),
-            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0),
+            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0) + (!hasRight ? 20 : 0),
+            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0) + (!hasBottom ? 20 : 0),
           }}
         >
         <div

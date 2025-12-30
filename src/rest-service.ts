@@ -306,28 +306,22 @@ export class RestService {
     }
 
     // Hoffmation service restart endpoint
-    // The service script handles git pull, npm ci, build, start itself
+    // Use process.exit to let systemd handle the restart automatically
     this._app.post('/hoffmation/restart', async (_req, res) => {
-      const execAsync = promisify(exec);
-
       try {
         ServerLogService.writeLog(LogLevel.Info, 'Hoffmation restart requested');
 
         // Send response before restart (process will be killed)
         res.json({
           success: true,
-          message: 'Hoffmation wird neu gestartet... (git pull, npm ci, build werden vom Service ausgeführt)',
+          message: 'Hoffmation wird neu gestartet... (systemd startet den Service automatisch neu)',
         });
 
-        // Restart service (delayed to allow response to be sent)
-        setTimeout(async () => {
-          try {
-            ServerLogService.writeLog(LogLevel.Info, 'Executing: sudo systemctl restart hoffmation');
-            await execAsync('sudo systemctl restart hoffmation', { timeout: 30000 });
-          } catch {
-            // Expected: process is killed during restart
-            ServerLogService.writeLog(LogLevel.Info, 'Service restart initiated');
-          }
+        // Exit process (delayed to allow response to be sent)
+        // systemd will automatically restart the service
+        setTimeout(() => {
+          ServerLogService.writeLog(LogLevel.Info, 'Exiting process for restart (systemd will restart automatically)');
+          process.exit(0);
         }, 500);
       } catch (error: unknown) {
         const err = error as { message?: string };

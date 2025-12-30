@@ -89,11 +89,24 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
     return (hours / 12) * 2 * Math.PI - Math.PI / 2;
   };
 
-  // Clamp position to keep menu within screen bounds
+  // On mobile devices (width < 768px), center the menu on screen
+  // On desktop, clamp position to keep menu within screen bounds
+  const isMobile = window.innerWidth < 768;
   const menuSize = radius * 2 + 120; // Approximate menu size (larger for labels)
   const padding = 20;
-  const clampedX = Math.max(menuSize / 2 + padding, Math.min(window.innerWidth - menuSize / 2 - padding, position.x));
-  const clampedY = Math.max(menuSize / 2 + padding, Math.min(window.innerHeight - menuSize / 2 - padding, position.y));
+  
+  let clampedX: number;
+  let clampedY: number;
+  
+  if (isMobile) {
+    // Center on screen for mobile
+    clampedX = window.innerWidth / 2;
+    clampedY = window.innerHeight / 2;
+  } else {
+    // Clamp to screen bounds for desktop
+    clampedX = Math.max(menuSize / 2 + padding, Math.min(window.innerWidth - menuSize / 2 - padding, position.x));
+    clampedY = Math.max(menuSize / 2 + padding, Math.min(window.innerHeight - menuSize / 2 - padding, position.y));
+  }
 
   return (
     <div className="fixed inset-0 z-[100]" style={{ pointerEvents: 'auto' }}>
