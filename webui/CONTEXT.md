@@ -78,6 +78,8 @@ const DeviceCapability = {
 - **Badge-Text Fix** - Capability priority for LED/Lamp/Dimmer badges
 - **Radial Menu** - Tap=Toggle, Hold=Radial with child-friendly icons
 - **Device Logs** - Last commands display in expert mode (Dec 30, 2024)
+- **Z-Coordinate Editing** - Floor and ceiling height editing in floor plan edit mode (Dec 30, 2024)
+- **Settings Delta Updates** - Room settings only send changed fields, device settings send full objects with backend values (Dec 30, 2024)
 
 ## Next Steps (Pending) ⏳
 
@@ -253,10 +255,11 @@ Add to RoomDetail view with all room settings:
 - **Device Border Visibility:** 5px clamping to prevent overlap with canvas border
 
 #### Settings & Configuration
-- **Room Settings:** Light, shutter, movement timer, trilateration coordinates
+- **Room Settings:** Light, shutter, movement timer, trilateration coordinates (including Z-axis editing)
 - **Device Settings:** Basic settings for actuators, shutters (more pending)
 - **Expert Mode:** Filters complex devices (speakers, cameras, energy managers)
-- **Partial Updates:** Only send changed fields to API
+- **Partial Updates:** Only send changed fields to API (delta updates for rooms, full objects for devices)
+- **Z-Coordinate Editing (Dec 30, 2024):** Floor plan edit mode allows editing floor height (Z↓) and ceiling height (Z↑) separately
 
 ### Key Technical Decisions
 - **No scale transforms during drag&drop** - Prevents alignment issues

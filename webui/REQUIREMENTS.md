@@ -478,6 +478,8 @@ The Express backend already provides:
 - Navigation arrows positioned at canvas border with absolute pixel coordinates
 - Dynamic margins: only reserve space where adjacent rooms exist (80px left/right, 40px top/bottom)
 - Wrapper architecture: fixed dimensions = canvas + arrow space, canvas absolutely positioned
+- **Z-Coordinate Editing:** Floor height (Z↓) and ceiling height (Z↑) editable in room edit mode
+- **Settings Delta Updates:** Room settings only send changed fields, device settings removed fallback defaults
 
 **Center displays:**
 - Device icon

@@ -118,8 +118,8 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
           const origStart = originalRoom.startPoint!;
           const origEnd = originalRoom.endPoint!;
           if (
-            origStart.x !== newStart.x || origStart.y !== newStart.y ||
-            origEnd.x !== newEnd.x || origEnd.y !== newEnd.y
+            origStart.x !== newStart.x || origStart.y !== newStart.y || origStart.z !== newStart.z ||
+            origEnd.x !== newEnd.x || origEnd.y !== newEnd.y || origEnd.z !== newEnd.z
           ) {
             saveOperations.push(updateRoomSettings(roomName, {
               trilaterationStartPoint: newStart,
@@ -370,8 +370,8 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
               isUnplaced 
                 ? (coords.startPoint.x !== 0 || coords.startPoint.y !== 0 || coords.endPoint.x !== 2 || coords.endPoint.y !== 2)
                 : (origStart && origEnd && (
-                    origStart.x !== coords.startPoint.x || origStart.y !== coords.startPoint.y ||
-                    origEnd.x !== coords.endPoint.x || origEnd.y !== coords.endPoint.y
+                    origStart.x !== coords.startPoint.x || origStart.y !== coords.startPoint.y || origStart.z !== coords.startPoint.z ||
+                    origEnd.x !== coords.endPoint.x || origEnd.y !== coords.endPoint.y || origEnd.z !== coords.endPoint.z
                   ))
             );
 
