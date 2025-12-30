@@ -13,11 +13,20 @@ The floor plan route should be designed so that a 4-year-old child without readi
 
 - **Large, clear icons** - Lamp = light, window with stripes = shutter
 - **Color coding** - Yellow/bright = on, gray/dark = off
-- **Simple gestures** - Tap to toggle, no long press required
+- **Simple gestures** - Tap to toggle, long press for advanced menu
 - **Visual feedback** - Animation when switching (e.g., lamp lights up)
 - **No text dependency** - All actions recognizable by icons only
 - **Large touch targets** - Minimum 60x60px for children's fingers
-- **Direct control** - No detours through menus or dialogs
+- **Direct control** - Tap toggles immediately, hold opens radial menu
+
+**Implemented:**
+- ✅ Tap-to-Toggle for Lamps, Actuators, Shutters, AC, LEDs
+- ✅ Hold-for-Menu (GTA-style Radial Menu with icons)
+- ✅ Color-coded icons (green=on/secure, gray=off/insecure, orange=partial)
+- ✅ Touch support for iOS devices
+- ✅ LED brightness visualization with 8 rays (12.5% per ray)
+- ✅ Adjacent room navigation with automatic detection
+- ✅ Room coordinate editing in settings
 
 ---
 

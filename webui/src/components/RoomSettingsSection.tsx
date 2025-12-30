@@ -36,6 +36,9 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
     // Other
     movementResetTimer: settings?.movementResetTimer ?? 300,
     radioUrl: settings?.radioUrl ?? '',
+    // Trilateration
+    trilaterationStartPoint: settings?.trilaterationStartPoint ?? room.startPoint,
+    trilaterationEndPoint: settings?.trilaterationEndPoint ?? room.endPoint,
   });
 
   const handleSave = async () => {
@@ -148,6 +151,100 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
             value={localSettings.movementResetTimer ?? 300} min={60} max={3600} step={30} unit=" s"
             onChange={(v) => setLocalSettings(s => ({ ...s, movementResetTimer: v }))} 
             disabled={!isEditing} />
+        </SettingsGroup>
+
+        {/* Trilateration Settings */}
+        <SettingsGroup title="Raum-Koordinaten (Trilateration)" disabled={!isEditing}>
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Startpunkt</h4>
+              <div className="grid grid-cols-3 gap-2">
+                <SettingNumberInput 
+                  label="X" 
+                  value={localSettings.trilaterationStartPoint?.x ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationStartPoint: { 
+                      ...(s.trilaterationStartPoint ?? { x: 0, y: 0, z: 0 }), 
+                      x: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+                <SettingNumberInput 
+                  label="Y" 
+                  value={localSettings.trilaterationStartPoint?.y ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationStartPoint: { 
+                      ...(s.trilaterationStartPoint ?? { x: 0, y: 0, z: 0 }), 
+                      y: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+                <SettingNumberInput 
+                  label="Z" 
+                  value={localSettings.trilaterationStartPoint?.z ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationStartPoint: { 
+                      ...(s.trilaterationStartPoint ?? { x: 0, y: 0, z: 0 }), 
+                      z: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+              </div>
+            </div>
+            <div>
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Endpunkt</h4>
+              <div className="grid grid-cols-3 gap-2">
+                <SettingNumberInput 
+                  label="X" 
+                  value={localSettings.trilaterationEndPoint?.x ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationEndPoint: { 
+                      ...(s.trilaterationEndPoint ?? { x: 0, y: 0, z: 0 }), 
+                      x: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+                <SettingNumberInput 
+                  label="Y" 
+                  value={localSettings.trilaterationEndPoint?.y ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationEndPoint: { 
+                      ...(s.trilaterationEndPoint ?? { x: 0, y: 0, z: 0 }), 
+                      y: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+                <SettingNumberInput 
+                  label="Z" 
+                  value={localSettings.trilaterationEndPoint?.z ?? 0}
+                  onChange={(v) => setLocalSettings(s => ({ 
+                    ...s, 
+                    trilaterationEndPoint: { 
+                      ...(s.trilaterationEndPoint ?? { x: 0, y: 0, z: 0 }), 
+                      z: v 
+                    }
+                  }))}
+                  disabled={!isEditing}
+                  step={0.1}
+                />
+              </div>
+            </div>
+          </div>
         </SettingsGroup>
 
         {isEditing && (
@@ -275,6 +372,34 @@ function SettingTimePicker({ label, hours, minutes, onChange, disabled }: Settin
           ))}
         </select>
       </div>
+    </div>
+  );
+}
+
+interface SettingNumberInputProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+  step?: number;
+  min?: number;
+  max?: number;
+}
+
+function SettingNumberInput({ label, value, onChange, disabled, step = 0.1, min, max }: SettingNumberInputProps) {
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        disabled={disabled}
+        step={step}
+        min={min}
+        max={max}
+        className="w-full rounded-lg bg-secondary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+      />
     </div>
   );
 }

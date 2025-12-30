@@ -45,8 +45,10 @@ export function FloorPlanView() {
       <RoomFloorPlanDetail
         room={selectedRoom}
         devices={devices}
+        allRooms={selectedFloor.rooms}
         onBack={() => navigate(`/floor/${floorLevel}`)}
         onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
+        onNavigateToRoom={(room) => navigate(`/floor/${floorLevel}/${encodeURIComponent(room.id ?? getRoomName(room))}`)}
       />
     );
   }

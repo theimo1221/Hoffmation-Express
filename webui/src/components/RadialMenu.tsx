@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { 
-  Info, Lightbulb, SunDim,
-  PanelBottom, Square,
+  Info, Lightbulb,
+  Square,
   Battery, Signal, Thermometer,
-  Wind
+  Wind, Activity, Droplets, Flame, Snowflake,
+  Zap, ZapOff
 } from 'lucide-react';
 import type { Device } from '@/stores/dataStore';
 import { DeviceCapability } from '@/components/DeviceIcon';
@@ -14,7 +15,9 @@ export interface RadialMenuItem {
   icon: React.ReactNode;
   label: string;
   color?: string;
-  onClick: () => void;
+  onClick?: () => void;
+  isInfo?: boolean; // Non-interactive info items
+  clockPosition?: number; // Position in hours (0-12), e.g., 10 = 10 o'clock
 }
 
 export interface DeviceStatus {
@@ -25,6 +28,9 @@ export interface DeviceStatus {
   brightness?: number;
   level?: number;
   isOn?: boolean;
+  detectionsToday?: number;
+  movementDetected?: boolean;
+  desiredTemp?: number; // Target temperature for AC/Heater
 }
 
 interface RadialMenuProps {
@@ -37,9 +43,10 @@ interface RadialMenuProps {
   deviceName?: string;
 }
 
-export function RadialMenu({ items, isOpen, onClose, position, centerIcon, deviceStatus, deviceName }: RadialMenuProps) {
+export function RadialMenu({ items, isOpen, onClose, position, centerIcon, deviceName }: RadialMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [animateIn, setAnimateIn] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -74,12 +81,16 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
 
   if (!isOpen) return null;
 
-  const radius = 70; // Distance from center to items
-  const angleStep = (2 * Math.PI) / items.length;
-  const startAngle = -Math.PI / 2; // Start from top
+  const radius = 150; // Distance from center to items (GTA-style, increased to reduce overlap)
+  
+  // Helper to convert clock position (hours) to radians
+  // 12 o'clock = -π/2 (top), then clockwise
+  const clockToRadians = (hours: number) => {
+    return (hours / 12) * 2 * Math.PI - Math.PI / 2;
+  };
 
   // Clamp position to keep menu within screen bounds
-  const menuSize = radius * 2 + 60; // Approximate menu size
+  const menuSize = radius * 2 + 120; // Approximate menu size (larger for labels)
   const padding = 20;
   const clampedX = Math.max(menuSize / 2 + padding, Math.min(window.innerWidth - menuSize / 2 - padding, position.x));
   const clampedY = Math.max(menuSize / 2 + padding, Math.min(window.innerHeight - menuSize / 2 - padding, position.y));
@@ -105,6 +116,70 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
           transform: 'translate(-50%, -50%)',
         }}
       >
+        {/* Outer circle with hover sectors */}
+        <svg
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          width={radius * 2 + 200}
+          height={radius * 2 + 200}
+          style={{
+            opacity: animateIn ? 1 : 0,
+            transition: 'opacity 200ms',
+          }}
+        >
+          {/* Base circle */}
+          <circle
+            cx={(radius * 2 + 200) / 2}
+            cy={(radius * 2 + 200) / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-border/30"
+          />
+          
+          {/* Hover highlight sectors */}
+          {items.map((item, index) => {
+            // Only show hover for clickable items
+            if (hoveredIndex !== index || item.isInfo || !item.onClick) return null;
+            
+            const angle = item.clockPosition !== undefined 
+              ? clockToRadians(item.clockPosition)
+              : clockToRadians((index / items.length) * 12);
+            
+            // Create arc path for sector
+            const sectorAngle = Math.PI / 5; // 36 degrees (wider sector)
+            const startAngle = angle - sectorAngle / 2;
+            const endAngle = angle + sectorAngle / 2;
+            
+            const innerRadius = 60;
+            const outerRadius = radius + 60; // Extended to cover label with more padding
+            
+            const centerX = (radius * 2 + 200) / 2;
+            const centerY = (radius * 2 + 200) / 2;
+            
+            const x1 = Math.cos(startAngle) * innerRadius + centerX;
+            const y1 = Math.sin(startAngle) * innerRadius + centerY;
+            const x2 = Math.cos(startAngle) * outerRadius + centerX;
+            const y2 = Math.sin(startAngle) * outerRadius + centerY;
+            const x3 = Math.cos(endAngle) * outerRadius + centerX;
+            const y3 = Math.sin(endAngle) * outerRadius + centerY;
+            const x4 = Math.cos(endAngle) * innerRadius + centerX;
+            const y4 = Math.sin(endAngle) * innerRadius + centerY;
+            
+            // Always use small arc (0) for sectors smaller than 180 degrees
+            const largeArcFlag = 0;
+            
+            return (
+              <path
+                key={`sector-${item.id}`}
+                d={`M ${x1} ${y1} L ${x2} ${y2} A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x1} ${y1} Z`}
+                fill={item.color || '#3b82f6'}
+                fillOpacity="0.2"
+                className="transition-all duration-200"
+              />
+            );
+          })}
+        </svg>
         {/* Center area with device icon and status */}
         <div
           className={cn(
@@ -127,81 +202,62 @@ export function RadialMenu({ items, isOpen, onClose, position, centerIcon, devic
               {deviceName}
             </div>
           )}
-          
-          {/* Status indicators */}
-          {deviceStatus && (
-            <div className="flex flex-wrap gap-1 justify-center text-[10px]">
-              {deviceStatus.battery !== undefined && (
-                <span className={cn(
-                  "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full",
-                  deviceStatus.battery < 20 ? "bg-red-500/20 text-red-500" : "bg-green-500/20 text-green-500"
-                )}>
-                  <Battery className="h-3 w-3" />
-                  {deviceStatus.battery}%
-                </span>
-              )}
-              {deviceStatus.linkQuality !== undefined && (
-                <span className={cn(
-                  "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full",
-                  deviceStatus.linkQuality < 50 ? "bg-orange-500/20 text-orange-500" : "bg-blue-500/20 text-blue-500"
-                )}>
-                  <Signal className="h-3 w-3" />
-                  {deviceStatus.linkQuality}%
-                </span>
-              )}
-              {deviceStatus.temperature !== undefined && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-500">
-                  <Thermometer className="h-3 w-3" />
-                  {deviceStatus.temperature.toFixed(1)}°
-                </span>
-              )}
-              {deviceStatus.brightness !== undefined && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
-                  <SunDim className="h-3 w-3" />
-                  {deviceStatus.brightness}%
-                </span>
-              )}
-              {deviceStatus.level !== undefined && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-500">
-                  {deviceStatus.level}%
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Radial items */}
         {items.map((item, index) => {
-          const angle = startAngle + index * angleStep;
+          // Use clockPosition if specified, otherwise distribute evenly
+          const angle = item.clockPosition !== undefined 
+            ? clockToRadians(item.clockPosition)
+            : clockToRadians((index / items.length) * 12);
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
 
           return (
-            <button
+            <div
               key={item.id}
-              onClick={() => {
-                item.onClick();
-                onClose();
-              }}
-              className={cn(
-                "absolute left-1/2 top-1/2",
-                "flex h-12 w-12 items-center justify-center rounded-full",
-                "bg-card shadow-lg border-2",
-                "transition-all duration-300 hover:scale-110",
-                item.color ? `border-${item.color}` : "border-primary"
-              )}
+              className="absolute flex flex-col items-center"
               style={{
-                transform: animateIn 
-                  ? `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` 
-                  : 'translate(-50%, -50%)',
-                opacity: animateIn ? 1 : 0,
-                transitionDelay: `${index * 30}ms`,
-                borderColor: item.color,
+                left: `calc(50% + ${x}px)`,
+                top: `calc(50% + ${y}px)`,
+                transform: 'translate(-50%, -50%)',
               }}
-              title={item.label}
+              onMouseEnter={() => item.onClick && !item.isInfo ? setHoveredIndex(index) : null}
+              onMouseLeave={() => setHoveredIndex(null)}
             >
-              {item.icon}
-            </button>
+              {/* Icon circle */}
+              <div
+                onClick={item.onClick ? (e) => {
+                  e.stopPropagation();
+                  item.onClick!();
+                } : undefined}
+                className={cn(
+                  "flex items-center justify-center w-14 h-14 rounded-full transition-all duration-200",
+                  "bg-card shadow-lg border-2",
+                  hoveredIndex === index && item.onClick && !item.isInfo ? "border-primary scale-110" : "border-border",
+                  item.onClick && !item.isInfo ? "hover:scale-110 active:scale-95 cursor-pointer" : "cursor-default",
+                  animateIn ? "opacity-100 scale-100" : "opacity-0 scale-50"
+                )}
+                style={{
+                  transitionDelay: `${index * 30}ms`,
+                }}
+              >
+                {item.icon}
+              </div>
+              {/* Label below icon */}
+              <div
+                className={cn(
+                  "mt-1 text-xs font-medium text-center whitespace-nowrap px-2 py-0.5 rounded",
+                  "bg-card/90 shadow-sm transition-all duration-200",
+                  animateIn ? "opacity-100 scale-100" : "opacity-0 scale-50"
+                )}
+                style={{
+                  transitionDelay: `${index * 30 + 50}ms`,
+                }}
+              >
+                {item.label}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -231,6 +287,10 @@ export function getDeviceStatus(device: Device): DeviceStatus {
                device._roomTemperature;
   if (temp !== undefined && temp !== -99) status.temperature = temp;
   
+  // Desired temperature (for AC/Heater)
+  const desiredTemp = (device as Record<string, unknown>).desiredTemp ?? (device as Record<string, unknown>)._desiredTemperatur;
+  if (typeof desiredTemp === 'number' && desiredTemp !== -99) status.desiredTemp = desiredTemp;
+  
   // Brightness (for dimmers/LEDs)
   const brightness = device.brightness ?? device._brightness;
   if (brightness !== undefined && (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp))) {
@@ -246,6 +306,15 @@ export function getDeviceStatus(device: Device): DeviceStatus {
   
   // Is on state
   status.isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+  
+  // Motion detection (for motion sensors)
+  if (caps.includes(DeviceCapability.motionSensor)) {
+    const detectionsToday = device._detectionsToday ?? device.detectionsToday;
+    if (detectionsToday !== undefined && detectionsToday >= 0) {
+      status.detectionsToday = detectionsToday;
+    }
+    status.movementDetected = device.movementDetected ?? device._movementDetected ?? false;
+  }
   
   return status;
 }
@@ -263,18 +332,21 @@ export function getDeviceMenuItems(
     onShutter50?: () => void;
     onAcOn?: () => void;
     onAcOff?: () => void;
+    onActuatorOn?: () => void;
+    onActuatorOff?: () => void;
   }
 ): RadialMenuItem[] {
   const caps = device.deviceCapabilities ?? [];
   const items: RadialMenuItem[] = [];
   
-  // Info button always first (top position)
+  // Details button always at 6 o'clock (18h on analog clock)
   items.push({
     id: 'details',
     icon: <Info className="h-5 w-5 text-blue-500" />,
     label: 'Details',
     color: '#3b82f6',
     onClick: handlers.onDetails,
+    clockPosition: 6, // 6 o'clock = bottom
   });
   
   // Lamp controls - same icon, different fill/color (like SwiftUI: lightbulb.fill vs lightbulb)
@@ -282,16 +354,17 @@ export function getDeviceMenuItems(
   if (caps.includes(DeviceCapability.lamp) || caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
     const hasDimmer = caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp);
     
-    // 100% - Bright lamp (yellow, filled) - like lightbulb.fill
+    // 0% - Off lamp (gray, no fill) - at 10 o'clock (left)
     items.push({
-      id: 'lamp-on',
-      icon: <Lightbulb className="h-6 w-6 text-yellow-400 fill-yellow-400" />,
-      label: hasDimmer ? '100%' : 'An',
-      color: '#facc15',
-      onClick: handlers.onLampOn ?? (() => {}),
+      id: 'lamp-off',
+      icon: <Lightbulb className="h-6 w-6 text-gray-400" />,
+      label: 'Aus',
+      color: '#9ca3af',
+      onClick: handlers.onLampOff ?? (() => {}),
+      clockPosition: 10, // Actions: 10-14h (left to right: off, 50%, on)
     });
     
-    // 50% - Dimmed lamp (orange, filled)
+    // 50% - Dimmed lamp (orange, filled) - at 12 o'clock (top)
     if (hasDimmer && handlers.onLamp50) {
       items.push({
         id: 'lamp-50',
@@ -299,47 +372,78 @@ export function getDeviceMenuItems(
         label: '50%',
         color: '#fb923c',
         onClick: handlers.onLamp50,
+        clockPosition: 12, // Actions: 10-14h
       });
     }
     
-    // 0% - Off lamp (gray, no fill) - like lightbulb (outline)
+    // 100% - Bright lamp (yellow, filled) - at 2 o'clock (right)
     items.push({
-      id: 'lamp-off',
-      icon: <Lightbulb className="h-6 w-6 text-gray-400" />,
-      label: 'Aus',
-      color: '#9ca3af',
-      onClick: handlers.onLampOff ?? (() => {}),
+      id: 'lamp-on',
+      icon: <Lightbulb className="h-6 w-6 text-yellow-400 fill-yellow-400" />,
+      label: hasDimmer ? '100%' : 'An',
+      color: '#facc15',
+      onClick: handlers.onLampOn ?? (() => {}),
+      clockPosition: 2, // Actions: 10-14h (left to right: off, 50%, on)
     });
   }
   
   // Shutter controls - same Square icon, different fill levels (like SwiftUI rectangle.inset.filled)
   // Open = outline only, 50% = half filled, Closed = fully filled
   else if (caps.includes(DeviceCapability.shutter)) {
-    // Open (0%) - outline only, green
+    // Closed (100%) - fully filled, green (secure) - at 10 o'clock (left = down/closed)
     items.push({
-      id: 'shutter-up',
-      icon: <Square className="h-6 w-6 text-green-500" />,
-      label: 'Auf',
+      id: 'shutter-down',
+      icon: <Square className="h-6 w-6 text-green-500 fill-green-500" />,
+      label: 'Zu',
       color: '#22c55e',
-      onClick: handlers.onShutterUp ?? (() => {}),
+      onClick: handlers.onShutterDown ?? (() => {}),
+      clockPosition: 10, // Actions: 10-14h (left to right: closed, 50%, open)
     });
     
-    // 50% - half filled, orange
+    // 50% - half filled, orange - at 12 o'clock (top)
     items.push({
       id: 'shutter-50',
-      icon: <PanelBottom className="h-6 w-6 text-orange-500 fill-orange-500/50" />,
+      icon: (
+        <div className="relative h-6 w-6">
+          <Square className="h-6 w-6 text-orange-500" />
+          <div className="absolute bottom-0 left-0 right-0 h-3 bg-orange-500/60 rounded-b" />
+        </div>
+      ),
       label: '50%',
       color: '#f97316',
       onClick: handlers.onShutter50 ?? (() => {}),
+      clockPosition: 12, // Actions: 10-14h
     });
     
-    // Closed (100%) - fully filled, red/brown
+    // Open (0%) - outline only, gray (insecure) - at 2 o'clock (right = up/open)
     items.push({
-      id: 'shutter-down',
-      icon: <Square className="h-6 w-6 text-amber-700 fill-amber-700" />,
-      label: 'Zu',
-      color: '#b45309',
-      onClick: handlers.onShutterDown ?? (() => {}),
+      id: 'shutter-up',
+      icon: <Square className="h-6 w-6 text-gray-400" />,
+      label: 'Auf',
+      color: '#9ca3af',
+      onClick: handlers.onShutterUp ?? (() => {}),
+      clockPosition: 2, // Actions: 10-14h (left to right: closed, 50%, open)
+    });
+  }
+  
+  // Actuator controls (outlets/switches) - Zap icon
+  else if (caps.includes(DeviceCapability.actuator)) {
+    items.push({
+      id: 'actuator-off',
+      icon: <ZapOff className="h-5 w-5 text-gray-400" />,
+      label: 'Aus',
+      color: '#9ca3af',
+      onClick: handlers.onActuatorOff ?? (() => {}),
+      clockPosition: 10, // Actions: 10-14h (left = off)
+    });
+    
+    items.push({
+      id: 'actuator-on',
+      icon: <Zap className="h-5 w-5 text-green-500" />,
+      label: 'An',
+      color: '#22c55e',
+      onClick: handlers.onActuatorOn ?? (() => {}),
+      clockPosition: 2, // Actions: 10-14h (right = on)
     });
   }
   
@@ -360,23 +464,144 @@ export function getDeviceMenuItems(
     const powerLabel = isHeating ? 'Heizen' : isCooling ? 'Kühlen' : 'An';
     
     items.push({
-      id: 'ac-on',
-      icon: <Wind className={`h-5 w-5 ${windColorClass}`} />,
-      label: powerLabel,
-      color: powerColor,
-      onClick: handlers.onAcOn ?? (() => {}),
-    });
-    
-    items.push({
       id: 'ac-off',
       icon: <Wind className="h-5 w-5 text-gray-400" />,
       label: 'Aus',
       color: '#9ca3af', // gray
       onClick: handlers.onAcOff ?? (() => {}),
+      clockPosition: 10.5, // Actions: 10:30 (left = off)
+    });
+    
+    items.push({
+      id: 'ac-on',
+      icon: <Wind className={`h-5 w-5 ${windColorClass}`} />,
+      label: powerLabel,
+      color: powerColor,
+      onClick: handlers.onAcOn ?? (() => {}),
+      clockPosition: 1.5, // Actions: 13:30 (right = on)
     });
   }
   
-  // For other devices (sensors etc.), only info button
+  // Add status info items for all devices
+  const status = getDeviceStatus(device);
+  
+  // Heater temperature - at 9 o'clock (left side)
+  if (caps.includes(DeviceCapability.heater) && status.temperature !== undefined) {
+    items.push({
+      id: 'heater-temp',
+      icon: <Flame className="h-5 w-5 text-orange-500" />,
+      label: `${status.temperature.toFixed(1)}°C`,
+      color: '#f97316',
+      isInfo: true,
+      clockPosition: 9, // 9 o'clock = left side
+    });
+  }
+  
+  // AC target temperature - at 9 o'clock (left side) for heating/cooling devices
+  if (caps.includes(DeviceCapability.ac)) {
+    const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
+    const currentMonth = new Date().getMonth();
+    const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
+    const isCooling = acMode === 1 || (acMode === 0 && isSummerSeason);
+    
+    // Use desiredTemp if available, otherwise use temperature
+    const tempToShow = status.desiredTemp ?? status.temperature;
+    
+    if (tempToShow !== undefined) {
+      // Icon based on mode: Snowflake for cooling, Flame for heating
+      // Default to heating in winter (December = month 11)
+      const tempIcon = isCooling 
+        ? <Snowflake className="h-5 w-5 text-blue-500" />
+        : <Flame className="h-5 w-5 text-red-500" />; // Default to flame (heating)
+      const tempColor = isCooling ? '#3b82f6' : '#ef4444'; // Default to red (heating)
+      
+      items.push({
+        id: 'ac-target-temp',
+        icon: tempIcon,
+        label: `${tempToShow.toFixed(1)}°C`,
+        color: tempColor,
+        isInfo: true,
+        clockPosition: 9, // 9 o'clock = left side
+      });
+    }
+  }
+  
+  // Room temperature - at 4 o'clock (16h) for all devices with temperature
+  // Show for all devices that have temperature (AC, Heater, Sensors)
+  if (status.temperature !== undefined) {
+    items.push({
+      id: 'temp',
+      icon: <Thermometer className="h-5 w-5 text-blue-500" />,
+      label: `${status.temperature.toFixed(1)}°C`,
+      color: '#3b82f6',
+      isInfo: true,
+      clockPosition: 4, // Info: 16-20h
+    });
+  }
+  
+  // Motion detections today - at 5 o'clock (17h)
+  if (status.detectionsToday !== undefined) {
+    items.push({
+      id: 'detections',
+      icon: <Activity className={`h-5 w-5 ${status.movementDetected ? 'text-green-500' : 'text-gray-400'}`} />,
+      label: `${status.detectionsToday}x`,
+      color: status.movementDetected ? '#22c55e' : '#9ca3af',
+      isInfo: true,
+      clockPosition: 5, // Info: 16-20h
+    });
+  }
+  
+  // Humidity - at 6 o'clock (18h) - moved from 5h to make room
+  if (status.humidity !== undefined) {
+    items.push({
+      id: 'humidity',
+      icon: <Droplets className="h-5 w-5 text-blue-500" />,
+      label: `${Math.round(status.humidity)}%`,
+      color: '#3b82f6',
+      isInfo: true,
+      clockPosition: 5, // Info: 16-20h (17h)
+    });
+  }
+  
+  // Battery - at 7 o'clock (19h)
+  if (status.battery !== undefined) {
+    const batteryColor = status.battery < 20 ? '#ef4444' : status.battery < 50 ? '#f97316' : '#22c55e';
+    const batteryClass = status.battery < 20 ? 'text-red-500' : status.battery < 50 ? 'text-orange-500' : 'text-green-500';
+    items.push({
+      id: 'battery',
+      icon: <Battery className={`h-5 w-5 ${batteryClass}`} />,
+      label: `${status.battery}%`,
+      color: batteryColor,
+      isInfo: true,
+      clockPosition: 7, // Info: 16-20h
+    });
+  }
+  
+  // Link Quality - at 8 o'clock (20h)
+  if (status.linkQuality !== undefined) {
+    const lqColor = status.linkQuality < 30 ? '#ef4444' : status.linkQuality < 60 ? '#f97316' : '#22c55e';
+    const lqClass = status.linkQuality < 30 ? 'text-red-500' : status.linkQuality < 60 ? 'text-orange-500' : 'text-green-500';
+    items.push({
+      id: 'link-quality',
+      icon: <Signal className={`h-5 w-5 ${lqClass}`} />,
+      label: `${status.linkQuality}%`,
+      color: lqColor,
+      isInfo: true,
+      clockPosition: 8, // Info: 16-20h
+    });
+  }
+  
+  // Humidity - at 5 o'clock (17h) if no detections, otherwise 4.5
+  if (status.humidity !== undefined) {
+    items.push({
+      id: 'humidity',
+      icon: <Droplets className="h-5 w-5 text-blue-400" />,
+      label: `${status.humidity.toFixed(0)}%`,
+      color: '#60a5fa',
+      isInfo: true,
+      clockPosition: status.detectionsToday !== undefined ? 4.5 : 5, // Info: 16-20h
+    });
+  }
   
   return items;
 }

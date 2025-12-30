@@ -1,7 +1,5 @@
 # Hoffmation WebUI - Development Context
 
-**Last Updated:** 2025-12-29 22:45 UTC+01:00
-
 ## Project Overview
 
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
@@ -211,242 +209,65 @@ Add to RoomDetail view with all room settings:
 - API client uses dynamic base URL (reads from localStorage each request)
 - `automaticBlockedUntil` parsing handles Date/string/number formats
 
-## Session Notes
+## Implementation History
 
+### Core Features Implemented
+
+#### Floor Plan & Navigation
+- **3-Level Drill-Down:** House cross-section → Floor plan → Room detail
+- **Device Position Editing:** Drag&drop placement with trilaterationRoomPosition
+- **Room Editing:** Visual room boundary adjustment
+- **Adjacent Room Navigation:** Automatic detection with arrows and room names
+- **Device Icons in Floor Plan:** Shows placed devices at actual positions
+
+#### Radial Menu (GTA-Style)
+- **Tap-to-Toggle:** Quick actions for Lamps, Actuators, Shutters, AC, LEDs
+- **Hold-for-Menu (≥400ms):** Opens radial menu with device-specific actions
+- **150px Radius:** Large, easy-to-hit targets
+- **Clock Positions:** Consistent placement (9h=target temp, 10-14h=actions, 16-20h=status, 18h=info)
+- **Hover Sectors:** 36° colored sectors for visual feedback
+- **Mode-Specific Icons:** Flame/Snowflake for heating/cooling modes
+
+#### Device Controls & Status
+- **Central Helper Functions:** Swift-compatible property fallback chains
+- **Color Coding:** Green=secure/on, Orange=partial, Gray=off/insecure, Red=open
+- **Child-Friendly Icons:** Same icon per type, only fill/color changes
+- **LED Brightness Rays:** 8 rays in upper semicircle (12.5% per ray, min 1 when on)
+- **Status Badges:** Detailed device status (temperature, brightness, position, battery, etc.)
+
+#### Refactoring & Architecture
+- **FloorPlanView:** Split into 4 components (HouseCrossSection, FloorPlan, RoomFloorPlanDetail, types)
+- **DeviceDetailView:** Split into 15 files (controls/, DeviceHeader, DeviceInfo, etc.)
+- **RoomsView:** Split into 7 files (RoomDetail, GroupDetailView, DeviceStatusBadges, etc.)
+
+#### Mobile & Touch Support
+- **iOS Touch Events:** Full drag&drop support with touch
+- **Screen-Edge Clamping:** Radial menu stays within viewport
+- **Auto-Scaling:** No scrollbars, responsive sizing
+- **Large Touch Targets:** 60x60px minimum for child-friendly use
+
+#### Settings & Configuration
+- **Room Settings:** Light, shutter, movement timer, trilateration coordinates
+- **Device Settings:** Basic settings for actuators, shutters (more pending)
+- **Expert Mode:** Filters complex devices (speakers, cameras, energy managers)
+- **Partial Updates:** Only send changed fields to API
+
+### Key Technical Decisions
+- **No scale transforms during drag&drop** - Prevents alignment issues
+- **fixedScale state** - Set when entering edit mode
+- **Swift-compatible property order** - Matches iOS app behavior
+- **Room comparison by name** - IDs not always unique
+- **Point-touching detection** - Overlap ≥ -TOLERANCE for adjacent rooms
+
+### Important Notes
 - User prefers Picker components for time selection
 - Settings can be applied partially (only send changed fields)
 - Settings data is included in device/room API responses
-- Continue with implementing all device settings views
+- Backend issue: Some devices (temperature sensors, smoke detectors) have `settings: null`
 
-## Session 2024-12-29 (Morning) - Device Position Editing + Refactoring
-
-### Implemented:
-- **Device Position Editing** - Place devices in rooms
-  - Click on room → RoomFloorPlanDetail component
-  - Edit mode: Drag&Drop, Plus button for unplaced devices
-  - API: `POST /deviceSettings/:id` with `trilaterationRoomPosition`
-  - Default {0,0,0} = not placed
-
-### Refactoring:
-- **FloorPlanView.tsx** split into `views/floorplan/`:
-  - `types.ts` - Interfaces
-  - `HouseCrossSection.tsx` - Floor selection
-  - `FloorPlan.tsx` - Floor detail + room editing
-  - `RoomFloorPlanDetail.tsx` - Room detail + device positioning
-  - `index.ts` - Re-exports
-
-### Key Learnings:
-- **No scale transforms during drag&drop** - prevents precise alignment
-- **fixedScale state** set when entering edit mode
-- **apiPostNoResponse** for endpoints without JSON response
-
----
-
-## Session 2024-12-29 (Afternoon) - UI Improvements + Device Filtering
-
-### Implemented:
-
-#### 1. Device Status Badges Improved
-- **DeviceStatusBadges component** in RoomsView for detailed device status
-- Motion sensor: Count today + active motion ("Motion!" green)
-- Heater: Current/target temperature + valve level
-- Dimmer/LED: Brightness % + color (LED)
-- Shutter: Position % (normalized to 0-100)
-- Window handle: Status with color coding (open=red, tilted=orange, closed=green)
-- Lamp: On/Off status
-
-#### 2. DeviceIcon Extensions
-- **Speaker Icon**
-- **CO2 Sensor Icon** (CloudFog)
-- **Motion sensor green** when movement actively detected
-
-#### 3. LED/Dimmer Status Fix
-- `lightOn ?? _lightOn ?? on ?? _on` fallback chain (like DeviceIcon)
-- Brightness alone doesn't mean "on" (stored value for next turn-on)
-
-#### 4. Layout Improvements
-- **RoomDetail Header** with max-w-6xl constraint
-- **DeviceDetailView Header** with max-w-6xl constraint
-- **MenuButton component** (inline variant for headers)
-  - Refactored from MenuBubble
-  - `variant='inline'` for header integration
-  - Backdrop to close on outside click
-
-#### 5. Device Repositioning Fix
-- **Bug:** New devices were placed with absolute instead of relative coordinates
-- **Fix:** `roomWidth / 2` instead of `(startPoint.x + endPoint.x) / 2`
-- Position is relative to room (0,0 = bottom-left corner)
-
-#### 6. Expert Mode Device Filtering
-- **Complex devices** only visible in expert mode (like SwiftUI)
-- Based on `isCapabilityComplex` from SwiftUI
-- Complex capabilities:
-  - vibrationSensor (13), speaker (14), tv (17), smokeSensor (19)
-  - loadMetering (20), buttonSwitch (2), energyManager (3)
-  - excessEnergyConsumer (4), bluetoothDetector (101)
-  - trackableDevice (102), camera (105)
-- New functions in dataStore.ts:
-  - `isDeviceComplex(device)` - checks if all capabilities are complex
-  - `filterDevicesForExpertMode(devices, expertMode)` - filters device list
-- Applied in: RoomsView (RoomDetail), DevicesView
-
-### Changed Files:
-- `src/views/RoomsView.tsx` - DeviceStatusBadges, MenuButton, Expert filter
-- `src/views/DevicesView.tsx` - Expert filter
-- `src/views/DeviceDetailView.tsx` - MenuButton, Header max-width
-- `src/components/DeviceIcon.tsx` - Speaker, CO2, Motion status icons
-- `src/components/layout/MenuBubble.tsx` - MenuButton component
-- `src/stores/dataStore.ts` - Device filtering functions
-- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Position fix
-
----
-
-## Todo List (Current)
-
-### Completed ✅
-- [x] Device Position Editing implementation
-- [x] FloorPlanView Refactoring (views/floorplan/)
-- [x] Move MenuBubble to bottom-left
-- [x] Add git fetch for WebUI update
-- [x] Document Child-Friendly Mode
-- [x] Update REQUIREMENTS.md + CONTEXT.md
-- [x] DeviceStatusBadges with detailed status
-- [x] Speaker + CO2 icons
-- [x] Motion sensor active status (green)
-- [x] LED/Dimmer status fix (on/_on fallback)
-- [x] MenuButton in header (RoomDetail, DeviceDetailView)
-- [x] Device repositioning fix (relative coordinates)
-- [x] Expert Mode Device Filtering
-- [x] DeviceDetailView.tsx refactoring → views/device/
-- [x] RoomsView.tsx refactoring → views/rooms/
-- [x] Badge-Text fix (Capability priority for LED/Lamp)
-- [x] Sync React primaryCap with Swift
-- [x] Radial Menu: Tap=Toggle, Hold=Radial
-- [x] Child-friendly icons (same icon, different fill/color)
-
-### Pending ⏳
-- [ ] Child-Friendly Mode for floor plan (full implementation)
-
----
-
-## Session 2024-12-29 (Evening) - Refactoring + Radial Menu
-
-### Implemented:
-
-#### 1. DeviceDetailView Refactoring
-- Split 1387-line file into `views/device/`:
-  - `types.ts` - Interfaces and capability constants
-  - `DeviceHeader.tsx` - Back button, name, room, favorite
-  - `DeviceInfo.tsx` - Device info section (ID, type, capabilities, signal)
-  - `controls/LampControls.tsx` - Lamp on/off with force duration
-  - `controls/DimmerControls.tsx` - Brightness slider
-  - `controls/LedControls.tsx` - Color picker + brightness
-  - `controls/ShutterControls.tsx` - Quick buttons + position slider
-  - `controls/ActuatorControls.tsx` - Actuator on/off
-  - `controls/ClimateControls.tsx` - Temperature, AC, Heater, Humidity
-  - `controls/SensorControls.tsx` - Motion, Handle sensors
-  - `controls/MediaControls.tsx` - Speaker, Scene, Camera
-  - `controls/AutomaticControls.tsx` - Block automatic
-  - `controls/EnergyControls.tsx` - Energy manager, Battery
-  - `controls/index.ts` - Re-exports
-  - `index.ts` - Main exports
-
-#### 2. RoomsView Refactoring
-- Split into `views/rooms/`:
-  - `types.ts` - Interfaces and constants
-  - `DeviceStatusBadges.tsx` - Device status badges
-  - `RoomCardContent.tsx` - Room card in list
-  - `RoomDetail.tsx` - Room detail view
-  - `GroupDetailView.tsx` - Group detail view
-  - `RoomsView.tsx` - Main view
-  - `index.ts` - Re-exports
-
-#### 3. Badge-Text Bug Fix
-- **Problem:** Actuator badge shown for LED/Lamp devices
-- **Cause:** Badge logic only excluded `CAP_LAMP`, not `CAP_DIMMABLE` or `CAP_LED`
-- **Fix:** Added exclusion for all light capabilities in `DeviceStatusBadges.tsx`
-
-#### 4. primaryCap Sync with Swift
-- Aligned React `getPrimaryCap()` order with Swift `Device.primaryCap`
-- New priority: scene → handleSensor → ledLamp → dimmableLamp → lamp → actuator → ...
-
-#### 5. Radial Menu for Floor Plan
-- **New component:** `src/components/RadialMenu.tsx`
-- **Tap behavior:**
-  - Lamp/Dimmer/LED → Toggle on/off
-  - Shutter → Toggle open/closed
-  - AC → Toggle on/off
-  - Other devices → Open detail view
-- **Hold behavior (≥400ms):** Opens radial menu with:
-  - Info button (always) → Details view
-  - Device-specific quick actions
-
-#### 6. Child-Friendly Icons (like SwiftUI)
-- **Concept:** Same icon per device type, only fill/color changes
-- **Lamp:** Lightbulb - yellow filled (100%), orange filled (50%), gray outline (off)
-- **Shutter:** Square - green outline (open), orange half-filled (50%), brown filled (closed)
-- **AC:** Wind - red (heating), blue (cooling), green (auto), gray (off)
-- **Mode detection:** AC mode from device, seasonal default (May-Oct = cooling)
-
-### Changed Files:
-- `src/views/device/` - New directory with 15 files
-- `src/views/rooms/` - New directory with 7 files
-- `src/views/DeviceDetailView.tsx` - Re-export wrapper
-- `src/views/RoomsView.tsx` - Re-export wrapper
-- `src/components/DeviceIcon.tsx` - primaryCap order sync
-- `src/components/RadialMenu.tsx` - New radial menu component
-- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Tap/Hold + Radial integration
-
-### Key Learnings:
-- **Inheritance:** LED extends Dimmer extends Lamp extends Actuator → `setLamp` works for all
-- **SwiftUI Icons:** SF Symbols use same icon with `.fill` suffix for active state
-- **Child-friendly:** Visual distinction through color/fill, not different icons
-
----
-
-## Session 2024-12-29 (Late Evening) - Bug Fixes + iOS Mobile Support
-
-### Implemented:
-
-#### 1. Zentrale Device-Hilfsfunktionen (Swift-kompatibel)
-- Neue Funktionen in `dataStore.ts` mit korrekter Property-Reihenfolge wie Swift:
-  - `isDeviceOn()` - actuatorOn → _actuatorOn → lightOn → _lightOn → on
-  - `getDeviceBrightness()`, `getDeviceShutterLevel()`, `getDeviceValveLevel()`
-  - `getDeviceDesiredTemp()`, `getDeviceHumidity()`, `getDeviceHandlePosition()`
-  - `isMotionDetected()`, `getDeviceDetectionsToday()`, `getDeviceLinkQuality()`
-  - `isDeviceAvailable()`, `getDeviceBattery()`, `getAutomaticBlockedUntil()`
-
-#### 2. Etagenansicht mit Geräte-Icons
-- `FloorPlan.tsx` zeigt platzierte Geräte als Icons in Raum-Boxen
-- Icons an tatsächlichen Positionen (nicht gebündelt)
-- Responsive Icon-Größe basierend auf Raum-Pixel-Größe
-- Raumname am unteren Rand (keine Icon-Überlagerung)
-
-#### 3. DeviceIcon Farbcodierung
-- **Handle-Sensor:** Grün (geschlossen), Orange (gekippt), Rot (offen)
-- **Shutter:** Grün (< 10% = geschlossen), Orange (10-90%), Grau (offen)
-- **AC:** Grau (aus), Blau (kühlen), Rot (heizen), Grün (auto)
-
-#### 4. iOS Mobile Support
-- Touch-Events für Geräte-Drag&Drop (`onTouchStart`, `touchmove`, `touchend`)
-- Radial-Menü Screen-Edge Clamping (bleibt im Viewport)
-- Auto-Skalierung ohne Scrollbalken (`maxWidth/maxHeight: 100%`)
-- Größere Device-Icons in Raumansicht (`lg` statt `md`)
-
-### Bug Fixes:
-- **Lampen-Toggle:** `isDeviceOn()` mit Swift-Reihenfolge
-- **Handle-Sensor Tap:** Öffnet jetzt Radial-Menü statt Details
-- **Temperatur im Radial:** Prüft auch `temperatureSensor.temperature`
-- **Clipboard Fallback:** Für non-HTTPS Umgebungen
-
-### Backend Issue (hoffmation-base):
-- Temperatursensoren/Rauchmelder haben `settings: null`
-- `trilaterationRoomPosition` kann nicht gespeichert werden
-- **Lösung:** Patch in hoffmation-base vorbereitet (DeviceSettings für alle Geräte)
-
-### Changed Files:
-- `src/stores/dataStore.ts` - Zentrale Device-Hilfsfunktionen
-- `src/components/DeviceIcon.tsx` - Farbcodierung für Handle/Shutter/AC
-- `src/components/RadialMenu.tsx` - Screen-Edge Clamping
-- `src/views/floorplan/FloorPlan.tsx` - Geräte-Icons in Räumen
-- `src/views/floorplan/RoomFloorPlanDetail.tsx` - Touch-Events, Auto-Skalierung
+### Pending Features
+- [ ] Complete device settings views (Dimmer, LED, Heater, AC, Handle, Camera)
+- [ ] Room settings view (full implementation)
+- [ ] Group settings view
+- [ ] Heat group settings
+- [ ] Child-Friendly Mode (full floor plan implementation)

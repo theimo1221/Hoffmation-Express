@@ -8,6 +8,7 @@ import {
   Zap,
   ZapOff,
   Lock,
+  LockOpen,
   PersonStanding,
   Activity,
   Flame,
@@ -76,7 +77,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
   const primaryCap = getPrimaryCap();
 
-  // Lamp icons
+  // Lamp icons - always yellow when on, LED color shown via border elsewhere
   if (primaryCap === DeviceCapability.lamp || primaryCap === DeviceCapability.dimmableLamp || primaryCap === DeviceCapability.ledLamp) {
     if (showStatus && isOn) {
       return <Lightbulb className={`${sizeClass} text-yellow-500 fill-yellow-500`} />;
@@ -146,14 +147,14 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
   if (primaryCap === DeviceCapability.handleSensor) {
     const position = device.position ?? device.handleSensor?.position ?? -1;
     if (position === 0) {
-      // Closed = green (secure)
+      // Closed = green (secure) - locked icon
       return <Lock className={`${sizeClass} text-green-500`} />;
     } else if (position === 1) {
-      // Tilted = orange (partially open)
-      return <Lock className={`${sizeClass} text-orange-500`} />;
+      // Tilted = orange (partially open) - open lock icon
+      return <LockOpen className={`${sizeClass} text-orange-500`} />;
     } else if (position === 2) {
-      // Open = red (insecure)
-      return <Lock className={`${sizeClass} text-red-500`} />;
+      // Open = red (insecure) - open lock icon
+      return <LockOpen className={`${sizeClass} text-red-500`} />;
     }
     // Unknown
     return <Lock className={`${sizeClass} text-muted-foreground`} />;

@@ -20,8 +20,10 @@ export interface RoomCoords {
 export interface RoomFloorPlanDetailProps {
   room: Room;
   devices: Record<string, Device>;
+  allRooms?: Room[];
   onBack: () => void;
   onSelectDevice: (device: Device) => void;
+  onNavigateToRoom?: (room: Room) => void;
 }
 
 export interface FixedBounds {

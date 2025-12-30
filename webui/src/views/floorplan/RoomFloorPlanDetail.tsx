@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device, type Room } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { setDevicePosition, setLamp, setDimmer, setShutter, setAc } from '@/api/devices';
+import { setDevicePosition, setLamp, setDimmer, setShutter, setAc, setActuator } from '@/api/devices';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus } from 'lucide-react';
+import { Edit3, Save, X, Plus, Wind, ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { DeviceIcon, DeviceCapability } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { RadialMenu, getDeviceMenuItems, getDeviceStatus } from '@/components/RadialMenu';
+import { RadialMenu, getDeviceMenuItems } from '@/components/RadialMenu';
 import type { RoomFloorPlanDetailProps } from './types';
 
-export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: RoomFloorPlanDetailProps) {
+export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom }: RoomFloorPlanDetailProps) {
   const roomName = getRoomName(room);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -70,6 +70,103 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
   const scale = fixedScale ?? calculatedScale;
   const scaledWidth = roomWidth * scale;
   const scaledHeight = roomHeight * scale;
+
+  // Find adjacent rooms based on shared boundaries
+  const getAdjacentRooms = () => {
+    if (!startPoint || !endPoint || !onNavigateToRoom) {
+      console.log('[Adjacent] Missing requirements:', { hasStartPoint: !!startPoint, hasEndPoint: !!endPoint, hasNavigateCallback: !!onNavigateToRoom });
+      return [];
+    }
+    
+    console.log('[Adjacent] Searching for adjacent rooms to', roomName);
+    console.log('[Adjacent] Current room bounds:', { start: startPoint, end: endPoint });
+    console.log('[Adjacent] All rooms count:', allRooms.length);
+    
+    const adjacent: Array<{ room: Room; direction: 'left' | 'right' | 'top' | 'bottom'; sharedLength: number }> = [];
+    const TOLERANCE = 0.5; // Allow small gaps/overlaps
+    
+    for (const otherRoom of allRooms) {
+      const otherName = getRoomName(otherRoom);
+      
+      // Skip if same room (compare by name since IDs might not be unique)
+      if (otherName.toLowerCase() === roomName.toLowerCase()) {
+        console.log(`[Adjacent] Skipping ${otherName}: same room`);
+        continue;
+      }
+      
+      const otherStart = otherRoom.startPoint ?? otherRoom.settings?.trilaterationStartPoint;
+      const otherEnd = otherRoom.endPoint ?? otherRoom.settings?.trilaterationEndPoint;
+      
+      console.log(`[Adjacent] Checking ${otherName}:`, { start: otherStart, end: otherEnd });
+      
+      if (!otherStart || !otherEnd) {
+        console.log(`[Adjacent] Skipping ${otherName}: no coordinates`);
+        continue;
+      }
+      
+      // Check if rooms overlap in z-coordinate (same floor/level)
+      const ourZMin = Math.min(startPoint.z ?? 0, endPoint.z ?? 0);
+      const ourZMax = Math.max(startPoint.z ?? 0, endPoint.z ?? 0);
+      const theirZMin = Math.min(otherStart.z ?? 0, otherEnd.z ?? 0);
+      const theirZMax = Math.max(otherStart.z ?? 0, otherEnd.z ?? 0);
+      
+      // Check if z-ranges overlap (rooms on same floor)
+      const zOverlap = Math.min(ourZMax, theirZMax) - Math.max(ourZMin, theirZMin);
+      console.log(`[Adjacent] ${otherName} z-check:`, { ourZ: [ourZMin, ourZMax], theirZ: [theirZMin, theirZMax], overlap: zOverlap });
+      if (zOverlap < -TOLERANCE) {
+        console.log(`[Adjacent] Skipping ${otherName}: different floor (z-overlap: ${zOverlap})`);
+        continue;
+      }
+      
+      // Check for shared boundaries
+      // Left: other room's right edge touches our left edge
+      const leftEdgeDiff = Math.abs(otherEnd.x - startPoint.x);
+      if (leftEdgeDiff < TOLERANCE) {
+        const overlapY = Math.min(endPoint.y, otherEnd.y) - Math.max(startPoint.y, otherStart.y);
+        console.log(`[Adjacent] ${otherName} LEFT check:`, { edgeDiff: leftEdgeDiff, overlapY, threshold: -TOLERANCE });
+        if (overlapY >= -TOLERANCE) {
+          console.log(`[Adjacent] ✓ ${otherName} is LEFT adjacent`);
+          adjacent.push({ room: otherRoom, direction: 'left', sharedLength: Math.max(overlapY, 0.1) });
+        }
+      }
+      // Right: other room's left edge touches our right edge
+      const rightEdgeDiff = Math.abs(otherStart.x - endPoint.x);
+      if (rightEdgeDiff < TOLERANCE) {
+        const overlapY = Math.min(endPoint.y, otherEnd.y) - Math.max(startPoint.y, otherStart.y);
+        console.log(`[Adjacent] ${otherName} RIGHT check:`, { edgeDiff: rightEdgeDiff, overlapY, threshold: -TOLERANCE });
+        if (overlapY >= -TOLERANCE) {
+          console.log(`[Adjacent] ✓ ${otherName} is RIGHT adjacent`);
+          adjacent.push({ room: otherRoom, direction: 'right', sharedLength: Math.max(overlapY, 0.1) });
+        }
+      }
+      // Bottom: other room's top edge touches our bottom edge
+      const bottomEdgeDiff = Math.abs(otherEnd.y - startPoint.y);
+      if (bottomEdgeDiff < TOLERANCE) {
+        const overlapX = Math.min(endPoint.x, otherEnd.x) - Math.max(startPoint.x, otherStart.x);
+        console.log(`[Adjacent] ${otherName} BOTTOM check:`, { edgeDiff: bottomEdgeDiff, overlapX, threshold: -TOLERANCE });
+        if (overlapX >= -TOLERANCE) {
+          console.log(`[Adjacent] ✓ ${otherName} is BOTTOM adjacent`);
+          adjacent.push({ room: otherRoom, direction: 'bottom', sharedLength: Math.max(overlapX, 0.1) });
+        }
+      }
+      // Top: other room's bottom edge touches our top edge
+      const topEdgeDiff = Math.abs(otherStart.y - endPoint.y);
+      if (topEdgeDiff < TOLERANCE) {
+        const overlapX = Math.min(endPoint.x, otherEnd.x) - Math.max(startPoint.x, otherStart.x);
+        console.log(`[Adjacent] ${otherName} TOP check:`, { edgeDiff: topEdgeDiff, overlapX, threshold: -TOLERANCE });
+        if (overlapX >= -TOLERANCE) {
+          console.log(`[Adjacent] ✓ ${otherName} is TOP adjacent`);
+          adjacent.push({ room: otherRoom, direction: 'top', sharedLength: Math.max(overlapX, 0.1) });
+        }
+      }
+    }
+    
+    console.log(`[Adjacent] Found ${adjacent.length} adjacent rooms:`, adjacent.map(a => ({ room: getRoomName(a.room), direction: a.direction })));
+    return adjacent;
+  };
+
+  const adjacentRooms = getAdjacentRooms();
+  console.log('[Adjacent] Final adjacent rooms:', adjacentRooms.length);
 
   const screenToRoom = (screenX: number, screenY: number) => {
     if (!startPoint || !endPoint) return { x: 0, y: 0 };
@@ -143,6 +240,12 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
            caps.includes(DeviceCapability.ledLamp);
   };
 
+  // Check if device is an actuator/outlet (can be toggled)
+  const isActuatorDevice = (device: Device) => {
+    const caps = device.deviceCapabilities ?? [];
+    return caps.includes(DeviceCapability.actuator);
+  };
+
   // Check if device is a shutter (can be toggled)
   const isShutterDevice = (device: Device) => {
     const caps = device.deviceCapabilities ?? [];
@@ -168,18 +271,44 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
     return level;
   };
 
-  // Toggle lamp on/off - LED/Dimmer/Lamp all extend Actuator, so setLamp works for all
+  // Toggle lamp on/off - Swift app uses lightForce for simple toggle (even for LEDs)
   const handleToggleLamp = async (device: Device) => {
     if (!device.id) return;
     const currentState = isDeviceOn(device);
+    const caps = device.deviceCapabilities ?? [];
     console.log('Toggle lamp:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
     
     try {
-      await setLamp(device.id, !currentState);
+      // Swift app uses lightForce (setLamp) for simple toggle, even for LEDs
+      // Only use setLed/setDimmer when explicitly setting brightness/color
+      if (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
+        // Dimmer/LED: use setDimmer with current brightness to preserve it
+        const brightness = device.brightness ?? device._brightness ?? 100;
+        await setDimmer(device.id, !currentState, brightness);
+      } else {
+        // Regular lamp: just state
+        await setLamp(device.id, !currentState);
+      }
       // Refresh device data after short delay
       setTimeout(() => fetchDevice(device.id!), 300);
     } catch (error) {
       console.error('Failed to toggle lamp:', error);
+    }
+  };
+
+  // Toggle actuator/outlet on/off
+  const handleToggleActuator = async (device: Device) => {
+    if (!device.id) return;
+    // Use isDeviceOn which checks actuatorOn → _actuatorOn → lightOn → _lightOn → on
+    const currentState = isDeviceOn(device);
+    console.log('Toggle actuator:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
+    
+    try {
+      await setActuator(device.id, !currentState);
+      // Refresh device data after short delay
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to toggle actuator:', error);
     }
   };
 
@@ -248,6 +377,9 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
       if (isLampDevice(device)) {
         // Quick tap on lamp = toggle
         handleToggleLamp(device);
+      } else if (isActuatorDevice(device)) {
+        // Quick tap on actuator/outlet = toggle
+        handleToggleActuator(device);
       } else if (isShutterDevice(device)) {
         // Quick tap on shutter = toggle open/closed
         handleToggleShutter(device);
@@ -261,7 +393,10 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
         if (rect) {
           setRadialMenu({ 
             device, 
-            position: { x: rect.width / 2, y: rect.height / 2 } 
+            position: { 
+              x: rect.left + rect.width / 2, 
+              y: rect.top + rect.height / 2 
+            } 
           });
         } else {
           onSelectDevice(device);
@@ -304,6 +439,29 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
       setTimeout(() => fetchDevice(device.id!), 300);
     } catch (error) {
       console.error('Failed to turn lamp off:', error);
+    }
+  };
+
+  // Actuator control handlers for radial menu
+  const handleActuatorOn = async (device: Device) => {
+    if (!device.id) return;
+    setRadialMenu(null);
+    try {
+      await setActuator(device.id, true);
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to turn actuator on:', error);
+    }
+  };
+
+  const handleActuatorOff = async (device: Device) => {
+    if (!device.id) return;
+    setRadialMenu(null);
+    try {
+      await setActuator(device.id, false);
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to turn actuator off:', error);
     }
   };
 
@@ -360,6 +518,8 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
       onShutterDown: () => handleShutterLevel(device, 100),
       onAcOn: () => handleAcPower(device, true),
       onAcOff: () => handleAcPower(device, false),
+      onActuatorOn: () => handleActuatorOn(device),
+      onActuatorOff: () => handleActuatorOff(device),
     });
   }, [radialMenu, onSelectDevice]);
 
@@ -424,7 +584,7 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
         }
       />
 
-      <div ref={containerRef} className="flex-1 overflow-hidden p-4 flex items-center justify-center">
+      <div ref={containerRef} className="flex-1 overflow-visible p-4 flex items-center justify-center relative">
         <div
           className="room-canvas relative rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
           style={{
@@ -467,6 +627,25 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
 
             const isDragging = draggingDevice === device.id;
             const isLocallyEdited = device.id ? !!editedPositions[device.id] : false;
+            
+            // Get LED color for border
+            const caps = device.deviceCapabilities ?? [];
+            const isLed = caps.includes(DeviceCapability.ledLamp);
+            const isOn = isDeviceOn(device);
+            let ledBorderColor = '';
+            if (isLed && isOn && device._color) {
+              let color = device._color;
+              // Expand shorthand hex notation
+              if (color.length === 5 && color.startsWith('#')) {
+                color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3] + color[4] + color[4];
+              } else if (color.length === 4 && color.startsWith('#')) {
+                color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+              }
+              // Only show color border if not white
+              if (color.toUpperCase() !== '#FFFFFF' && color.toUpperCase() !== '#FFF') {
+                ledBorderColor = color;
+              }
+            }
 
             return (
               <div
@@ -490,18 +669,44 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
                       : isLocallyEdited
                         ? "cursor-grab bg-orange-500/30 border-2 border-orange-500"
                         : "cursor-grab bg-primary/20 border-2 border-primary"
-                    : "bg-secondary/80 hover:bg-accent hover:scale-110 cursor-pointer transition-all"
+                    : ledBorderColor
+                      ? "bg-secondary/80 hover:bg-accent hover:scale-110 cursor-pointer transition-all border-2"
+                      : "bg-secondary/80 hover:bg-accent hover:scale-110 cursor-pointer transition-all"
                 )}
                 style={{
                   left: x + 16 - 20,
                   top: y + 16 - 20,
+                  ...(ledBorderColor && !editMode ? { borderColor: ledBorderColor } : {})
                 }}
                 title={deviceName}
               >
                 <div className={cn(
-                  "flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-lg",
+                  "relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-lg",
                   isUnplaced && editMode ? "bg-orange-500/20" : "bg-primary/10"
                 )}>
+                  {/* Brightness rays for dimmable lamps/LEDs - only upper half (8 o'clock to 4 o'clock) */}
+                  {(caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) && isOn && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
+                        const brightness = device.brightness ?? device._brightness ?? 0;
+                        const threshold = (index + 1) * 12.5; // 100/8 = 12.5% per ray
+                        // Always show at least one ray when lamp is on
+                        const isActive = index === 0 ? true : brightness >= threshold;
+                        // Start at -120° (8 o'clock) and spread 240° to 120° (4 o'clock)
+                        const angle = -120 + (index * 240 / 7); // Distribute 8 rays across upper 240°
+                        return (
+                          <div
+                            key={index}
+                            className="absolute w-0.5 h-3 origin-center transition-colors rounded-full"
+                            style={{
+                              backgroundColor: isActive ? '#eab308' : '#6b7280',
+                              transform: `rotate(${angle}deg) translateY(-22px)`,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                   <DeviceIcon device={device} size="lg" />
                 </div>
                 {isDragging && devicePos && (
@@ -529,6 +734,68 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
             </button>
           )}
         </div>
+
+        {/* Adjacent room navigation buttons - outside canvas */}
+        {!editMode && adjacentRooms.map(({ room: adjRoom, direction }, index) => {
+          const adjRoomName = getRoomName(adjRoom);
+          
+          const getPositionStyle = () => {
+            const gap = 8; // Gap between canvas and button
+            
+            switch (direction) {
+              case 'left':
+                return {
+                  right: '100%',
+                  top: '50%',
+                  transform: 'translate(-' + gap + 'px, -50%)',
+                  marginRight: gap + 'px',
+                };
+              case 'right':
+                return {
+                  left: '100%',
+                  top: '50%',
+                  transform: 'translate(' + gap + 'px, -50%)',
+                  marginLeft: gap + 'px',
+                };
+              case 'top':
+                return {
+                  bottom: '100%',
+                  left: '50%',
+                  transform: 'translate(-50%, -' + gap + 'px)',
+                  marginBottom: gap + 'px',
+                };
+              case 'bottom':
+                return {
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translate(-50%, ' + gap + 'px)',
+                  marginTop: gap + 'px',
+                };
+            }
+          };
+          
+          const getArrowIcon = () => {
+            switch (direction) {
+              case 'left': return <ArrowLeft className="h-4 w-4" />;
+              case 'right': return <ArrowRight className="h-4 w-4" />;
+              case 'top': return <ArrowUp className="h-4 w-4" />;
+              case 'bottom': return <ArrowDown className="h-4 w-4" />;
+            }
+          };
+          
+          return (
+            <button
+              key={`${adjRoomName}-${direction}-${index}`}
+              onClick={() => onNavigateToRoom?.(adjRoom)}
+              className="absolute flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 border-2 border-primary/40 shadow-md transition-all hover:scale-105 z-20"
+              style={getPositionStyle()}
+              title={`Zu ${adjRoomName} wechseln`}
+            >
+              {getArrowIcon()}
+              <span className="text-xs font-medium whitespace-nowrap">{adjRoomName}</span>
+            </button>
+          );
+        })}
       </div>
 
       {showDevicePicker && (
@@ -584,8 +851,26 @@ export function RoomFloorPlanDetail({ room, devices, onBack, onSelectDevice }: R
         isOpen={radialMenu !== null}
         onClose={() => setRadialMenu(null)}
         position={radialMenu?.position ?? { x: 0, y: 0 }}
-        centerIcon={radialMenu ? <DeviceIcon device={radialMenu.device} size="md" /> : undefined}
-        deviceStatus={radialMenu ? getDeviceStatus(radialMenu.device) : undefined}
+        centerIcon={radialMenu ? (() => {
+          const device = radialMenu.device;
+          const caps = device.deviceCapabilities ?? [];
+          
+          // For AC devices, always show Wind icon (colored by mode)
+          if (caps.includes(DeviceCapability.ac)) {
+            const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
+            const currentMonth = new Date().getMonth();
+            const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
+            const isCooling = acMode === 1 || (acMode === 0 && isSummerSeason);
+            const isHeating = acMode === 4 || (acMode === 0 && !isSummerSeason);
+            const isOn = isDeviceOn(device);
+            
+            const windColorClass = !isOn ? 'text-gray-400' : isHeating ? 'text-red-500' : isCooling ? 'text-blue-500' : 'text-green-500';
+            return <Wind className={`h-8 w-8 ${windColorClass}`} />;
+          }
+          
+          // For other devices, use DeviceIcon
+          return <DeviceIcon device={device} size="md" />;
+        })() : undefined}
         deviceName={radialMenu ? getDeviceName(radialMenu.device, roomName) : undefined}
       />
     </div>
