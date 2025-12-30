@@ -406,8 +406,8 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                     height: Math.max(h, 40),
                   }}
                 >
-                  {/* Room name - positioned at bottom to avoid icon overlap */}
-                  <div className="absolute bottom-0.5 left-0 right-0 flex justify-center pointer-events-none z-10">
+                  {/* Room name and Z-coordinate input - positioned at bottom */}
+                  <div className="absolute bottom-0.5 left-0 right-0 flex flex-col items-center gap-1 pointer-events-none z-10">
                     <span className={cn(
                       "text-[10px] sm:text-xs font-medium text-center px-1.5 py-0.5 flex items-center gap-1 leading-tight bg-secondary/90 rounded shadow-sm",
                       isUnplaced && editMode && "text-orange-700",
@@ -416,6 +416,31 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                       {isModified && <Edit3 className="h-2.5 w-2.5 inline-block" />}
                       {roomName}
                     </span>
+                    {editMode && (
+                      <div className="flex items-center gap-1 bg-secondary/95 rounded px-1.5 py-0.5 shadow-sm pointer-events-auto">
+                        <label className="text-[9px] text-muted-foreground">Z:</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={coords.startPoint.z ?? 0}
+                          onChange={(e) => {
+                            const newZ = parseFloat(e.target.value) || 0;
+                            setEditedCoords(prev => ({
+                              ...prev,
+                              [roomName]: {
+                                roomName,
+                                startPoint: { ...coords.startPoint, z: newZ },
+                                endPoint: { ...coords.endPoint, z: newZ }
+                              }
+                            }));
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          className="w-12 text-[10px] px-1 py-0.5 bg-background border border-border rounded text-center"
+                        />
+                        <span className="text-[9px] text-muted-foreground">m</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Device icons at their actual positions (only in view mode) */}
