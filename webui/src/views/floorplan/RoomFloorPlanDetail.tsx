@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device, type Room } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition, setLamp, setDimmer, setShutter, setAc, setActuator } from '@/api/devices';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus, Wind, ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit3, Save, Wind, X, Plus } from 'lucide-react';
 import { DeviceIcon, DeviceCapability } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialMenu, getDeviceMenuItems } from '@/components/RadialMenu';
-import type { RoomFloorPlanDetailProps } from './types';
+import { AdjacentRoomButtons } from './AdjacentRoomButtons';
+import { DevicePicker } from './DevicePicker';
+import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
 
 export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom }: RoomFloorPlanDetailProps) {
   const roomName = getRoomName(room);
@@ -64,12 +66,6 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
 
   const roomWidth = startPoint && endPoint ? endPoint.x - startPoint.x : 5;
   const roomHeight = startPoint && endPoint ? endPoint.y - startPoint.y : 5;
-  const calculatedScaleX = containerSize.width > 0 ? containerSize.width / roomWidth : 100;
-  const calculatedScaleY = containerSize.height > 0 ? containerSize.height / roomHeight : 100;
-  const calculatedScale = Math.min(calculatedScaleX, calculatedScaleY, 150);
-  const scale = fixedScale ?? calculatedScale;
-  const scaledWidth = roomWidth * scale;
-  const scaledHeight = roomHeight * scale;
 
   // Find adjacent rooms based on shared boundaries
   const getAdjacentRooms = () => {
@@ -82,8 +78,8 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
     console.log('[Adjacent] Current room bounds:', { start: startPoint, end: endPoint });
     console.log('[Adjacent] All rooms count:', allRooms.length);
     
-    const adjacent: Array<{ room: Room; direction: 'left' | 'right' | 'top' | 'bottom'; sharedLength: number }> = [];
-    const TOLERANCE = 0.5; // Allow small gaps/overlaps
+    const adjacent: AdjacentRoom[] = [];
+    const TOLERANCE = 1.0; // Allow small gaps/overlaps (increased for real-world room layouts)
     
     for (const otherRoom of allRooms) {
       const otherName = getRoomName(otherRoom);
@@ -119,45 +115,37 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
       }
       
       // Check for shared boundaries
+      // Calculate overlap ranges
+      const overlapYStart = Math.max(startPoint.y, otherStart.y);
+      const overlapYEnd = Math.min(endPoint.y, otherEnd.y);
+      const overlapY = overlapYEnd - overlapYStart;
+      const overlapXStart = Math.max(startPoint.x, otherStart.x);
+      const overlapXEnd = Math.min(endPoint.x, otherEnd.x);
+      const overlapX = overlapXEnd - overlapXStart;
+      
       // Left: other room's right edge touches our left edge
       const leftEdgeDiff = Math.abs(otherEnd.x - startPoint.x);
-      if (leftEdgeDiff < TOLERANCE) {
-        const overlapY = Math.min(endPoint.y, otherEnd.y) - Math.max(startPoint.y, otherStart.y);
-        console.log(`[Adjacent] ${otherName} LEFT check:`, { edgeDiff: leftEdgeDiff, overlapY, threshold: -TOLERANCE });
-        if (overlapY >= -TOLERANCE) {
-          console.log(`[Adjacent] ✓ ${otherName} is LEFT adjacent`);
-          adjacent.push({ room: otherRoom, direction: 'left', sharedLength: Math.max(overlapY, 0.1) });
-        }
+      if (leftEdgeDiff < TOLERANCE && overlapY > 0) {
+        console.log(`[Adjacent] ✓ ${otherName} is LEFT adjacent (overlap: ${overlapY.toFixed(2)}m)`);
+        adjacent.push({ room: otherRoom, direction: 'left', sharedLength: overlapY, overlapStart: overlapYStart, overlapEnd: overlapYEnd });
       }
       // Right: other room's left edge touches our right edge
       const rightEdgeDiff = Math.abs(otherStart.x - endPoint.x);
-      if (rightEdgeDiff < TOLERANCE) {
-        const overlapY = Math.min(endPoint.y, otherEnd.y) - Math.max(startPoint.y, otherStart.y);
-        console.log(`[Adjacent] ${otherName} RIGHT check:`, { edgeDiff: rightEdgeDiff, overlapY, threshold: -TOLERANCE });
-        if (overlapY >= -TOLERANCE) {
-          console.log(`[Adjacent] ✓ ${otherName} is RIGHT adjacent`);
-          adjacent.push({ room: otherRoom, direction: 'right', sharedLength: Math.max(overlapY, 0.1) });
-        }
+      if (rightEdgeDiff < TOLERANCE && overlapY > 0) {
+        console.log(`[Adjacent] ✓ ${otherName} is RIGHT adjacent (overlap: ${overlapY.toFixed(2)}m)`);
+        adjacent.push({ room: otherRoom, direction: 'right', sharedLength: overlapY, overlapStart: overlapYStart, overlapEnd: overlapYEnd });
       }
-      // Bottom: other room's top edge touches our bottom edge
+      // Bottom: other room's top edge touches our bottom edge (Y increases upward)
       const bottomEdgeDiff = Math.abs(otherEnd.y - startPoint.y);
-      if (bottomEdgeDiff < TOLERANCE) {
-        const overlapX = Math.min(endPoint.x, otherEnd.x) - Math.max(startPoint.x, otherStart.x);
-        console.log(`[Adjacent] ${otherName} BOTTOM check:`, { edgeDiff: bottomEdgeDiff, overlapX, threshold: -TOLERANCE });
-        if (overlapX >= -TOLERANCE) {
-          console.log(`[Adjacent] ✓ ${otherName} is BOTTOM adjacent`);
-          adjacent.push({ room: otherRoom, direction: 'bottom', sharedLength: Math.max(overlapX, 0.1) });
-        }
+      if (bottomEdgeDiff < TOLERANCE && overlapX > 0) {
+        console.log(`[Adjacent] ✓ ${otherName} is BOTTOM adjacent (overlap: ${overlapX.toFixed(2)}m)`);
+        adjacent.push({ room: otherRoom, direction: 'bottom', sharedLength: overlapX, overlapStart: overlapXStart, overlapEnd: overlapXEnd });
       }
       // Top: other room's bottom edge touches our top edge
       const topEdgeDiff = Math.abs(otherStart.y - endPoint.y);
-      if (topEdgeDiff < TOLERANCE) {
-        const overlapX = Math.min(endPoint.x, otherEnd.x) - Math.max(startPoint.x, otherStart.x);
-        console.log(`[Adjacent] ${otherName} TOP check:`, { edgeDiff: topEdgeDiff, overlapX, threshold: -TOLERANCE });
-        if (overlapX >= -TOLERANCE) {
-          console.log(`[Adjacent] ✓ ${otherName} is TOP adjacent`);
-          adjacent.push({ room: otherRoom, direction: 'top', sharedLength: Math.max(overlapX, 0.1) });
-        }
+      if (topEdgeDiff < TOLERANCE && overlapX > 0) {
+        console.log(`[Adjacent] ✓ ${otherName} is TOP adjacent (overlap: ${overlapX.toFixed(2)}m)`);
+        adjacent.push({ room: otherRoom, direction: 'top', sharedLength: overlapX, overlapStart: overlapXStart, overlapEnd: overlapXEnd });
       }
     }
     
@@ -167,6 +155,28 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
 
   const adjacentRooms = getAdjacentRooms();
   console.log('[Adjacent] Final adjacent rooms:', adjacentRooms.length);
+
+  // Calculate margins based on which sides have adjacent rooms
+  const hasLeft = adjacentRooms.some(r => r.direction === 'left');
+  const hasRight = adjacentRooms.some(r => r.direction === 'right');
+  const hasTop = adjacentRooms.some(r => r.direction === 'top');
+  const hasBottom = adjacentRooms.some(r => r.direction === 'bottom');
+  const marginLeft = hasLeft ? 80 : 0;
+  const marginRight = hasRight ? 80 : 0;
+  const marginTop = hasTop ? 80 : 0;
+  const marginBottom = hasBottom ? 80 : 0;
+  const totalMarginX = marginLeft + marginRight;
+  const totalMarginY = marginTop + marginBottom;
+
+  // Calculate scale with dynamic margins
+  const availableWidth = Math.max(100, containerSize.width - totalMarginX);
+  const availableHeight = Math.max(100, containerSize.height - totalMarginY);
+  const calculatedScaleX = availableWidth > 0 ? availableWidth / roomWidth : 100;
+  const calculatedScaleY = availableHeight > 0 ? availableHeight / roomHeight : 100;
+  const calculatedScale = Math.min(calculatedScaleX, calculatedScaleY, 150);
+  const scale = fixedScale ?? calculatedScale;
+  const scaledWidth = roomWidth * scale;
+  const scaledHeight = roomHeight * scale;
 
   const screenToRoom = (screenX: number, screenY: number) => {
     if (!startPoint || !endPoint) return { x: 0, y: 0 };
@@ -584,14 +594,22 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
         }
       />
 
-      <div ref={containerRef} className="flex-1 overflow-visible p-4 flex items-center justify-center relative">
-        <div
-          className="room-canvas relative rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
+      <div ref={containerRef} className="flex-1 overflow-visible px-4 py-6 flex items-center justify-center">
+        {/* Wrapper with fixed size including space for arrows */}
+        <div 
+          className="relative"
           style={{
-            width: Math.min(scaledWidth + 32, containerSize.width),
-            height: Math.min(scaledHeight + 32, containerSize.height),
-            maxWidth: '100%',
-            maxHeight: '100%',
+            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0),
+            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0),
+          }}
+        >
+        <div
+          className="room-canvas absolute rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
+          style={{
+            width: scaledWidth + 32,
+            height: scaledHeight + 32,
+            left: hasLeft ? '80px' : '0',
+            top: hasTop ? '40px' : '0',
           }}
         >
           <div className="absolute inset-4 border-2 border-dashed border-primary/20 rounded-lg" />
@@ -616,8 +634,11 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
               x = (devicePos.x / roomWidth) * scaledWidth;
               y = ((roomHeight - devicePos.y) / roomHeight) * scaledHeight;
               // Clamp screen position to stay within canvas
-              x = Math.max(0, Math.min(scaledWidth - 40, x));
-              y = Math.max(0, Math.min(scaledHeight - 40, y));
+              // Device is positioned at x+16-20 (so -4px offset), need to account for this
+              // Min: 5px (so device at -4+5=1px from border)
+              // Max: scaledWidth - 40 (device bubble is ~40px wide)
+              x = Math.max(5, Math.min(scaledWidth - 40, x));
+              y = Math.max(5, Math.min(scaledHeight - 40, y));
             } else if (editMode) {
               const unplacedIdx = unplacedDevices.indexOf(device);
               const spacing = scaledWidth / (unplacedDevices.length + 1);
@@ -662,28 +683,30 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
                   setDraggingDevice(device.id!);
                 } : undefined}
                 className={cn(
-                  "absolute flex flex-col items-center justify-center p-2 rounded-xl shadow-soft select-none touch-none",
+                  "absolute flex flex-col items-center justify-center rounded-xl select-none touch-none",
                   editMode
                     ? isDragging
-                      ? "cursor-grabbing bg-primary/40 border-2 border-primary z-50"
+                      ? "cursor-grabbing bg-primary/40 border-2 border-primary z-50 p-2 shadow-md"
                       : isLocallyEdited
-                        ? "cursor-grab bg-orange-500/30 border-2 border-orange-500"
-                        : "cursor-grab bg-primary/20 border-2 border-primary"
-                    : ledBorderColor
-                      ? "bg-secondary/80 hover:bg-accent hover:scale-110 cursor-pointer transition-all border-2"
-                      : "bg-secondary/80 hover:bg-accent hover:scale-110 cursor-pointer transition-all"
+                        ? "cursor-grab bg-orange-500/30 border-2 border-orange-500 p-2 shadow-md"
+                        : "cursor-grab bg-primary/20 border-2 border-primary p-2 shadow-md"
+                    : "hover:scale-110 cursor-pointer transition-all"
                 )}
                 style={{
                   left: x + 16 - 20,
                   top: y + 16 - 20,
-                  ...(ledBorderColor && !editMode ? { borderColor: ledBorderColor } : {})
                 }}
                 title={deviceName}
               >
                 <div className={cn(
-                  "relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-lg",
-                  isUnplaced && editMode ? "bg-orange-500/20" : "bg-primary/10"
-                )}>
+                  "relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl shadow-lg",
+                  isUnplaced && editMode ? "bg-orange-500/20" : "bg-card dark:bg-card",
+                  ledBorderColor && !editMode ? "border-2" : ""
+                )}
+                style={{
+                  ...(ledBorderColor && !editMode ? { borderColor: ledBorderColor } : {})
+                }}
+                >
                   {/* Brightness rays for dimmable lamps/LEDs - only upper half (8 o'clock to 4 o'clock) */}
                   {(caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) && isOn && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -735,115 +758,40 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
           )}
         </div>
 
-        {/* Adjacent room navigation buttons - outside canvas */}
-        {!editMode && adjacentRooms.map(({ room: adjRoom, direction }, index) => {
-          const adjRoomName = getRoomName(adjRoom);
-          
-          const getPositionStyle = () => {
-            const gap = 8; // Gap between canvas and button
-            
-            switch (direction) {
-              case 'left':
-                return {
-                  right: '100%',
-                  top: '50%',
-                  transform: 'translate(-' + gap + 'px, -50%)',
-                  marginRight: gap + 'px',
-                };
-              case 'right':
-                return {
-                  left: '100%',
-                  top: '50%',
-                  transform: 'translate(' + gap + 'px, -50%)',
-                  marginLeft: gap + 'px',
-                };
-              case 'top':
-                return {
-                  bottom: '100%',
-                  left: '50%',
-                  transform: 'translate(-50%, -' + gap + 'px)',
-                  marginBottom: gap + 'px',
-                };
-              case 'bottom':
-                return {
-                  top: '100%',
-                  left: '50%',
-                  transform: 'translate(-50%, ' + gap + 'px)',
-                  marginTop: gap + 'px',
-                };
-            }
-          };
-          
-          const getArrowIcon = () => {
-            switch (direction) {
-              case 'left': return <ArrowLeft className="h-4 w-4" />;
-              case 'right': return <ArrowRight className="h-4 w-4" />;
-              case 'top': return <ArrowUp className="h-4 w-4" />;
-              case 'bottom': return <ArrowDown className="h-4 w-4" />;
-            }
-          };
-          
-          return (
-            <button
-              key={`${adjRoomName}-${direction}-${index}`}
-              onClick={() => onNavigateToRoom?.(adjRoom)}
-              className="absolute flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-primary/20 hover:bg-primary/30 border-2 border-primary/40 shadow-md transition-all hover:scale-105 z-20"
-              style={getPositionStyle()}
-              title={`Zu ${adjRoomName} wechseln`}
-            >
-              {getArrowIcon()}
-              <span className="text-xs font-medium whitespace-nowrap">{adjRoomName}</span>
-            </button>
-          );
-        })}
+        {/* Adjacent room navigation buttons */}
+        {!editMode && startPoint && (
+          <AdjacentRoomButtons
+            adjacentRooms={adjacentRooms}
+            roomWidth={roomWidth}
+            roomHeight={roomHeight}
+            startPoint={startPoint}
+            canvasLeft={hasLeft ? 80 : 0}
+            canvasTop={hasTop ? 40 : 0}
+            canvasWidth={scaledWidth + 32}
+            canvasHeight={scaledHeight + 32}
+            onNavigateToRoom={onNavigateToRoom}
+          />
+        )}
+        </div>
       </div>
 
-      {showDevicePicker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-2xl p-4 max-w-sm w-full shadow-lg max-h-[70vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Gerät platzieren</h3>
-              <button
-                onClick={() => setShowDevicePicker(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Wähle ein Gerät zum Platzieren ({unplacedDevices.length} verfügbar)
-            </p>
-            <div className="flex-1 overflow-auto space-y-2">
-              {unplacedDevices.filter(d => !editedPositions[d.id ?? '']).map((device) => {
-                const deviceName = getDeviceName(device, roomName);
-                return (
-                  <button
-                    key={device.id ?? deviceName}
-                    onClick={() => {
-                      if (!device.id || !startPoint || !endPoint) return;
-                      // Position is relative to room (0,0 = bottom-left corner)
-                      const centerX = roomWidth / 2;
-                      const centerY = roomHeight / 2;
-                      const centerZ = startPoint.z ?? 0;
-                      setEditedPositions(prev => ({
-                        ...prev,
-                        [device.id!]: { x: centerX, y: centerY, z: centerZ }
-                      }));
-                      setShowDevicePicker(false);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/50 hover:bg-accent transition-all text-left"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <DeviceIcon device={device} size="sm" />
-                    </div>
-                    <span className="font-medium">{deviceName}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <DevicePicker
+        isOpen={showDevicePicker}
+        unplacedDevices={unplacedDevices}
+        editedPositions={editedPositions}
+        roomName={roomName}
+        onClose={() => setShowDevicePicker(false)}
+        onSelectDevice={(device) => {
+          if (!device.id || !startPoint || !endPoint) return;
+          const centerX = roomWidth / 2;
+          const centerY = roomHeight / 2;
+          const centerZ = startPoint.z ?? 0;
+          setEditedPositions(prev => ({
+            ...prev,
+            [device.id!]: { x: centerX, y: centerY, z: centerZ }
+          }));
+        }}
+      />
 
       {/* Radial Menu for device quick actions */}
       <RadialMenu

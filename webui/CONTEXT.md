@@ -77,6 +77,7 @@ const DeviceCapability = {
 - **RoomsView Refactoring** - Split into views/rooms/ with sub-components
 - **Badge-Text Fix** - Capability priority for LED/Lamp/Dimmer badges
 - **Radial Menu** - Tap=Toggle, Hold=Radial with child-friendly icons
+- **Device Logs** - Last commands display in expert mode (Dec 30, 2024)
 
 ## Next Steps (Pending) ⏳
 
@@ -234,17 +235,22 @@ Add to RoomDetail view with all room settings:
 - **Child-Friendly Icons:** Same icon per type, only fill/color changes
 - **LED Brightness Rays:** 8 rays in upper semicircle (12.5% per ray, min 1 when on)
 - **Status Badges:** Detailed device status (temperature, brightness, position, battery, etc.)
+- **Device Logs (Dec 30, 2024):** Last commands display in expert mode with timestamp and log message
 
 #### Refactoring & Architecture
 - **FloorPlanView:** Split into 4 components (HouseCrossSection, FloorPlan, RoomFloorPlanDetail, types)
 - **DeviceDetailView:** Split into 15 files (controls/, DeviceHeader, DeviceInfo, etc.)
 - **RoomsView:** Split into 7 files (RoomDetail, GroupDetailView, DeviceStatusBadges, etc.)
 
-#### Mobile & Touch Support
+#### Mobile & Touch Support (Dec 30, 2024)
 - **iOS Touch Events:** Full drag&drop support with touch
 - **Screen-Edge Clamping:** Radial menu stays within viewport
 - **Auto-Scaling:** No scrollbars, responsive sizing
 - **Large Touch Targets:** 60x60px minimum for child-friendly use
+- **Device Icon Sizing:** Responsive based on room pixel size (xs/sm/md/lg)
+- **Adjacent Room Arrows:** Positioned at canvas border with absolute pixel coordinates
+- **Dynamic Margins:** Only reserve space where adjacent rooms exist (80px left/right, 40px top/bottom)
+- **Device Border Visibility:** 5px clamping to prevent overlap with canvas border
 
 #### Settings & Configuration
 - **Room Settings:** Light, shutter, movement timer, trilateration coordinates
@@ -258,6 +264,11 @@ Add to RoomDetail view with all room settings:
 - **Swift-compatible property order** - Matches iOS app behavior
 - **Room comparison by name** - IDs not always unique
 - **Point-touching detection** - Overlap ≥ -TOLERANCE for adjacent rooms
+- **Adjacent Room Architecture (Dec 30, 2024):**
+  - Wrapper has fixed dimensions = Canvas size + arrow space
+  - Canvas positioned absolutely within wrapper
+  - Arrows use absolute pixel positions relative to wrapper
+  - Transform -100% to move arrows outside canvas edge
 
 ### Important Notes
 - User prefers Picker components for time selection

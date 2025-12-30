@@ -27,6 +27,7 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - ✅ LED brightness visualization with 8 rays (12.5% per ray)
 - ✅ Adjacent room navigation with automatic detection
 - ✅ Room coordinate editing in settings
+- ✅ Device logs display in expert mode (Dec 30, 2024)
 
 ---
 
@@ -461,16 +462,22 @@ The Express backend already provides:
 - AC: Wind/Snowflake - gray (off), blue (cooling), red (heating), green (auto)
 - Handle: Lock - green (closed), orange (tilted), red (open)
 
-**iOS Mobile Support** ✅ IMPLEMENTED:
+**iOS Mobile Support** ✅ IMPLEMENTED (Dec 30, 2024):
 - Touch events for device drag&drop (`onTouchStart`, `touchmove`, `touchend`)
 - Radial menu screen-edge clamping (stays within viewport)
 - Auto-scaling without scrollbars (`maxWidth/maxHeight: 100%`)
 - Larger device icons in room view (`lg` size)
+- Device icon sizing responsive to room pixel dimensions (xs/sm/md/lg)
+- Device border visibility with 5px clamping (prevents overlap with canvas border)
 
-**Floor Plan Device Display** ✅ IMPLEMENTED:
+**Floor Plan Device Display** ✅ IMPLEMENTED (Dec 30, 2024):
 - Device icons shown at actual positions within room boxes
 - Responsive icon size based on room pixel dimensions
 - Room name positioned at bottom to avoid icon overlap
+- Adjacent room navigation with automatic detection (TOLERANCE 1.0m)
+- Navigation arrows positioned at canvas border with absolute pixel coordinates
+- Dynamic margins: only reserve space where adjacent rooms exist (80px left/right, 40px top/bottom)
+- Wrapper architecture: fixed dimensions = canvas + arrow space, canvas absolutely positioned
 
 **Center displays:**
 - Device icon

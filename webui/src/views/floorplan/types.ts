@@ -40,3 +40,17 @@ export interface DraggingState {
   offsetX?: number;
   offsetY?: number;
 }
+
+export interface AdjacentRoom {
+  room: Room;
+  direction: 'left' | 'right' | 'top' | 'bottom';
+  sharedLength: number;
+  overlapStart: number;
+  overlapEnd: number;
+}
+
+export interface DevicePosition {
+  x: number;
+  y: number;
+  z: number;
+}

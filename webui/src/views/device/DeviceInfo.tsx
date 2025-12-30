@@ -1,5 +1,10 @@
-import { Zap } from 'lucide-react';
+import { Zap, Clock } from 'lucide-react';
 import { type Device, getCapabilityNames } from '@/stores/dataStore';
+
+interface BaseCommand {
+  timestamp?: number | Date;
+  logMessage?: string;
+}
 
 interface DeviceInfoProps {
   device: Device;
@@ -128,6 +133,46 @@ export function DeviceInfo({
                 {displayPos.x?.toFixed(2) ?? '?'} / {displayPos.y?.toFixed(2) ?? '?'} / {displayPos.z?.toFixed(2) ?? '?'}
                 {pos?.roomName && <span className="text-muted-foreground ml-1">({pos.roomName})</span>}
               </span>
+            </div>
+          );
+        })()}
+        {expertMode && (() => {
+          const lastCommands = (device as Record<string, unknown>).lastCommands as BaseCommand[] | undefined;
+          if (!lastCommands || lastCommands.length === 0) return null;
+          
+          return (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase">Letzte Aktionen</span>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {lastCommands.map((command, idx) => {
+                  const timestamp = command.timestamp;
+                  let timeStr = '';
+                  if (timestamp) {
+                    const date = typeof timestamp === 'number' 
+                      ? new Date(timestamp) 
+                      : new Date(timestamp);
+                    if (!isNaN(date.getTime())) {
+                      timeStr = date.toLocaleTimeString('de-DE', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                      });
+                    }
+                  }
+                  
+                  return (
+                    <div key={idx} className="bg-secondary/50 rounded-lg p-2 text-xs">
+                      {timeStr && (
+                        <div className="text-muted-foreground font-mono mb-1">{timeStr}</div>
+                      )}
+                      <div className="text-foreground">{command.logMessage || 'N/A'}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })()}
