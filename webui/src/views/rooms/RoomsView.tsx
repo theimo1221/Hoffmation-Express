@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Room, type Device, type GroupData, getRoomName, getRoomEtage } from '@/stores/dataStore';
+import { useDataStore, type Room, type Device, type GroupData, getRoomName, getFloorsForRoom } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Search } from 'lucide-react';
@@ -15,8 +15,8 @@ export function RoomsView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { roomId } = useParams<{ roomId?: string }>();
-  const { rooms, devices, floors, fetchData, isLoading } = useDataStore();
-  const { excludedLevels } = useSettingsStore();
+  const { rooms, devices, fetchData, isLoading } = useDataStore();
+  const { excludedLevels, floors: floorDefinitions, loadFloors } = useSettingsStore();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ room: Room; groupType: string; group: GroupData } | null>(null);
   const [floorFilter, setFloorFilter] = useState<number | null>(null);
@@ -27,7 +27,8 @@ export function RoomsView() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    loadFloors();
+  }, [fetchData, loadFloors]);
 
   if (selectedDevice) {
     return <DeviceDetailView device={selectedDevice} onBack={() => setSelectedDevice(null)} />;
@@ -46,11 +47,28 @@ export function RoomsView() {
     );
   }
 
+  // Build floors with room counts
+  const floors = useMemo(() => {
+    return floorDefinitions.map(def => {
+      const floorRooms = Object.values(rooms).filter(room => {
+        const roomFloors = getFloorsForRoom(room, floorDefinitions);
+        return roomFloors.some(f => f.id === def.id);
+      });
+      return { ...def, rooms: floorRooms };
+    });
+  }, [rooms, floorDefinitions]);
+
   const roomList = Object.values(rooms).filter(
     (room) => {
-      const level = getRoomEtage(room);
-      if (excludedLevels.includes(level)) return false;
-      if (floorFilter !== null && level !== floorFilter) return false;
+      const roomFloors = getFloorsForRoom(room, floorDefinitions);
+      const levels = roomFloors.map(f => f.level);
+      
+      // Check if any of the room's floors are excluded
+      if (levels.every(level => excludedLevels.includes(level))) return false;
+      
+      // Check floor filter
+      if (floorFilter !== null && !levels.includes(floorFilter)) return false;
+      
       if (search) {
         const roomName = getRoomName(room).toLowerCase();
         return roomName.includes(search.toLowerCase());

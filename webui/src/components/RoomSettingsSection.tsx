@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { type Room, type RoomSettings, getRoomName } from '@/stores/dataStore';
+import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings } from '@/stores/dataStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
+import { IconPicker } from './IconPicker';
+import { ColorPicker } from './ColorPicker';
 
 interface RoomSettingsSectionProps {
   room: Room;
@@ -11,8 +14,19 @@ interface RoomSettingsSectionProps {
 export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { floors: floorDefinitions, loadFloors } = useSettingsStore();
   
   const settings = room.settings;
+  const webuiSettings = getRoomWebUISettings(room);
+  
+  // WebUI settings state
+  const [selectedFloors, setSelectedFloors] = useState<string[]>(webuiSettings?.crossSectionFloors ?? []);
+  const [selectedIcon, setSelectedIcon] = useState<string | undefined>(webuiSettings?.icon);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(webuiSettings?.color);
+  
+  useEffect(() => {
+    loadFloors();
+  }, [loadFloors]);
   
   // Store only the original values from backend (no defaults)
   const [originalSettings] = useState<RoomSettings>(settings ?? {});
@@ -63,15 +77,28 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
     const roomName = getRoomName(room);
     if (!roomName) return;
     
-    // Only send changed fields (delta update)
-    if (Object.keys(changedFields).length === 0) {
+    // Build WebUI settings if any are set
+    const hasWebuiChanges = selectedFloors.length > 0 || selectedIcon || selectedColor;
+    let updatedSettings = { ...changedFields };
+    
+    if (hasWebuiChanges) {
+      const webuiData: RoomWebUISettings = {};
+      if (selectedFloors.length > 0) webuiData.crossSectionFloors = selectedFloors;
+      if (selectedIcon) webuiData.icon = selectedIcon;
+      if (selectedColor) webuiData.color = selectedColor;
+      
+      updatedSettings.customSettingsJson = JSON.stringify({ webui: webuiData });
+    }
+    
+    // Only send if there are changes
+    if (Object.keys(updatedSettings).length === 0) {
       setIsEditing(false);
       return;
     }
     
     setIsSaving(true);
     try {
-      await updateRoomSettings(roomName, changedFields);
+      await updateRoomSettings(roomName, updatedSettings);
       setIsEditing(false);
       setChangedFields({});
       onUpdate();
@@ -168,6 +195,55 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
             min={0} max={0.5} step={0.025} unit=" min/%"
             onChange={(v) => updateField('sonnenUntergangRolloAdditionalOffsetPerCloudiness', v)} 
             disabled={!isEditing} />
+        </SettingsGroup>
+
+        {/* WebUI Settings */}
+        <SettingsGroup title="WebUI-Einstellungen" disabled={!isEditing}>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Etagen (Multi-Floor)</label>
+              <div className="space-y-2">
+                {floorDefinitions.map((floor) => (
+                  <label key={floor.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedFloors.includes(floor.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedFloors([...selectedFloors, floor.id]);
+                        } else {
+                          setSelectedFloors(selectedFloors.filter(id => id !== floor.id));
+                        }
+                      }}
+                      disabled={!isEditing}
+                      className="rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+                    />
+                    <span className="text-sm">{floor.name}</span>
+                  </label>
+                ))}
+                {selectedFloors.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Keine Auswahl = Automatisch aus Raum-Etage</p>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Icon</label>
+              <IconPicker 
+                value={selectedIcon} 
+                onChange={setSelectedIcon}
+                color={selectedColor}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Farbe</label>
+              <ColorPicker 
+                value={selectedColor} 
+                onChange={setSelectedColor}
+              />
+            </div>
+          </div>
         </SettingsGroup>
 
         {/* Other Settings */}
