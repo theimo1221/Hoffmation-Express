@@ -17,16 +17,23 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
   const { floors: floorDefinitions, loadFloors } = useSettingsStore();
   
   const settings = room.settings;
-  const webuiSettings = getRoomWebUISettings(room);
   
   // WebUI settings state
-  const [selectedFloors, setSelectedFloors] = useState<string[]>(webuiSettings?.crossSectionFloors ?? []);
-  const [selectedIcon, setSelectedIcon] = useState<string | undefined>(webuiSettings?.icon);
-  const [selectedColor, setSelectedColor] = useState<string | undefined>(webuiSettings?.color);
+  const [selectedFloors, setSelectedFloors] = useState<string[]>([]);
+  const [selectedIcon, setSelectedIcon] = useState<string | undefined>(undefined);
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined);
   
   useEffect(() => {
     loadFloors();
   }, [loadFloors]);
+  
+  // Update WebUI settings when room changes
+  useEffect(() => {
+    const webuiSettings = getRoomWebUISettings(room);
+    setSelectedFloors(webuiSettings?.crossSectionFloors ?? []);
+    setSelectedIcon(webuiSettings?.icon);
+    setSelectedColor(webuiSettings?.color);
+  }, [room]);
   
   // Store only the original values from backend (no defaults)
   const [originalSettings] = useState<RoomSettings>(settings ?? {});
