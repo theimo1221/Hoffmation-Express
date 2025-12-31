@@ -202,29 +202,58 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Etagen (Multi-Floor)</label>
-              <div className="space-y-2">
-                {floorDefinitions.map((floor) => (
-                  <label key={floor.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedFloors.includes(floor.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedFloors([...selectedFloors, floor.id]);
-                        } else {
-                          setSelectedFloors(selectedFloors.filter(id => id !== floor.id));
-                        }
-                      }}
-                      disabled={!isEditing}
-                      className="rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
-                    />
-                    <span className="text-sm">{floor.name}</span>
-                  </label>
-                ))}
-                {selectedFloors.length === 0 && (
-                  <p className="text-xs text-muted-foreground">Keine Auswahl = Automatisch aus Raum-Etage</p>
-                )}
-              </div>
+              <select
+                value=""
+                onChange={(e) => {
+                  const floorId = e.target.value;
+                  if (floorId && !selectedFloors.includes(floorId)) {
+                    setSelectedFloors([...selectedFloors, floorId]);
+                  }
+                }}
+                disabled={!isEditing}
+                className="w-full rounded-lg bg-secondary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              >
+                <option value="">Etage hinzufügen...</option>
+                {floorDefinitions
+                  .filter(floor => !selectedFloors.includes(floor.id))
+                  .map((floor) => (
+                    <option key={floor.id} value={floor.id}>
+                      {floor.name}
+                    </option>
+                  ))}
+              </select>
+              
+              {/* Selected floors as badges */}
+              {selectedFloors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedFloors.map((floorId) => {
+                    const floor = floorDefinitions.find(f => f.id === floorId);
+                    if (!floor) return null;
+                    return (
+                      <span
+                        key={floorId}
+                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
+                      >
+                        {floor.name}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFloors(selectedFloors.filter(id => id !== floorId))}
+                          disabled={!isEditing}
+                          className="ml-1 hover:bg-primary/20 rounded-full p-0.5 disabled:opacity-50"
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {selectedFloors.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-2">Keine Auswahl = Automatisch aus Raum-Etage</p>
+              )}
             </div>
             
             <div>
