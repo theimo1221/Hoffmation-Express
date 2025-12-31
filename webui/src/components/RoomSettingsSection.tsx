@@ -30,6 +30,9 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
   // Update WebUI settings when room changes
   useEffect(() => {
     const webuiSettings = getRoomWebUISettings(room);
+    console.log('RoomSettingsSection: Loading WebUI settings for room', getRoomName(room));
+    console.log('  customSettingsJson:', room.settings?.customSettingsJson);
+    console.log('  parsed webuiSettings:', webuiSettings);
     setSelectedFloors(webuiSettings?.crossSectionFloors ?? []);
     setSelectedIcon(webuiSettings?.icon);
     setSelectedColor(webuiSettings?.color);
