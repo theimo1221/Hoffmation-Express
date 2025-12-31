@@ -12,6 +12,30 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 - **API Proxy:** Target `http://hoffmation.hoffmation.com:3000`
 - **Backend Types:** `hoffmation-base` npm package
 
+## Recent Refactoring (31.12.2024)
+
+### deviceActions.ts Deduplikation
+- **Problem:** Alle 18 Control-Komponenten hatten identisches Boilerplate (234 Zeilen dupliziert)
+- **Lösung:** `executeDeviceAction` Wrapper - generischer Action Handler
+- **Ergebnis:** -400 Zeilen Code, konsistentes Error-Handling, 46% weniger Code pro Handler
+
+### RadialDeviceMenu Wrapper
+- **Problem:** RoomFloorPlanDetail hatte 70 Zeilen Handler-Logik + 13 Props für RadialMenu
+- **Lösung:** Self-contained `RadialDeviceMenu` Komponente mit internen Handlers
+- **Ergebnis:** Nur 6 Props nötig, -70 Zeilen in View, wiederverwendbar
+
+### toggleDevice Service
+- **Problem:** 5 spezifische Toggle-Handler in View (Verstoß gegen "Keine Business Logic in Views")
+- **Lösung:** Generische `toggleDevice()` Funktion in deviceActions.ts
+- **Ergebnis:** -60 Zeilen in View, Business Logic im Service Layer
+
+### Architektur-Verbesserungen
+- ✅ DRY-Prinzip: Keine Duplikation mehr durch Wrapper
+- ✅ Service Layer: Business Logic in `/lib/deviceActions.ts`
+- ✅ Self-Contained: RadialDeviceMenu verwaltet eigene Actions
+- ✅ Wiederverwendbar: Alle Komponenten können überall verwendet werden
+- ✅ Bundle: 419.40 kB (gzip: 118.53 kB)
+
 ## Key Files
 
 | File | Purpose |
@@ -21,12 +45,15 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 | `src/views/floorplan/` | Floor plan components (refactored) |
 | `src/views/floorplan/HouseCrossSection.tsx` | Floor selection view |
 | `src/views/floorplan/FloorPlan.tsx` | Floor detail + room editing |
-| `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning + Radial Menu |
+| `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning (uses RadialDeviceMenu) |
 | `src/views/floorplan/types.ts` | Shared interfaces |
 | `src/components/DeviceSettingsSection.tsx` | Device settings component |
 | `src/stores/dataStore.ts` | Zustand store for rooms/devices |
 | `src/stores/settingsStore.ts` | App settings (polling, dark mode, etc.) |
 | `src/api/devices.ts` | Device API functions (incl. setDevicePosition) |
+| `src/lib/deviceActions.ts` | Service layer for device actions (executeDeviceAction, toggleDevice) |
+| `src/stores/deviceStore.ts` | Device helpers (isToggleableDevice, hasCapability, etc.) |
+| `src/components/RadialDeviceMenu.tsx` | Self-contained radial menu wrapper |
 | `src/views/device/` | Refactored DeviceDetailView components |
 | `src/views/rooms/` | Refactored RoomsView components |
 | `src/components/RadialMenu.tsx` | Radial quick-action menu for floor plan |

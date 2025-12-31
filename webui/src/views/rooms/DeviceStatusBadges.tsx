@@ -1,37 +1,15 @@
 import type { Device } from '@/stores/dataStore';
+import { isDeviceUnreachable, DeviceCapability, hasCapability, getDeviceTemperature, getDeviceHandlePosition, isMotionDetected, getDeviceDetectionsToday, getDeviceValveLevel, getDeviceBrightness, getDeviceShutterLevel, isDeviceOn } from '@/stores/dataStore';
 
 interface DeviceStatusBadgesProps {
   device: Device;
 }
 
 export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
-  const capabilities = device.deviceCapabilities ?? [];
   const badges: React.ReactNode[] = [];
 
-  // Capability constants
-  const CAP_MOTION_SENSOR = 10;
-  const CAP_HEATER = 5;
-  const CAP_DIMMABLE = 9;
-  const CAP_LED = 18;
-  const CAP_LAMP = 8;
-  const CAP_SHUTTER = 11;
-  const CAP_TEMP_SENSOR = 12;
-  const CAP_ACTUATOR = 1;
-  const CAP_HANDLE_SENSOR = 15;
-  const CAP_BATTERY = 16;
-
-  // Check if device is unreachable
-  const isUnreachable = device.available === false || device._available === false;
-  const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
-  let isStale = false;
-  if (lastUpdateRaw) {
-    const lastUpdateDate = new Date(lastUpdateRaw);
-    const hoursSinceUpdate = (Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60);
-    isStale = hoursSinceUpdate > 1;
-  }
-
-  // Unreachable indicator (highest priority)
-  if (isUnreachable || isStale) {
+  // Unreachable indicator (highest priority) - use central function
+  if (isDeviceUnreachable(device)) {
     badges.push(
       <span key="unreachable" className="text-xs font-bold text-red-500">
         OFFLINE
@@ -41,7 +19,7 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
 
   // Battery level (show if device has battery capability or batteryLevel property)
   const batteryLevel = device.battery?.level ?? device.batteryLevel;
-  if (capabilities.includes(CAP_BATTERY) || batteryLevel !== undefined) {
+  if (hasCapability(device, DeviceCapability.batteryDriven) || batteryLevel !== undefined) {
     if (batteryLevel !== undefined && batteryLevel >= 0) {
       const batteryColor = batteryLevel < 20 ? 'text-red-500' : batteryLevel < 50 ? 'text-orange-500' : 'text-green-500';
       badges.push(
@@ -53,8 +31,8 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Window handle sensor: show position (priority over temp)
-  if (capabilities.includes(CAP_HANDLE_SENSOR)) {
-    const position = device.handleSensor?.position ?? device.position ?? -1;
+  if (hasCapability(device, DeviceCapability.handleSensor)) {
+    const position = getDeviceHandlePosition(device);
     if (position >= 0) {
       const positionText = position === 0 ? 'Geschlossen' : position === 1 ? 'Gekippt' : 'Offen';
       const positionColor = position === 0 ? 'text-green-500' : position === 1 ? 'text-orange-500' : 'text-red-500';
@@ -67,9 +45,9 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Motion sensor: show active status and detections today
-  if (capabilities.includes(CAP_MOTION_SENSOR)) {
-    const movementDetected = device.movementDetected ?? device._movementDetected ?? false;
-    const detectionsToday = device._detectionsToday ?? device.detectionsToday ?? -1;
+  if (hasCapability(device, DeviceCapability.motionSensor)) {
+    const movementDetected = isMotionDetected(device);
+    const detectionsToday = getDeviceDetectionsToday(device);
     
     if (movementDetected) {
       badges.push(
@@ -88,13 +66,13 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Heater: show ist/soll temps and valve level
-  if (capabilities.includes(CAP_HEATER)) {
-    const istTemp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  if (hasCapability(device, DeviceCapability.heater)) {
+    const istTemp = getDeviceTemperature(device);
     const sollTemp = device.desiredTemp ?? device._desiredTemperatur ?? -99;
-    const valveLevel = (device._level ?? -0.01) * 100;
+    const valveLevel = getDeviceValveLevel(device);
     
     const parts: string[] = [];
-    if (istTemp !== undefined && istTemp !== -99) {
+    if (istTemp !== undefined) {
       parts.push(`${istTemp.toFixed(1)}°`);
     }
     if (sollTemp !== -99) {
@@ -114,9 +92,9 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Temperature sensor (only if not a heater - heater already shows temp)
-  if (capabilities.includes(CAP_TEMP_SENSOR) && !capabilities.includes(CAP_HEATER) && !capabilities.includes(CAP_HANDLE_SENSOR)) {
-    const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
-    if (temp !== undefined && temp !== -99) {
+  if (hasCapability(device, DeviceCapability.temperatureSensor) && !hasCapability(device, DeviceCapability.heater) && !hasCapability(device, DeviceCapability.handleSensor)) {
+    const temp = getDeviceTemperature(device);
+    if (temp !== undefined) {
       badges.push(
         <span key="temp" className="text-xs text-muted-foreground">
           {temp.toFixed(1)}°C
@@ -126,9 +104,9 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Dimmable lamp: show brightness
-  if (capabilities.includes(CAP_DIMMABLE) && !capabilities.includes(CAP_LED)) {
-    const brightness = device.brightness ?? device._brightness ?? -1;
-    const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+  if (hasCapability(device, DeviceCapability.dimmableLamp) && !hasCapability(device, DeviceCapability.ledLamp)) {
+    const brightness = getDeviceBrightness(device);
+    const isOn = isDeviceOn(device);
     if (isOn) {
       badges.push(
         <span key="dimmer" className="text-xs text-green-500">
@@ -145,10 +123,10 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // LED: show color and brightness
-  if (capabilities.includes(CAP_LED)) {
-    const brightness = device.brightness ?? device._brightness ?? -1;
+  if (hasCapability(device, DeviceCapability.ledLamp)) {
+    const brightness = getDeviceBrightness(device);
     const color = device._color ?? '';
-    const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+    const isOn = isDeviceOn(device);
     if (isOn) {
       badges.push(
         <span key="led" className="flex items-center gap-1 text-xs text-green-500">
@@ -171,8 +149,8 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Simple lamp: show on/off
-  if (capabilities.includes(CAP_LAMP) && !capabilities.includes(CAP_DIMMABLE) && !capabilities.includes(CAP_LED)) {
-    const isOn = device.lightOn ?? device._lightOn ?? false;
+  if (hasCapability(device, DeviceCapability.lamp) && !hasCapability(device, DeviceCapability.dimmableLamp) && !hasCapability(device, DeviceCapability.ledLamp)) {
+    const isOn = isDeviceOn(device);
     badges.push(
       <span key="lamp" className={`text-xs ${isOn ? 'text-green-500' : 'text-gray-400'}`}>
         {isOn ? 'An' : 'Aus'}
@@ -181,16 +159,8 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Shutter: show level (0-100 or 0-1 depending on device)
-  if (capabilities.includes(CAP_SHUTTER)) {
-    let level = device._currentLevel ?? -1;
-    // Normalize level to 0-100 range
-    if (level > 1 && level <= 100) {
-      // Already in 0-100 range
-    } else if (level >= 0 && level <= 1) {
-      level = level * 100;
-    } else {
-      level = -1; // Invalid
-    }
+  if (hasCapability(device, DeviceCapability.shutter)) {
+    const level = getDeviceShutterLevel(device);
     
     if (level >= 0 && level <= 100) {
       badges.push(
@@ -203,11 +173,11 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
 
   // Actuator (not lamp/dimmer/led): show on/off
   // Skip if device has any light capability - those are handled above
-  if (capabilities.includes(CAP_ACTUATOR) && 
-      !capabilities.includes(CAP_LAMP) && 
-      !capabilities.includes(CAP_DIMMABLE) && 
-      !capabilities.includes(CAP_LED)) {
-    const isOn = device.actuatorOn ?? device._actuatorOn ?? false;
+  if (hasCapability(device, DeviceCapability.actuator) && 
+      !hasCapability(device, DeviceCapability.lamp) && 
+      !hasCapability(device, DeviceCapability.dimmableLamp) && 
+      !hasCapability(device, DeviceCapability.ledLamp)) {
+    const isOn = isDeviceOn(device);
     badges.push(
       <span key="actuator" className={`text-xs ${isOn ? 'text-green-500' : 'text-gray-400'}`}>
         {isOn ? 'An' : 'Aus'}

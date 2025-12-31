@@ -1,17 +1,29 @@
+import { useState } from 'react';
 import { Blinds } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { setShutter } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 
-interface ShutterControlsProps {
-  isLoading: boolean;
-  currentLevel: number;
-  desiredPosition: number;
-  setDesiredPosition: (value: number) => void;
-  onSetShutter: (level: number) => Promise<void>;
+interface ShutterQuickControlsProps {
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function ShutterQuickControls({
-  isLoading,
-  onSetShutter,
-}: Pick<ShutterControlsProps, 'isLoading' | 'onSetShutter'>) {
+export function ShutterQuickControls({ device, onUpdate }: ShutterQuickControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleSetShutter = async (level: number) => {
+    if (!device.id) return;
+    setIsLoading(true);
+    try {
+      await setShutter(device.id, level);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await onUpdate();
+    } catch (e) {
+      console.error('Failed to set shutter:', e);
+    }
+    setIsLoading(false);
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -21,21 +33,21 @@ export function ShutterQuickControls({
       <div className="rounded-2xl bg-card p-4 shadow-soft">
         <div className="grid grid-cols-3 gap-2">
           <button
-            onClick={() => onSetShutter(0)}
+            onClick={() => handleSetShutter(0)}
             disabled={isLoading}
             className="rounded-xl bg-secondary py-3 font-medium transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
           >
             Zu
           </button>
           <button
-            onClick={() => onSetShutter(50)}
+            onClick={() => handleSetShutter(50)}
             disabled={isLoading}
             className="rounded-xl bg-secondary py-3 font-medium transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
           >
             50%
           </button>
           <button
-            onClick={() => onSetShutter(100)}
+            onClick={() => handleSetShutter(100)}
             disabled={isLoading}
             className="rounded-xl bg-secondary py-3 font-medium transition-all hover:bg-accent active:scale-95 disabled:opacity-50"
           >
@@ -47,13 +59,24 @@ export function ShutterQuickControls({
   );
 }
 
-export function ShutterPositionControls({
-  isLoading,
-  currentLevel,
-  desiredPosition,
-  setDesiredPosition,
-  onSetShutter,
-}: ShutterControlsProps) {
+interface ShutterPositionControlsProps {
+  device: Device;
+  onUpdate: () => Promise<void>;
+}
+
+export function ShutterPositionControls({ device, onUpdate }: ShutterPositionControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const currentLevel = device._currentLevel ?? -1;
+  const [desiredPosition, setDesiredPosition] = useState(Math.round(currentLevel >= 0 ? currentLevel : 0));
+  
+  const handleSetShutter = async (level: number) => {
+    await executeDeviceAction(
+      device,
+      (id) => setShutter(id, level),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -81,7 +104,7 @@ export function ShutterPositionControls({
           />
         </div>
         <button
-          onClick={() => onSetShutter(desiredPosition)}
+          onClick={() => handleSetShutter(desiredPosition)}
           disabled={isLoading}
           className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all active:scale-95 disabled:opacity-50"
         >

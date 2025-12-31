@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useDataStore, type Device, getDeviceRoom, getDeviceName } from '@/stores/dataStore';
-import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, WifiOff, BatteryLow, ChevronRight, ChevronDown } from 'lucide-react';
-import { setLamp, setShutter, setActuator } from '@/api/devices';
+import { useDataStore, type Device, getDeviceRoom, getDeviceName, getRoomEtage, getRoomName, isDeviceUnreachable, isDeviceOn, isLampDevice, isShutterDevice, isActuatorDevice, isTempSensorDevice, getDeviceTemperature, getDeviceShutterLevel } from '@/stores/dataStore';
+import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, WifiOff, BatteryLow, ChevronRight, ChevronDown, Printer } from 'lucide-react';
+import { setLamp, setActuator, setShutter } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 
@@ -25,6 +26,205 @@ export function FavoritesView() {
   const [showUnreachable, setShowUnreachable] = useState(false);
   const [showLowBattery, setShowLowBattery] = useState(false);
 
+  const handlePrintUnreachable = () => {
+    // Group devices by floor
+    const { rooms } = useDataStore.getState();
+    const devicesByFloor: Record<number, Array<{ device: Device; roomName: string; floor: number }>> = {};
+
+    unreachableDevices.forEach((device) => {
+      const deviceRoomName = getDeviceRoom(device);
+      
+      // Find room by matching device's room name with getRoomName(room)
+      // This matches the logic used throughout the app (e.g., in FloorPlan, RoomDetail)
+      const room = Object.values(rooms).find((r) => {
+        return getRoomName(r).toLowerCase() === deviceRoomName.toLowerCase();
+      });
+      
+      // Use getRoomEtage() which already handles all the logic
+      const floor = room ? getRoomEtage(room) : 99;
+
+      if (!devicesByFloor[floor]) {
+        devicesByFloor[floor] = [];
+      }
+      devicesByFloor[floor].push({ device, roomName: deviceRoomName, floor });
+    });
+
+    // Create print content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const sortedFloors = Object.keys(devicesByFloor).map(Number).sort((a, b) => b - a);
+    
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Unerreichbare Geräte - Todo Liste</title>
+        <style>
+          @media print {
+            @page { margin: 1.5cm; }
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.3;
+            color: #333;
+            font-size: 10pt;
+            margin: 0;
+            padding: 0;
+          }
+          h1 {
+            color: #dc2626;
+            border-bottom: 2px solid #dc2626;
+            padding-bottom: 5px;
+            margin: 0 0 10px 0;
+            font-size: 16pt;
+          }
+          .summary {
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 20px;
+            font-size: 9pt;
+          }
+          h2 {
+            color: #1f2937;
+            margin: 15px 0 8px 0;
+            font-size: 12pt;
+            font-weight: 600;
+          }
+          .page-break {
+            page-break-before: always;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+          }
+          th {
+            background: #f3f4f6;
+            padding: 6px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #d1d5db;
+          }
+          td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          tr:hover {
+            background: #f9fafb;
+          }
+          .checkbox-col {
+            width: 30px;
+            text-align: center;
+          }
+          .room-col {
+            width: 25%;
+          }
+          .device-col {
+            width: auto;
+          }
+          .checkbox {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid #9ca3af;
+            border-radius: 2px;
+            display: inline-block;
+          }
+          .device-icon {
+            margin-right: 4px;
+          }
+          .print-date {
+            color: #6b7280;
+            font-size: 8pt;
+            margin-top: 15px;
+            text-align: right;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>🔴 Unerreichbare Geräte</h1>
+        <div class="summary">
+          <span><strong>Geräte:</strong> ${unreachableDevices.length}</span>
+          <span><strong>Etagen:</strong> ${sortedFloors.length}</span>
+          <span><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</span>
+        </div>
+    `;
+
+    sortedFloors.forEach((floor, index) => {
+      const floorName = floor === 0 ? 'Erdgeschoss' : floor === 1 ? '1. Obergeschoss' : floor === 2 ? '2. Obergeschoss' : `Etage ${floor}`;
+      // Add page break before each floor except the first one
+      const pageBreakClass = index > 0 ? ' class="page-break"' : '';
+      html += `<h2${pageBreakClass}>📍 ${floorName}</h2>`;
+      html += `
+        <table>
+          <thead>
+            <tr>
+              <th class="checkbox-col">✓</th>
+              <th class="room-col">Raum</th>
+              <th class="device-col">Gerät</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // Sort by room name
+      const sortedDevices = devicesByFloor[floor].sort((a, b) => a.roomName.localeCompare(b.roomName));
+      
+      sortedDevices.forEach(({ device, roomName }) => {
+        const deviceName = getDeviceName(device);
+        const capabilities = device.deviceCapabilities ?? [];
+        
+        // Determine icon based on capabilities
+        let icon = '📱'; // Default
+        if (capabilities.includes(10)) icon = '👤'; // Motion sensor
+        else if (capabilities.includes(12)) icon = '🌡️'; // Temperature sensor
+        else if (capabilities.includes(15)) icon = '🚪'; // Handle sensor
+        else if (capabilities.includes(8) || capabilities.includes(9) || capabilities.includes(18)) icon = '💡'; // Lamp/LED
+        else if (capabilities.includes(11)) icon = '🪟'; // Shutter
+        else if (capabilities.includes(1)) icon = '🔌'; // Actuator
+        else if (capabilities.includes(5)) icon = '🔥'; // Heater
+        else if (capabilities.includes(0)) icon = '❄️'; // AC
+        else if (capabilities.includes(14)) icon = '🔊'; // Speaker
+        else if (capabilities.includes(6)) icon = '💧'; // Humidity
+        else if (capabilities.includes(7)) icon = '☁️'; // CO2
+        else if (capabilities.includes(103)) icon = '⚡'; // Scene
+        
+        html += `
+          <tr>
+            <td class="checkbox-col"><span class="checkbox"></span></td>
+            <td class="room-col">${roomName}</td>
+            <td class="device-col"><span class="device-icon">${icon}</span>${deviceName}</td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+    });
+
+    html += `
+        <div class="print-date">
+          Erstellt am ${new Date().toLocaleString('de-DE')}
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -35,23 +235,8 @@ export function FavoritesView() {
     (d) => d.id && favoriteIds.includes(d.id)
   );
 
-  // Unreachable devices: Zigbee devices with available === false or lastUpdate > 1 hour
-  const unreachableDevices = allDevices.filter((d) => {
-    // Check available flag (Zigbee devices)
-    if (d.available === false || d._available === false) return true;
-    
-    // Check lastUpdate - if older than 1 hour, consider unreachable
-    const lastUpdateRaw = d.lastUpdate ?? d._lastUpdate;
-    if (lastUpdateRaw) {
-      const lastUpdateDate = new Date(lastUpdateRaw);
-      if (!isNaN(lastUpdateDate.getTime()) && lastUpdateDate.getTime() > 0) {
-        const diffMs = Date.now() - lastUpdateDate.getTime();
-        const diffHours = diffMs / 3600000;
-        if (diffHours > 1) return true;
-      }
-    }
-    return false;
-  });
+  // Unreachable devices: Use central isDeviceUnreachable() function
+  const unreachableDevices = allDevices.filter(isDeviceUnreachable);
 
   // Low battery devices: batteryLevel < 20%
   const lowBatteryDevices = allDevices.filter((d) => {
@@ -80,16 +265,26 @@ export function FavoritesView() {
           {/* Unreachable Devices Section */}
         {unreachableDevices.length > 0 && (
           <section className="mb-6">
-            <button
-              onClick={() => setShowUnreachable(!showUnreachable)}
-              className="w-full flex items-center justify-between mb-3"
-            >
-              <h2 className="text-sm font-medium uppercase text-red-500 flex items-center gap-2">
-                <WifiOff className="h-4 w-4" />
-                Unerreichbare Geräte ({unreachableDevices.length})
-              </h2>
-              {showUnreachable ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            </button>
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={() => setShowUnreachable(!showUnreachable)}
+                className="flex items-center gap-2 flex-1"
+              >
+                <h2 className="text-sm font-medium uppercase text-red-500 flex items-center gap-2">
+                  <WifiOff className="h-4 w-4" />
+                  Unerreichbare Geräte ({unreachableDevices.length})
+                </h2>
+                {showUnreachable ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </button>
+              <button
+                onClick={handlePrintUnreachable}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-secondary hover:bg-accent transition-colors"
+                title="Todo-Liste drucken"
+              >
+                <Printer className="h-4 w-4" />
+                Drucken
+              </button>
+            </div>
             
             {showUnreachable && (
               <div className="space-y-2">
@@ -206,66 +401,42 @@ function DeviceQuickCard({ device, onSelect }: DeviceQuickCardProps) {
   const { fetchDevice } = useDataStore();
   const [isLoading, setIsLoading] = useState(false);
   
-  const info = device.info ?? device._info;
-  const name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
+  const name = getDeviceName(device);
   const room = getDeviceRoom(device);
-  const isOn = device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
-  const capabilities = device.deviceCapabilities ?? [];
+  const isOn = isDeviceOn(device);
   
-  // Capability constants (from hoffmation-base DeviceCapability enum)
-  const CAP_ACTUATOR = 1;
-  const CAP_LAMP = 8;
-  const CAP_DIMMABLE = 9;
-  const CAP_SHUTTER = 11;
-  const CAP_TEMP_SENSOR = 12;
-  const CAP_LED = 18;
-  
-  const hasLamp = capabilities.includes(CAP_LAMP) || capabilities.includes(CAP_DIMMABLE) || capabilities.includes(CAP_LED);
-  const hasShutter = capabilities.includes(CAP_SHUTTER);
-  const hasActuator = capabilities.includes(CAP_ACTUATOR) && !hasLamp;
-  const hasTemp = capabilities.includes(CAP_TEMP_SENSOR);
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
-  const currentLevel = device._currentLevel ?? -1;
-
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const hasLamp = isLampDevice(device);
+  const hasShutter = isShutterDevice(device);
+  const hasActuator = isActuatorDevice(device) && !hasLamp;
+  const hasTemp = isTempSensorDevice(device);
+  const temp = getDeviceTemperature(device);
+  const currentLevel = getDeviceShutterLevel(device);
 
   const handleToggleLamp = async () => {
-    if (!device.id) return;
-    setIsLoading(true);
-    try {
-      await setLamp(device.id, !isOn);
-      await delay(300);
-      await fetchDevice(device.id);
-    } catch (e) {
-      console.error('Failed to toggle lamp:', e);
-    }
-    setIsLoading(false);
+    await executeDeviceAction(
+      device,
+      (id) => setLamp(id, !isOn),
+      async () => { if (device.id) await fetchDevice(device.id); },
+      setIsLoading
+    );
   };
 
   const handleToggleActuator = async () => {
-    if (!device.id) return;
-    setIsLoading(true);
-    try {
-      await setActuator(device.id, !isOn);
-      await delay(300);
-      await fetchDevice(device.id);
-    } catch (e) {
-      console.error('Failed to toggle actuator:', e);
-    }
-    setIsLoading(false);
+    await executeDeviceAction(
+      device,
+      (id) => setActuator(id, !isOn),
+      async () => { if (device.id) await fetchDevice(device.id); },
+      setIsLoading
+    );
   };
 
   const handleShutter = async (level: number) => {
-    if (!device.id) return;
-    setIsLoading(true);
-    try {
-      await setShutter(device.id, level);
-      await delay(300);
-      await fetchDevice(device.id);
-    } catch (e) {
-      console.error('Failed to set shutter:', e);
-    }
-    setIsLoading(false);
+    await executeDeviceAction(
+      device,
+      (id) => setShutter(id, level),
+      async () => { if (device.id) await fetchDevice(device.id); },
+      setIsLoading
+    );
   };
 
   return (

@@ -1,23 +1,31 @@
+import { useState } from 'react';
 import { Thermometer, Droplets, Snowflake, Flame } from 'lucide-react';
 import type { TemperatureHistoryEntry } from '@/api/devices';
+import type { Device } from '@/stores/dataStore';
+import { getDeviceValveLevel, getDeviceTemperature, getDeviceDesiredTemp, getDeviceHumidity } from '@/stores/deviceStore';
+import { getTemperatureHistory } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface TemperatureControlsProps {
-  temperature: number;
-  humidity: number;
-  showHistory: boolean;
-  setShowHistory: (value: boolean) => void;
-  tempHistory: TemperatureHistoryEntry[];
-  onLoadHistory: () => Promise<void>;
+  device: Device;
 }
 
-export function TemperatureControls({
-  temperature,
-  humidity,
-  showHistory,
-  setShowHistory,
-  tempHistory,
-  onLoadHistory,
-}: TemperatureControlsProps) {
+export function TemperatureControls({ device }: TemperatureControlsProps) {
+  const [showHistory, setShowHistory] = useState(false);
+  const [tempHistory, setTempHistory] = useState<TemperatureHistoryEntry[]>([]);
+  
+  const temperature = getDeviceTemperature(device) ?? -99;
+  const humidity = getDeviceHumidity(device) ?? -1;
+  
+  const handleLoadHistory = async () => {
+    if (!device.id) return;
+    try {
+      const history = await getTemperatureHistory(device.id);
+      setTempHistory(history);
+    } catch (e) {
+      console.error('Failed to load temperature history:', e);
+    }
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -46,7 +54,7 @@ export function TemperatureControls({
         <button
           onClick={async () => {
             if (!showHistory) {
-              await onLoadHistory();
+              await handleLoadHistory();
             }
             setShowHistory(!showHistory);
           }}
@@ -100,23 +108,30 @@ export function TemperatureControls({
   );
 }
 
+import { isDeviceOn, getAcMode } from '@/stores/deviceStore';
+import { setAc } from '@/api/devices';
+
 interface AcControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  acMode: number;
-  desiredTemp: number;
-  roomTemp: number;
-  onAc: (power: boolean, mode?: number, temp?: number) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function AcControls({
-  isOn,
-  isLoading,
-  acMode,
-  desiredTemp,
-  roomTemp,
-  onAc,
-}: AcControlsProps) {
+export function AcControls({ device, onUpdate }: AcControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const isOn = isDeviceOn(device);
+  const acMode = getAcMode(device);
+  const desiredTemp = getDeviceDesiredTemp(device);
+  const roomTemp = getDeviceTemperature(device) ?? -99;
+  
+  const handleAc = async (power: boolean, mode?: number, tempVal?: number) => {
+    await executeDeviceAction(
+      device,
+      (id) => setAc(id, power, mode, tempVal),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -136,7 +151,7 @@ export function AcControls({
           <span className="text-muted-foreground">Modus</span>
           <select
             value={acMode}
-            onChange={(e) => onAc(true, Number(e.target.value))}
+            onChange={(e) => handleAc(true, Number(e.target.value))}
             disabled={isLoading}
             className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
           >
@@ -152,7 +167,7 @@ export function AcControls({
             <span className="text-muted-foreground">Zieltemperatur</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onAc(true, undefined, Math.max(16, desiredTemp - 0.5))}
+                onClick={() => handleAc(true, undefined, Math.max(16, desiredTemp - 0.5))}
                 disabled={isLoading}
                 className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
               >
@@ -160,7 +175,7 @@ export function AcControls({
               </button>
               <span className="font-medium w-14 text-center">{desiredTemp.toFixed(1)}°C</span>
               <button
-                onClick={() => onAc(true, undefined, Math.min(30, desiredTemp + 0.5))}
+                onClick={() => handleAc(true, undefined, Math.min(30, desiredTemp + 0.5))}
                 disabled={isLoading}
                 className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
               >
@@ -177,14 +192,14 @@ export function AcControls({
         )}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onAc(true)}
+            onClick={() => handleAc(true)}
             disabled={isLoading}
             className="rounded-xl bg-blue-500/20 text-blue-600 py-3 font-medium transition-all hover:bg-blue-500/30 active:scale-95 disabled:opacity-50"
           >
             Einschalten
           </button>
           <button
-            onClick={() => onAc(false)}
+            onClick={() => handleAc(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >
@@ -197,16 +212,13 @@ export function AcControls({
 }
 
 interface HeaterControlsProps {
-  valveLevel: number;
-  roomTemp: number;
-  desiredTemp: number;
+  device: Device;
 }
 
-export function HeaterControls({
-  valveLevel,
-  roomTemp,
-  desiredTemp,
-}: HeaterControlsProps) {
+export function HeaterControls({ device }: HeaterControlsProps) {
+  const valveLevel = getDeviceValveLevel(device);
+  const roomTemp = getDeviceTemperature(device) ?? -99;
+  const desiredTemp = getDeviceDesiredTemp(device);
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -238,10 +250,11 @@ export function HeaterControls({
 }
 
 interface HumiditySensorControlsProps {
-  humidity: number;
+  device: Device;
 }
 
-export function HumiditySensorControls({ humidity }: HumiditySensorControlsProps) {
+export function HumiditySensorControls({ device }: HumiditySensorControlsProps) {
+  const humidity = getDeviceHumidity(device) ?? -1;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

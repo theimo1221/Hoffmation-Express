@@ -1,5 +1,6 @@
 import { Zap, Clock } from 'lucide-react';
 import { type Device, getCapabilityNames } from '@/stores/dataStore';
+import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 
 interface BaseCommand {
   timestamp?: number | Date;
@@ -11,18 +12,6 @@ interface DeviceInfoProps {
   expertMode: boolean;
   showRawJson: boolean;
   setShowRawJson: (value: boolean) => void;
-  capabilities: number[];
-  hasTemp: boolean;
-  hasHumidity: boolean;
-  hasHeater: boolean;
-  hasMotion: boolean;
-  hasHandle: boolean;
-  hasLamp: boolean;
-  hasDimmable: boolean;
-  hasLed: boolean;
-  hasActuator: boolean;
-  hasShutter: boolean;
-  hasBattery: boolean;
 }
 
 export function DeviceInfo({
@@ -30,19 +19,20 @@ export function DeviceInfo({
   expertMode,
   showRawJson,
   setShowRawJson,
-  capabilities,
-  hasTemp,
-  hasHumidity,
-  hasHeater,
-  hasMotion,
-  hasHandle,
-  hasLamp,
-  hasDimmable,
-  hasLed,
-  hasActuator,
-  hasShutter,
-  hasBattery,
 }: DeviceInfoProps) {
+  // Extract capabilities from device itself
+  const capabilities = device.deviceCapabilities ?? [];
+  const hasTemp = hasCapability(device, DeviceCapability.temperatureSensor);
+  const hasHumidity = hasCapability(device, DeviceCapability.humiditySensor);
+  const hasHeater = hasCapability(device, DeviceCapability.heater);
+  const hasMotion = hasCapability(device, DeviceCapability.motionSensor);
+  const hasHandle = hasCapability(device, DeviceCapability.handleSensor);
+  const hasLamp = hasCapability(device, DeviceCapability.lamp);
+  const hasDimmable = hasCapability(device, DeviceCapability.dimmableLamp);
+  const hasLed = hasCapability(device, DeviceCapability.ledLamp);
+  const hasActuator = hasCapability(device, DeviceCapability.actuator);
+  const hasShutter = hasCapability(device, DeviceCapability.shutter);
+  const hasBattery = hasCapability(device, DeviceCapability.batteryDriven);
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

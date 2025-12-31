@@ -1,28 +1,42 @@
+import { useState } from 'react';
 import { Lightbulb } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isDeviceOn, getDeviceBrightness } from '@/stores/deviceStore';
+import { setDimmer } from '@/api/devices';
+import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface DimmerControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  brightness: number;
-  desiredBrightness: number;
-  setDesiredBrightness: (value: number) => void;
-  forceDuration: number;
-  setForceDuration: (value: number) => void;
-  onDimmer: (state: boolean, brightness: number) => Promise<void>;
-  onForce: (state: boolean) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function DimmerControls({
-  isOn,
-  isLoading,
-  brightness,
-  desiredBrightness,
-  setDesiredBrightness,
-  forceDuration,
-  setForceDuration,
-  onDimmer,
-  onForce,
-}: DimmerControlsProps) {
+export function DimmerControls({ device, onUpdate }: DimmerControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [forceDuration, setForceDuration] = useState(60);
+  const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
+  
+  const isOn = isDeviceOn(device);
+  const brightness = getDeviceBrightness(device);
+  
+  const handleDimmer = async (state: boolean, bright: number) => {
+    const durationMs = calculateDuration(forceDuration);
+    await executeDeviceAction(
+      device,
+      (id) => setDimmer(id, state, bright, durationMs),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  const handleForceDimmer = async (state: boolean) => {
+    const durationMs = calculateDuration(forceDuration);
+    await executeDeviceAction(
+      device,
+      (id) => setDimmer(id, state, desiredBrightness, durationMs),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -69,7 +83,7 @@ export function DimmerControls({
           />
         </div>
         <button
-          onClick={() => onDimmer(true, desiredBrightness)}
+          onClick={() => handleDimmer(true, desiredBrightness)}
           disabled={isLoading}
           className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all active:scale-95 disabled:opacity-50"
         >
@@ -77,14 +91,14 @@ export function DimmerControls({
         </button>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onForce(true)}
+            onClick={() => handleForceDimmer(true)}
             disabled={isLoading}
             className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
             Force An
           </button>
           <button
-            onClick={() => onForce(false)}
+            onClick={() => handleForceDimmer(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >

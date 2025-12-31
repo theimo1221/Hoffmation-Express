@@ -63,6 +63,80 @@ The floor plan route should be designed so that a 4-year-old child without readi
 
 ---
 
+## Architecture Principles
+
+### Separation of Concerns - Business Logic
+
+**Wichtig:** Geschäftslogik hat nichts in Views verloren und sollte in wiederverwendbaren Objekten/Services/Stores sein, damit mehrere Views diese nutzen können.
+
+**Prinzipien:**
+- ✅ **Views sind "dumm"** - Nur Präsentation und User Interaction
+- ✅ **Business Logic in Services** - Wiederverwendbar über mehrere Views
+- ✅ **State Management in Stores** - Zustand zentral verwalten (Zustand)
+- ✅ **API Calls in API Layer** - `/api/` Ordner für alle Backend-Kommunikation
+- ✅ **Utilities in `/lib/`** - Helper-Funktionen und gemeinsame Logik
+- ✅ **Tell, Don't Ask** - Komponenten bekommen Objekte, nicht extrahierte Werte
+- ✅ **Self-Contained Components** - Komponenten verwalten ihren eigenen State
+- ✅ **Single Responsibility** - Jede Komponente/Service macht eine Sache
+- ✅ **DRY-Prinzip** - Keine Duplikation von Business Logic (Wrapper verwenden)
+- ✅ **Service Layer** - Komplexe Business Logic in `/lib/deviceActions.ts`
+
+**Beispiel - Refactoring von DeviceDetailView (Dez 2024):**
+- **Vorher:** 12 Handler-Funktionen in View, 16 State-Variablen, 400+ Zeilen
+- **Nachher:** Alle Handler in Control-Komponenten, nur `device` prop, ~250 Zeilen
+- **Ergebnis:** 18 self-contained Control-Komponenten, 70% weniger Props, wiederverwendbar
+
+**Refactoring Session 31.12.2024:**
+- **deviceActions.ts Deduplikation:** Alle 18 Controls verwendeten identisches Boilerplate (234 Zeilen dupliziert)
+  - **Lösung:** `executeDeviceAction` Wrapper - generischer Action Handler mit Delay & Refresh
+  - **Ergebnis:** -400 Zeilen Boilerplate, konsistentes Error-Handling überall
+- **RadialDeviceMenu Wrapper:** Self-contained Komponente statt 13 Props
+  - **Vorher:** 13 Handler-Callbacks als Props (onLampOn, onLampOff, etc.)
+  - **Nachher:** Nur 6 Props (device, onClose, onDetails, position, deviceName, isOpen)
+  - **Ergebnis:** -70 Zeilen in RoomFloorPlanDetail, wiederverwendbare Komponente
+- **toggleDevice Service:** Business Logic aus View in Service verschoben
+  - **Vorher:** 5 spezifische Toggle-Handler in View (60 Zeilen)
+  - **Nachher:** 1 generische `toggleDevice()` Funktion in deviceActions.ts
+  - **Ergebnis:** Architektur-Prinzip "Keine Business Logic in Views" eingehalten
+
+**Anti-Pattern vermeiden:**
+```typescript
+// ❌ Schlecht: Business Logic in View
+function DeviceView({ deviceId }) {
+  const [brightness, setBrightness] = useState(0);
+  const handleDimmer = async (value) => {
+    await fetch(`/api/dimmer/${deviceId}`, { ... });
+    setBrightness(value);
+  };
+  return <Slider onChange={handleDimmer} />;
+}
+
+// ✅ Gut: Business Logic in Service/Component (mit executeDeviceAction Wrapper)
+function DimmerControls({ device, onUpdate }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [brightness, setBrightness] = useState(getDeviceBrightness(device));
+  
+  const handleDimmer = async (value) => {
+    await executeDeviceAction(
+      device,
+      (id) => setDimmer(id, value),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  return <Slider value={brightness} onChange={handleDimmer} disabled={isLoading} />;
+}
+
+// ✅ Noch besser: Business Logic in Service Layer
+// View ruft nur Service auf:
+if (isToggleableDevice(device)) {
+  toggleDevice(device, onUpdate, setIsLoading);
+}
+```
+
+---
+
 ## TypeScript Configuration
 
 Based on backend `tsconfig.json`:

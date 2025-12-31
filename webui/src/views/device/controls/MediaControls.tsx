@@ -1,18 +1,27 @@
+import { useState } from 'react';
 import { Speaker, Play, Square, Camera } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isDeviceOn } from '@/stores/deviceStore';
+import { speakOnDevice, startScene, endScene } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface SpeakerControlsProps {
-  isLoading: boolean;
-  speakMessage: string;
-  setSpeakMessage: (value: string) => void;
-  onSpeak: (message: string) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function SpeakerControls({
-  isLoading,
-  speakMessage,
-  setSpeakMessage,
-  onSpeak,
-}: SpeakerControlsProps) {
+export function SpeakerControls({ device, onUpdate }: SpeakerControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [speakMessage, setSpeakMessage] = useState('');
+  
+  const handleSpeak = async (message: string) => {
+    await executeDeviceAction(
+      device,
+      (id) => speakOnDevice(id, message),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -28,7 +37,7 @@ export function SpeakerControls({
         />
         <button
           onClick={() => {
-            onSpeak(speakMessage);
+            handleSpeak(speakMessage);
             setSpeakMessage('');
           }}
           disabled={isLoading || !speakMessage.trim()}
@@ -42,20 +51,23 @@ export function SpeakerControls({
 }
 
 interface SceneControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  sceneTimeout: number;
-  setSceneTimeout: (value: number) => void;
-  onScene: (start: boolean, timeout?: number) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function SceneControls({
-  isOn,
-  isLoading,
-  sceneTimeout,
-  setSceneTimeout,
-  onScene,
-}: SceneControlsProps) {
+export function SceneControls({ device, onUpdate }: SceneControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [sceneTimeout, setSceneTimeout] = useState(0);
+  const isOn = isDeviceOn(device);
+  
+  const handleScene = async (start: boolean, timeout?: number) => {
+    await executeDeviceAction(
+      device,
+      (id) => start ? startScene(id, timeout) : endScene(id),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -90,7 +102,7 @@ export function SceneControls({
         )}
         {isOn ? (
           <button
-            onClick={() => onScene(false)}
+            onClick={() => handleScene(false)}
             disabled={isLoading}
             className="w-full rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >
@@ -99,7 +111,7 @@ export function SceneControls({
           </button>
         ) : (
           <button
-            onClick={() => onScene(true, sceneTimeout > 0 ? sceneTimeout : undefined)}
+            onClick={() => handleScene(true, sceneTimeout > 0 ? sceneTimeout : undefined)}
             disabled={isLoading}
             className="w-full rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
@@ -113,16 +125,13 @@ export function SceneControls({
 }
 
 interface CameraControlsProps {
-  cameraImageLink?: string;
-  h264StreamLink?: string;
-  mpegStreamLink?: string;
+  device: Device;
 }
 
-export function CameraControls({
-  cameraImageLink,
-  h264StreamLink,
-  mpegStreamLink,
-}: CameraControlsProps) {
+export function CameraControls({ device }: CameraControlsProps) {
+  const cameraImageLink = device.currentImageLink;
+  const h264StreamLink = device.h264IosStreamLink;
+  const mpegStreamLink = device.mpegStreamLink;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

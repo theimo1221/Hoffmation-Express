@@ -1,32 +1,43 @@
+import { useState } from 'react';
 import { Lightbulb } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isDeviceOn, getDeviceBrightness } from '@/stores/deviceStore';
+import { setLed } from '@/api/devices';
+import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface LedControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  brightness: number;
-  desiredBrightness: number;
-  setDesiredBrightness: (value: number) => void;
-  desiredColor: string;
-  setDesiredColor: (value: string) => void;
-  forceDuration: number;
-  setForceDuration: (value: number) => void;
-  onLed: (state: boolean, brightness: number, color: string) => Promise<void>;
-  onForceLed: (state: boolean) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function LedControls({
-  isOn,
-  isLoading,
-  brightness,
-  desiredBrightness,
-  setDesiredBrightness,
-  desiredColor,
-  setDesiredColor,
-  forceDuration,
-  setForceDuration,
-  onLed,
-  onForceLed,
-}: LedControlsProps) {
+export function LedControls({ device, onUpdate }: LedControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [forceDuration, setForceDuration] = useState(60);
+  const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
+  const [desiredColor, setDesiredColor] = useState(device._color ?? '#FFFFFF');
+  
+  const isOn = isDeviceOn(device);
+  const brightness = getDeviceBrightness(device);
+  
+  const handleLed = async (state: boolean, bright: number, color: string) => {
+    const durationMs = calculateDuration(forceDuration);
+    await executeDeviceAction(
+      device,
+      (id) => setLed(id, state, bright, color, durationMs),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  const handleForceLed = async (state: boolean) => {
+    const durationMs = calculateDuration(forceDuration);
+    await executeDeviceAction(
+      device,
+      (id) => setLed(id, state, desiredBrightness, desiredColor, durationMs),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -84,7 +95,7 @@ export function LedControls({
           />
         </div>
         <button
-          onClick={() => onLed(true, desiredBrightness, desiredColor)}
+          onClick={() => handleLed(true, desiredBrightness, desiredColor)}
           disabled={isLoading}
           className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all active:scale-95 disabled:opacity-50"
         >
@@ -92,14 +103,14 @@ export function LedControls({
         </button>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onForceLed(true)}
+            onClick={() => handleForceLed(true)}
             disabled={isLoading}
             className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
             Force An
           </button>
           <button
-            onClick={() => onForceLed(false)}
+            onClick={() => handleForceLed(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >

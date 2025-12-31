@@ -15,6 +15,7 @@ import {
   type SpeakerSettings,
   type DachsSettings,
 } from '@/stores/dataStore';
+import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 import { updateDeviceSettings } from '@/api/devices';
 
 interface DeviceSettingsSectionProps {
@@ -22,40 +23,24 @@ interface DeviceSettingsSectionProps {
   onUpdate: () => void;
 }
 
-// Capability constants from hoffmation-base
-const CAP_AC = 0;
-const CAP_ACTUATOR = 1;
-const CAP_HEATER = 5;
-const CAP_LAMP = 8;
-const CAP_DIMMABLE = 9;
-const CAP_MOTION_SENSOR = 10;
-const CAP_SHUTTER = 11;
-const CAP_SPEAKER = 14;
-const CAP_HANDLE = 15;
-const CAP_LED = 18;
-const CAP_SCENE = 103;
-const CAP_CAMERA = 105;
-
 export function DeviceSettingsSection({ device, onUpdate }: DeviceSettingsSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const capabilities = device.deviceCapabilities ?? [];
-  
-  // Capability checks
-  const isActuator = capabilities.includes(CAP_ACTUATOR);
-  const isLamp = capabilities.includes(CAP_LAMP);
-  const isDimmable = capabilities.includes(CAP_DIMMABLE);
-  const isLed = capabilities.includes(CAP_LED);
+  // Capability checks using central functions
+  const isActuator = hasCapability(device, DeviceCapability.actuator);
+  const isLamp = hasCapability(device, DeviceCapability.lamp);
+  const isDimmable = hasCapability(device, DeviceCapability.dimmableLamp);
+  const isLed = hasCapability(device, DeviceCapability.ledLamp);
   const isLampOrActuator = isLamp || isDimmable || isLed || isActuator;
-  const isShutter = capabilities.includes(CAP_SHUTTER);
-  const isHeater = capabilities.includes(CAP_HEATER);
-  const isAc = capabilities.includes(CAP_AC);
-  const isHandle = capabilities.includes(CAP_HANDLE);
-  const isCamera = capabilities.includes(CAP_CAMERA);
-  const isMotionSensor = capabilities.includes(CAP_MOTION_SENSOR);
-  const isScene = capabilities.includes(CAP_SCENE);
-  const isSpeaker = capabilities.includes(CAP_SPEAKER);
+  const isShutter = hasCapability(device, DeviceCapability.shutter);
+  const isHeater = hasCapability(device, DeviceCapability.heater);
+  const isAc = hasCapability(device, DeviceCapability.ac);
+  const isHandle = hasCapability(device, DeviceCapability.handleSensor);
+  const isCamera = hasCapability(device, DeviceCapability.camera);
+  const isMotionSensor = hasCapability(device, DeviceCapability.motionSensor);
+  const isScene = hasCapability(device, DeviceCapability.scene);
+  const isSpeaker = hasCapability(device, DeviceCapability.speaker);
   
   // Get settings from device
   // Settings can be: device.settings.X (nested) OR device.settings directly (flat) OR device.X

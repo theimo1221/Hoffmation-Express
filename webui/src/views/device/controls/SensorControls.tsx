@@ -1,9 +1,9 @@
 import { Eye, DoorOpen } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isMotionDetected, getDeviceDetectionsToday } from '@/stores/deviceStore';
 
 interface MotionSensorControlsProps {
-  movementDetected: boolean;
-  detectionsToday: number;
-  timeSinceLastMotion: number;
+  device: Device;
 }
 
 function formatTimeSinceMotion(seconds: number): string {
@@ -13,11 +13,10 @@ function formatTimeSinceMotion(seconds: number): string {
   return `${(seconds / 60).toFixed(1)} min`;
 }
 
-export function MotionSensorControls({
-  movementDetected,
-  detectionsToday,
-  timeSinceLastMotion,
-}: MotionSensorControlsProps) {
+export function MotionSensorControls({ device }: MotionSensorControlsProps) {
+  const movementDetected = isMotionDetected(device);
+  const detectionsToday = getDeviceDetectionsToday(device);
+  const timeSinceLastMotion = device._timeSinceLastMotion ?? -1;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -49,14 +48,15 @@ export function MotionSensorControls({
 }
 
 interface HandleSensorControlsProps {
-  position: number;
+  device: Device;
 }
 
 const handlePositionNames: Record<number, string> = {
   0: 'Geschlossen', 1: 'Gekippt', 2: 'Offen', [-1]: 'Unbekannt'
 };
 
-export function HandleSensorControls({ position }: HandleSensorControlsProps) {
+export function HandleSensorControls({ device }: HandleSensorControlsProps) {
+  const position = device.position ?? device.handleSensor?.position ?? -1;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

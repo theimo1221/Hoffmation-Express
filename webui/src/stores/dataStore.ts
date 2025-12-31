@@ -520,6 +520,178 @@ export function hasCapability(device: Device, capability: number): boolean {
   return device.deviceCapabilities?.includes(capability) ?? false;
 }
 
+/**
+ * Device Type Checker Functions
+ * Centralized capability checks to avoid duplication across views
+ */
+
+export function isLampDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.lamp) || 
+         hasCapability(device, DeviceCapability.dimmableLamp) || 
+         hasCapability(device, DeviceCapability.ledLamp);
+}
+
+export function isActuatorDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.actuator);
+}
+
+export function isShutterDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.shutter);
+}
+
+export function isSceneDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.scene);
+}
+
+export function isAcDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.ac);
+}
+
+export function isHeaterDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.heater);
+}
+
+export function isMotionSensorDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.motionSensor);
+}
+
+export function isHandleSensorDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.handleSensor);
+}
+
+export function isTempSensorDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.temperatureSensor);
+}
+
+export function isHumiditySensorDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.humiditySensor);
+}
+
+export function isSpeakerDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.speaker);
+}
+
+export function isCameraDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.camera);
+}
+
+export function isButtonSwitchDevice(device: Device): boolean {
+  return hasCapability(device, DeviceCapability.buttonSwitch);
+}
+
+/**
+ * Additional Device State Getter Functions
+ */
+
+export function getDeviceColor(device: Device): string | undefined {
+  return device._color;
+}
+
+export function isAcOn(device: Device): boolean {
+  return (device as any).acOn ?? (device as any)._acOn ?? device.on ?? device._on ?? false;
+}
+
+export function getAcMode(device: Device): number {
+  return (device as any)._mode ?? (device as any)._acMode ?? 0;
+}
+
+export function getRoomDevices(roomName: string, devices: Record<string, Device>): Device[] {
+  return Object.values(devices).filter(
+    (d) => getDeviceRoom(d).toLowerCase() === roomName.toLowerCase()
+  );
+}
+
+/**
+ * Get device-specific threshold in minutes for determining if device is stale/unreachable
+ * Based on device type and capabilities - matches logic from DeviceInfo.tsx
+ * For devices with multiple capabilities, uses the MOST LENIENT threshold
+ */
+export function getDeviceStaleThresholdMinutes(device: Device): number {
+  const capabilities = device.deviceCapabilities ?? [];
+  const linkQuality = device.linkQuality ?? device._linkQuality;
+  const isZigbee = linkQuality !== undefined;
+  const batteryLevel = device.battery?.level ?? device.batteryLevel;
+  const isBatteryDevice = capabilities.includes(DeviceCapability.batteryDriven) || batteryLevel !== undefined;
+  
+  const hasTemp = capabilities.includes(DeviceCapability.temperatureSensor);
+  const hasHumidity = capabilities.includes(DeviceCapability.humiditySensor);
+  const hasHeater = capabilities.includes(DeviceCapability.heater);
+  const hasMotion = capabilities.includes(DeviceCapability.motionSensor);
+  const hasHandle = capabilities.includes(DeviceCapability.handleSensor);
+  const hasButtonSwitch = capabilities.includes(DeviceCapability.buttonSwitch);
+  const hasLamp = capabilities.includes(DeviceCapability.lamp);
+  const hasDimmable = capabilities.includes(DeviceCapability.dimmableLamp);
+  const hasLed = capabilities.includes(DeviceCapability.ledLamp);
+  const hasActuator = capabilities.includes(DeviceCapability.actuator);
+  const hasShutter = capabilities.includes(DeviceCapability.shutter);
+  
+  // Collect all applicable thresholds for this device
+  const thresholds: number[] = [];
+  
+  // Battery-powered event sensors (motion, handle, button switches) - very lenient
+  if (hasMotion || hasHandle || hasButtonSwitch) {
+    thresholds.push(48 * 60); // 48 hours - not all rooms/buttons used daily
+  }
+  
+  // Lights and actuators
+  if (hasLamp || hasDimmable || hasLed || hasActuator || hasShutter) {
+    thresholds.push(60); // 1 hour
+  }
+  
+  // Heaters
+  if (hasHeater) {
+    thresholds.push(30); // 30 minutes
+  }
+  
+  // Temperature/humidity sensors - only strict if NOT battery-powered event sensor
+  if ((hasTemp || hasHumidity) && !hasMotion && !hasHandle && !hasButtonSwitch) {
+    thresholds.push(15); // 15 minutes
+  }
+  
+  // Zigbee mains-powered - only strict if no other capabilities
+  if (isZigbee && !isBatteryDevice && thresholds.length === 0) {
+    thresholds.push(10); // 10 minutes
+  }
+  
+  // Use the MOST LENIENT threshold (maximum) for multi-capability devices
+  // Example: Handle sensor (24h) + Temp sensor (15min) → 24h
+  if (thresholds.length > 0) {
+    return Math.max(...thresholds);
+  }
+  
+  return 60; // Default 1 hour
+}
+
+/**
+ * Check if device is unreachable/offline
+ * Uses lastUpdate with device-specific thresholds as primary indicator
+ * The 'available' flag from Zigbee2MQTT is often unreliable/buggy, so we don't rely on it alone
+ */
+export function isDeviceUnreachable(device: Device): boolean {
+  // Check lastUpdate with device-specific threshold (primary check)
+  const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
+  if (!lastUpdateRaw) {
+    // No lastUpdate info - fall back to available flag if present
+    const available = device.available ?? device._available;
+    return available === false;
+  }
+  
+  const lastUpdateDate = new Date(lastUpdateRaw);
+  if (isNaN(lastUpdateDate.getTime()) || lastUpdateDate.getTime() <= 0) {
+    // Invalid date - fall back to available flag if present
+    const available = device.available ?? device._available;
+    return available === false;
+  }
+  
+  const diffMs = Date.now() - lastUpdateDate.getTime();
+  const diffMins = diffMs / 60000;
+  const thresholdMins = getDeviceStaleThresholdMinutes(device);
+  
+  // Device is unreachable if lastUpdate exceeds threshold
+  // Note: We ignore the 'available' flag as it's often buggy in Zigbee2MQTT
+  return diffMins >= thresholdMins;
+}
+
 export const DeviceCapability = {
   ac: 0,
   actuator: 1,

@@ -1,16 +1,15 @@
 import { Activity, Battery } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { getDeviceBattery } from '@/stores/deviceStore';
 
 interface EnergyManagerControlsProps {
-  batteryLevel: number;
-  excessEnergy: number;
-  selfConsumingWattage: number;
+  device: Device;
 }
 
-export function EnergyManagerControls({
-  batteryLevel,
-  excessEnergy,
-  selfConsumingWattage,
-}: EnergyManagerControlsProps) {
+export function EnergyManagerControls({ device }: EnergyManagerControlsProps) {
+  const batteryLevel = getDeviceBattery(device) ?? -99;
+  const excessEnergy = device.excessEnergy ?? -99;
+  const selfConsumingWattage = device.selfConsumingWattage ?? -99;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -42,10 +41,11 @@ export function EnergyManagerControls({
 }
 
 interface BatteryControlsProps {
-  batteryLevel: number;
+  device: Device;
 }
 
-export function BatteryControls({ batteryLevel }: BatteryControlsProps) {
+export function BatteryControls({ device }: BatteryControlsProps) {
+  const batteryLevel = getDeviceBattery(device) ?? -99;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

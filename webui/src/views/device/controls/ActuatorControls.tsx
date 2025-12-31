@@ -1,20 +1,30 @@
+import { useState } from 'react';
 import { Power } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isDeviceOn } from '@/stores/deviceStore';
+import { setActuator } from '@/api/devices';
+import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface ActuatorControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  forceDuration: number;
-  setForceDuration: (value: number) => void;
-  onActuator: (state: boolean) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function ActuatorControls({
-  isOn,
-  isLoading,
-  forceDuration,
-  setForceDuration,
-  onActuator,
-}: ActuatorControlsProps) {
+export function ActuatorControls({ device, onUpdate }: ActuatorControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [forceDuration, setForceDuration] = useState(60);
+  
+  const isOn = isDeviceOn(device);
+  
+  const handleActuator = async (state: boolean) => {
+    const durationMs = calculateDuration(forceDuration);
+    await executeDeviceAction(
+      device,
+      (id) => setActuator(id, state, durationMs),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -47,14 +57,14 @@ export function ActuatorControls({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onActuator(true)}
+            onClick={() => handleActuator(true)}
             disabled={isLoading}
             className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
             Force An
           </button>
           <button
-            onClick={() => onActuator(false)}
+            onClick={() => handleActuator(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >

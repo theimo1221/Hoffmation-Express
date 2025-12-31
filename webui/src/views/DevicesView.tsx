@@ -1,24 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Device, filterDevicesForExpertMode } from '@/stores/dataStore';
+import { useDataStore, type Device, filterDevicesForExpertMode, DeviceCapability } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap } from 'lucide-react';
 import { DeviceDetailView } from './device';
 import { DeviceIcon, getDeviceStatusColor } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
-
-export enum DeviceCapability {
-  ac = 0,
-  actuator = 1,
-  lamp = 8,
-  dimmablelamp = 9,
-  shutter = 11,
-  temperatureSensor = 12,
-  speaker = 14,
-  camera = 105,
-}
 
 const CAPABILITY_FILTERS = [
   { capability: null, label: 'Alle', icon: Zap },

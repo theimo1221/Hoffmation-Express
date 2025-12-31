@@ -1,22 +1,38 @@
+import { useState } from 'react';
 import { Lightbulb } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { isDeviceOn } from '@/stores/deviceStore';
+import { setLamp } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface LampControlsProps {
-  isOn: boolean;
-  isLoading: boolean;
-  forceDuration: number;
-  setForceDuration: (value: number) => void;
-  onToggle: () => Promise<void>;
-  onForce: (state: boolean) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
-export function LampControls({
-  isOn,
-  isLoading,
-  forceDuration,
-  setForceDuration,
-  onToggle,
-  onForce,
-}: LampControlsProps) {
+export function LampControls({ device, onUpdate }: LampControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [forceDuration, setForceDuration] = useState(60);
+  
+  const isOn = isDeviceOn(device);
+  
+  const handleToggle = async () => {
+    await executeDeviceAction(
+      device,
+      (id) => setLamp(id, !isOn),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  const handleForce = async (state: boolean) => {
+    await executeDeviceAction(
+      device,
+      (id) => setLamp(id, state, forceDuration),
+      onUpdate,
+      setIsLoading
+    );
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -53,14 +69,14 @@ export function LampControls({
 
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => onForce(true)}
+            onClick={() => handleForce(true)}
             disabled={isLoading}
             className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
             Force An
           </button>
           <button
-            onClick={() => onForce(false)}
+            onClick={() => handleForce(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >
@@ -69,7 +85,7 @@ export function LampControls({
         </div>
 
         <button
-          onClick={onToggle}
+          onClick={handleToggle}
           disabled={isLoading}
           className={`w-full rounded-xl py-3 font-medium transition-all active:scale-95 disabled:opacity-50 ${
             isOn 

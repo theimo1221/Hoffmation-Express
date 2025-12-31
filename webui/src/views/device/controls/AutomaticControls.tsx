@@ -1,15 +1,12 @@
+import { useState } from 'react';
 import { Clock } from 'lucide-react';
+import type { Device } from '@/stores/dataStore';
+import { blockAutomatic, liftAutomaticBlock } from '@/api/devices';
+import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface BlockAutomaticControlsProps {
-  isLoading: boolean;
-  automaticBlockedUntil: number;
-  blockHours: number;
-  setBlockHours: (value: number) => void;
-  blockUntilDate: string;
-  setBlockUntilDate: (value: string) => void;
-  onBlockAutomatic: (hours: number) => Promise<void>;
-  onLiftBlock: () => Promise<void>;
-  onBlockUntilDate: (date: string) => Promise<void>;
+  device: Device;
+  onUpdate: () => Promise<void>;
 }
 
 function formatBlockedUntil(timestamp: number): string {
@@ -18,17 +15,54 @@ function formatBlockedUntil(timestamp: number): string {
   return new Date(timestamp).toLocaleString('de-DE');
 }
 
-export function BlockAutomaticControls({
-  isLoading,
-  automaticBlockedUntil,
-  blockHours,
-  setBlockHours,
-  blockUntilDate,
-  setBlockUntilDate,
-  onBlockAutomatic,
-  onLiftBlock,
-  onBlockUntilDate,
-}: BlockAutomaticControlsProps) {
+export function BlockAutomaticControls({ device, onUpdate }: BlockAutomaticControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [blockHours, setBlockHours] = useState(1);
+  const [blockUntilDate, setBlockUntilDate] = useState('');
+  
+  const getBlockedUntil = (): number => {
+    const handler = device.blockAutomationHandler ?? (device as Record<string, unknown>)._blockAutomationHandler as typeof device.blockAutomationHandler;
+    const value = handler?.automaticBlockedUntil ?? (handler as Record<string, unknown>)?._automaticBlockedUntil;
+    if (!value) return 0;
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'string') return new Date(value).getTime();
+    if (typeof value === 'number') return value;
+    return 0;
+  };
+  const automaticBlockedUntil = getBlockedUntil();
+  
+  const handleBlockAutomatic = async (hours: number) => {
+    await executeDeviceAction(
+      device,
+      (id) => blockAutomatic(id, hours * 3600),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  const handleLiftBlock = async () => {
+    await executeDeviceAction(
+      device,
+      (id) => liftAutomaticBlock(id),
+      onUpdate,
+      setIsLoading
+    );
+  };
+  
+  const handleBlockUntilDate = async (dateStr: string) => {
+    const targetDate = new Date(dateStr);
+    const nowMs = Date.now();
+    const targetMs = targetDate.getTime();
+    const diffSeconds = Math.floor((targetMs - nowMs) / 1000);
+    if (diffSeconds > 0) {
+      await executeDeviceAction(
+        device,
+        (id) => blockAutomatic(id, diffSeconds),
+        onUpdate,
+        setIsLoading
+      );
+    }
+  };
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -44,14 +78,14 @@ export function BlockAutomaticControls({
         {automaticBlockedUntil > Date.now() && (
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={onLiftBlock}
+              onClick={handleLiftBlock}
               disabled={isLoading}
               className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
             >
               Aufheben
             </button>
             <button
-              onClick={() => onBlockAutomatic(blockHours)}
+              onClick={() => handleBlockAutomatic(blockHours)}
               disabled={isLoading}
               className="rounded-xl bg-orange-500/20 text-orange-600 py-3 font-medium transition-all hover:bg-orange-500/30 active:scale-95 disabled:opacity-50"
             >
@@ -96,7 +130,7 @@ export function BlockAutomaticControls({
 
         {automaticBlockedUntil <= Date.now() && (
           <button
-            onClick={() => onBlockAutomatic(blockHours)}
+            onClick={() => handleBlockAutomatic(blockHours)}
             disabled={isLoading}
             className="w-full rounded-xl bg-orange-500/20 text-orange-600 py-3 font-medium transition-all hover:bg-orange-500/30 active:scale-95 disabled:opacity-50"
           >
@@ -106,7 +140,7 @@ export function BlockAutomaticControls({
 
         {blockUntilDate && (
           <button
-            onClick={() => onBlockUntilDate(blockUntilDate)}
+            onClick={() => handleBlockUntilDate(blockUntilDate)}
             disabled={isLoading || !blockUntilDate}
             className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50"
           >

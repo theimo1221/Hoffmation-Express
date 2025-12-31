@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
+import { DeviceCapability, isToggleableDevice } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { setDevicePosition, setLamp, setDimmer, setShutter, setAc, setActuator, startScene, endScene } from '@/api/devices';
+import { setDevicePosition } from '@/api/devices';
+import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, Wind, X, Plus } from 'lucide-react';
-import { DeviceIcon, DeviceCapability } from '@/components/DeviceIcon';
+import { Edit3, Save, X, Plus } from 'lucide-react';
+import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { RadialMenu, getDeviceMenuItems } from '@/components/RadialMenu';
+import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
 import { AdjacentRoomButtons } from './AdjacentRoomButtons';
 import { DevicePicker } from './DevicePicker';
 import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
@@ -242,140 +244,10 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
     }
   }, [editMode, draggingDevice, handleTouchMove, handleTouchEnd]);
 
-  // Check if device is a lamp (can be toggled)
-  const isLampDevice = (device: Device) => {
-    const caps = device.deviceCapabilities ?? [];
-    return caps.includes(DeviceCapability.lamp) || 
-           caps.includes(DeviceCapability.dimmableLamp) || 
-           caps.includes(DeviceCapability.ledLamp);
-  };
-
-  // Check if device is an actuator/outlet (can be toggled)
-  const isActuatorDevice = (device: Device) => {
-    const caps = device.deviceCapabilities ?? [];
-    return caps.includes(DeviceCapability.actuator);
-  };
-
-  // Check if device is a shutter (can be toggled)
-  const isShutterDevice = (device: Device) => {
-    const caps = device.deviceCapabilities ?? [];
-    return caps.includes(DeviceCapability.shutter);
-  };
-
-  // Check if device is AC (can be toggled)
-  const isAcDevice = (device: Device) => {
-    const caps = device.deviceCapabilities ?? [];
-    return caps.includes(DeviceCapability.ac);
-  };
-
-  // Check if device is a scene (can be started/stopped)
-  const isSceneDevice = (device: Device) => {
-    const caps = device.deviceCapabilities ?? [];
-    return caps.includes(DeviceCapability.scene);
-  };
-
-  const isAcOn = (device: Device) => {
-    return (device as Record<string, unknown>).acOn ?? (device as Record<string, unknown>)._acOn ?? device.on ?? device._on ?? false;
-  };
+  // Device type checkers now imported from dataStore
 
   // Use central isDeviceOn from dataStore (matches Swift logic)
 
-  const getShutterLevel = (device: Device) => {
-    let level = device._currentLevel ?? -1;
-    // Normalize to 0-100
-    if (level >= 0 && level <= 1) level = level * 100;
-    return level;
-  };
-
-  // Toggle lamp on/off - Swift app uses lightForce for simple toggle (even for LEDs)
-  const handleToggleLamp = async (device: Device) => {
-    if (!device.id) return;
-    const currentState = isDeviceOn(device);
-    const caps = device.deviceCapabilities ?? [];
-    console.log('Toggle lamp:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
-    
-    try {
-      // Swift app uses lightForce (setLamp) for simple toggle, even for LEDs
-      // Only use setLed/setDimmer when explicitly setting brightness/color
-      if (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
-        // Dimmer/LED: use setDimmer with current brightness to preserve it
-        const brightness = device.brightness ?? device._brightness ?? 100;
-        await setDimmer(device.id, !currentState, brightness);
-      } else {
-        // Regular lamp: just state
-        await setLamp(device.id, !currentState);
-      }
-      // Refresh device data after short delay
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to toggle lamp:', error);
-    }
-  };
-
-  // Toggle actuator/outlet on/off
-  const handleToggleActuator = async (device: Device) => {
-    if (!device.id) return;
-    // Use isDeviceOn which checks actuatorOn → _actuatorOn → lightOn → _lightOn → on
-    const currentState = isDeviceOn(device);
-    console.log('Toggle actuator:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
-    
-    try {
-      await setActuator(device.id, !currentState);
-      // Refresh device data after short delay
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to toggle actuator:', error);
-    }
-  };
-
-  // Toggle shutter open/closed (0 = open, 100 = closed)
-  const handleToggleShutter = async (device: Device) => {
-    if (!device.id) return;
-    const currentLevel = getShutterLevel(device);
-    // If mostly open (< 50%), close it. Otherwise open it.
-    const newLevel = currentLevel < 50 ? 100 : 0;
-    
-    try {
-      await setShutter(device.id, newLevel);
-      // Refresh device data after short delay
-      setTimeout(() => fetchDevice(device.id!), 500);
-    } catch (error) {
-      console.error('Failed to toggle shutter:', error);
-    }
-  };
-
-  // Toggle AC on/off
-  const handleToggleAc = async (device: Device) => {
-    if (!device.id) return;
-    const currentState = isAcOn(device);
-    
-    try {
-      await setAc(device.id, !currentState);
-      // Refresh device data after short delay
-      setTimeout(() => fetchDevice(device.id!), 500);
-    } catch (error) {
-      console.error('Failed to toggle AC:', error);
-    }
-  };
-
-  // Toggle scene start/stop
-  const handleToggleScene = async (device: Device) => {
-    if (!device.id) return;
-    const currentState = isDeviceOn(device);
-    console.log('Toggle scene:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
-    
-    try {
-      if (currentState) {
-        await endScene(device.id);
-      } else {
-        await startScene(device.id);
-      }
-      // Refresh device data after short delay
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to toggle scene:', error);
-    }
-  };
 
   // Handle device interaction (tap vs hold)
   const handleDevicePointerDown = (device: Device, e: React.PointerEvent) => {
@@ -409,21 +281,13 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
 
     // If it wasn't a long press, handle as tap
     if (!isLongPress) {
-      if (isLampDevice(device)) {
-        // Quick tap on lamp = toggle
-        handleToggleLamp(device);
-      } else if (isActuatorDevice(device)) {
-        // Quick tap on actuator/outlet = toggle
-        handleToggleActuator(device);
-      } else if (isShutterDevice(device)) {
-        // Quick tap on shutter = toggle open/closed
-        handleToggleShutter(device);
-      } else if (isAcDevice(device)) {
-        // Quick tap on AC = toggle on/off
-        handleToggleAc(device);
-      } else if (isSceneDevice(device)) {
-        // Quick tap on scene = start/stop
-        handleToggleScene(device);
+      if (isToggleableDevice(device)) {
+        // Quick tap on toggleable device = toggle
+        toggleDevice(
+          device,
+          async () => { if (device.id) await fetchDevice(device.id); },
+          () => {}
+        );
       } else {
         // Sensors and other devices: open radial menu on tap (child-friendly)
         // This includes handle sensors, motion sensors, temperature sensors
@@ -452,114 +316,6 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
     }
   };
 
-  // Lamp control handlers for radial menu
-  const handleLampOn = async (device: Device) => {
-    if (!device.id) return;
-    setRadialMenu(null); // Close menu immediately
-    const caps = device.deviceCapabilities ?? [];
-    try {
-      if (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) {
-        await setDimmer(device.id, true, 100);
-      } else {
-        await setLamp(device.id, true);
-      }
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to turn lamp on:', error);
-    }
-  };
-
-  const handleLampOff = async (device: Device) => {
-    if (!device.id) return;
-    setRadialMenu(null); // Close menu immediately
-    try {
-      await setLamp(device.id, false);
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to turn lamp off:', error);
-    }
-  };
-
-  // Actuator control handlers for radial menu
-  const handleActuatorOn = async (device: Device) => {
-    if (!device.id) return;
-    setRadialMenu(null);
-    try {
-      await setActuator(device.id, true);
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to turn actuator on:', error);
-    }
-  };
-
-  const handleActuatorOff = async (device: Device) => {
-    if (!device.id) return;
-    setRadialMenu(null);
-    try {
-      await setActuator(device.id, false);
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to turn actuator off:', error);
-    }
-  };
-
-  const handleLamp50 = async (device: Device) => {
-    if (!device.id) return;
-    setRadialMenu(null); // Close menu immediately
-    try {
-      await setDimmer(device.id, true, 50);
-      setTimeout(() => fetchDevice(device.id!), 300);
-    } catch (error) {
-      console.error('Failed to set lamp to 50%:', error);
-    }
-  };
-
-  // Shutter control handlers for radial menu
-  const handleShutterLevel = async (device: Device, level: number) => {
-    if (!device.id) return;
-    setRadialMenu(null); // Close menu immediately
-    try {
-      await setShutter(device.id, level);
-      setTimeout(() => fetchDevice(device.id!), 500);
-    } catch (error) {
-      console.error('Failed to set shutter level:', error);
-    }
-  };
-
-  // AC control handlers for radial menu
-  const handleAcPower = async (device: Device, power: boolean) => {
-    if (!device.id) return;
-    setRadialMenu(null); // Close menu immediately
-    try {
-      await setAc(device.id, power);
-      setTimeout(() => fetchDevice(device.id!), 500);
-    } catch (error) {
-      console.error('Failed to set AC power:', error);
-    }
-  };
-
-  // Get radial menu items for current device
-  const getRadialMenuItems = useCallback(() => {
-    if (!radialMenu) return [];
-    const device = radialMenu.device;
-    
-    return getDeviceMenuItems(device, {
-      onDetails: () => {
-        setRadialMenu(null);
-        onSelectDevice(device);
-      },
-      onLampOn: () => handleLampOn(device),
-      onLampOff: () => handleLampOff(device),
-      onLamp50: () => handleLamp50(device),
-      onShutterUp: () => handleShutterLevel(device, 0),
-      onShutter50: () => handleShutterLevel(device, 50),
-      onShutterDown: () => handleShutterLevel(device, 100),
-      onAcOn: () => handleAcPower(device, true),
-      onAcOff: () => handleAcPower(device, false),
-      onActuatorOn: () => handleActuatorOn(device),
-      onActuatorOff: () => handleActuatorOff(device),
-    });
-  }, [radialMenu, onSelectDevice]);
 
   return (
     <div 
@@ -824,32 +580,17 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
       />
 
       {/* Radial Menu for device quick actions */}
-      <RadialMenu
-        items={getRadialMenuItems()}
+      <RadialDeviceMenu
+        device={radialMenu?.device ?? null}
         isOpen={radialMenu !== null}
         onClose={() => setRadialMenu(null)}
         position={radialMenu?.position ?? { x: 0, y: 0 }}
-        centerIcon={radialMenu ? (() => {
-          const device = radialMenu.device;
-          const caps = device.deviceCapabilities ?? [];
-          
-          // For AC devices, always show Wind icon (colored by mode)
-          if (caps.includes(DeviceCapability.ac)) {
-            const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
-            const currentMonth = new Date().getMonth();
-            const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
-            const isCooling = acMode === 1 || (acMode === 0 && isSummerSeason);
-            const isHeating = acMode === 4 || (acMode === 0 && !isSummerSeason);
-            const isOn = isDeviceOn(device);
-            
-            const windColorClass = !isOn ? 'text-gray-400' : isHeating ? 'text-red-500' : isCooling ? 'text-blue-500' : 'text-green-500';
-            return <Wind className={`h-8 w-8 ${windColorClass}`} />;
-          }
-          
-          // For other devices, use DeviceIcon
-          return <DeviceIcon device={device} size="md" />;
-        })() : undefined}
         deviceName={radialMenu ? getDeviceName(radialMenu.device, roomName) : undefined}
+        onDetails={() => {
+          if (!radialMenu) return;
+          setRadialMenu(null);
+          onSelectDevice(radialMenu.device);
+        }}
       />
     </div>
   );
