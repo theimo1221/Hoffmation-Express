@@ -18,6 +18,39 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   const CAP_TEMP_SENSOR = 12;
   const CAP_ACTUATOR = 1;
   const CAP_HANDLE_SENSOR = 15;
+  const CAP_BATTERY = 16;
+
+  // Check if device is unreachable
+  const isUnreachable = device.available === false || device._available === false;
+  const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
+  let isStale = false;
+  if (lastUpdateRaw) {
+    const lastUpdateDate = new Date(lastUpdateRaw);
+    const hoursSinceUpdate = (Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60);
+    isStale = hoursSinceUpdate > 1;
+  }
+
+  // Unreachable indicator (highest priority)
+  if (isUnreachable || isStale) {
+    badges.push(
+      <span key="unreachable" className="text-xs font-bold text-red-500">
+        OFFLINE
+      </span>
+    );
+  }
+
+  // Battery level (show if device has battery capability or batteryLevel property)
+  const batteryLevel = device.battery?.level ?? device.batteryLevel;
+  if (capabilities.includes(CAP_BATTERY) || batteryLevel !== undefined) {
+    if (batteryLevel !== undefined && batteryLevel >= 0) {
+      const batteryColor = batteryLevel < 20 ? 'text-red-500' : batteryLevel < 50 ? 'text-orange-500' : 'text-green-500';
+      badges.push(
+        <span key="battery" className={`text-xs ${batteryColor}`}>
+          🔋 {batteryLevel}%
+        </span>
+      );
+    }
+  }
 
   // Window handle sensor: show position (priority over temp)
   if (capabilities.includes(CAP_HANDLE_SENSOR)) {

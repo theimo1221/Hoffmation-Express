@@ -480,6 +480,10 @@ The Express backend already provides:
 - Wrapper architecture: fixed dimensions = canvas + arrow space, canvas absolutely positioned
 - **Z-Coordinate Editing:** Floor height (Z↓) and ceiling height (Z↑) editable in room edit mode
 - **Settings Delta Updates:** Room settings only send changed fields, device settings removed fallback defaults
+- **Battery Level Display (Dec 31, 2024):** Battery percentage shown in device status badges with color coding (red <20%, orange <50%, green ≥50%)
+- **Unreachable Device Indicators (Dec 31, 2024):** Bright red background (bg-red-500) and "OFFLINE" badge for devices with available=false or lastUpdate >1 hour
+- **iOS Room Display Fix (Dec 31, 2024):** Changed overflow-visible to overflow-hidden, added maxWidth/maxHeight constraints to prevent scrolling/clipping
+- **Scene Toggle (Dec 31, 2024):** Scenes can be started/stopped via tap in floor plan view, matching Swift app behavior (timeout=0 for no auto-end)
 
 **Center displays:**
 - Device icon

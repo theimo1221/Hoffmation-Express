@@ -76,7 +76,11 @@ export async function setAc(deviceId: string, power: boolean, mode?: number, tem
 
 export async function startScene(deviceId: string, timeout?: number): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  const url = timeout ? `/scene/${encodedId}/start/${timeout}` : `/scene/${encodedId}/start`;
+  // Backend expects timeout parameter (matching Swift app behavior):
+  // - timeout = 0: no automatic end (scene runs until manually stopped)
+  // - timeout > 0: automatic end after X ms
+  const timeoutParam = timeout ?? 0;
+  const url = `/scene/${encodedId}/start/${timeoutParam}`;
   await apiGetNoResponse(url);
 }
 

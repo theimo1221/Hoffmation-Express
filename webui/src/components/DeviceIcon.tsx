@@ -191,6 +191,20 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 }
 
 export function getDeviceStatusColor(device: Device): string {
+  // Check if device is unreachable - return bright red
+  const isUnreachable = device.available === false || device._available === false;
+  const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
+  let isStale = false;
+  if (lastUpdateRaw) {
+    const lastUpdateDate = new Date(lastUpdateRaw);
+    const hoursSinceUpdate = (Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60);
+    isStale = hoursSinceUpdate > 1;
+  }
+  
+  if (isUnreachable || isStale) {
+    return 'bg-red-500';
+  }
+  
   const isOn = device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
   return isOn ? 'bg-primary' : 'bg-primary/10';
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { setDevicePosition, setLamp, setDimmer, setShutter, setAc, setActuator } from '@/api/devices';
+import { setDevicePosition, setLamp, setDimmer, setShutter, setAc, setActuator, startScene, endScene } from '@/api/devices';
 import { cn } from '@/lib/utils';
 import { Edit3, Save, Wind, X, Plus } from 'lucide-react';
 import { DeviceIcon, DeviceCapability } from '@/components/DeviceIcon';
@@ -268,6 +268,12 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
     return caps.includes(DeviceCapability.ac);
   };
 
+  // Check if device is a scene (can be started/stopped)
+  const isSceneDevice = (device: Device) => {
+    const caps = device.deviceCapabilities ?? [];
+    return caps.includes(DeviceCapability.scene);
+  };
+
   const isAcOn = (device: Device) => {
     return (device as Record<string, unknown>).acOn ?? (device as Record<string, unknown>)._acOn ?? device.on ?? device._on ?? false;
   };
@@ -352,6 +358,25 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
     }
   };
 
+  // Toggle scene start/stop
+  const handleToggleScene = async (device: Device) => {
+    if (!device.id) return;
+    const currentState = isDeviceOn(device);
+    console.log('Toggle scene:', device.id, 'currentState:', currentState, '-> newState:', !currentState);
+    
+    try {
+      if (currentState) {
+        await endScene(device.id);
+      } else {
+        await startScene(device.id);
+      }
+      // Refresh device data after short delay
+      setTimeout(() => fetchDevice(device.id!), 300);
+    } catch (error) {
+      console.error('Failed to toggle scene:', error);
+    }
+  };
+
   // Handle device interaction (tap vs hold)
   const handleDevicePointerDown = (device: Device, e: React.PointerEvent) => {
     if (editMode) return;
@@ -396,6 +421,9 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
       } else if (isAcDevice(device)) {
         // Quick tap on AC = toggle on/off
         handleToggleAc(device);
+      } else if (isSceneDevice(device)) {
+        // Quick tap on scene = start/stop
+        handleToggleScene(device);
       } else {
         // Sensors and other devices: open radial menu on tap (child-friendly)
         // This includes handle sensors, motion sensors, temperature sensors
@@ -594,13 +622,15 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
         }
       />
 
-      <div ref={containerRef} className="flex-1 overflow-visible px-4 py-6 flex items-center justify-center">
+      <div ref={containerRef} className="flex-1 overflow-hidden px-4 py-6 flex items-center justify-center">
         {/* Wrapper with fixed size including space for arrows */}
         <div 
           className="relative"
           style={{
             width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0) + (!hasRight ? 20 : 0),
             height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0) + (!hasBottom ? 20 : 0),
+            maxWidth: '100%',
+            maxHeight: '100%',
           }}
         >
         <div

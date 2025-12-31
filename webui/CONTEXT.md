@@ -80,6 +80,10 @@ const DeviceCapability = {
 - **Device Logs** - Last commands display in expert mode (Dec 30, 2024)
 - **Z-Coordinate Editing** - Floor and ceiling height editing in floor plan edit mode (Dec 30, 2024)
 - **Settings Delta Updates** - Room settings only send changed fields, device settings send full objects with backend values (Dec 30, 2024)
+- **Battery Level Display** - Battery percentage in status badges with color coding (Dec 31, 2024)
+- **Unreachable Device Indicators** - Bright red background and OFFLINE badge (Dec 31, 2024)
+- **iOS Room Display Fix** - Overflow and max-size constraints to prevent scrolling/clipping (Dec 31, 2024)
+- **Scene Toggle** - Tap to start/stop scenes in floor plan, matching Swift app behavior (Dec 31, 2024)
 
 ## Next Steps (Pending) ⏳
 
