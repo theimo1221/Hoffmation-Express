@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useDataStore } from '@/stores/dataStore';
+import * as LucideIcons from 'lucide-react';
 import type { HouseCrossSectionProps } from './types';
 
 export function HouseCrossSection({ floors, onSelectFloor }: HouseCrossSectionProps) {
@@ -28,12 +29,27 @@ export function HouseCrossSection({ floors, onSelectFloor }: HouseCrossSectionPr
                   'hover:bg-accent active:scale-[0.98]',
                   index !== sortedFloors.length - 1 && 'border-b border-border'
                 )}
+                style={{
+                  borderLeftWidth: '4px',
+                  borderLeftColor: floor.color || 'transparent',
+                }}
               >
-                <div className="flex flex-col items-start gap-1">
-                  <span className="text-lg font-semibold">{floor.name}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {floor.rooms.length} {floor.rooms.length === 1 ? 'Raum' : 'Räume'}
-                  </span>
+                <div className="flex items-center gap-3">
+                  {floor.icon && (() => {
+                    const IconComponent = (LucideIcons as any)[floor.icon];
+                    return IconComponent ? (
+                      <IconComponent 
+                        size={24} 
+                        style={{ color: floor.color }} 
+                      />
+                    ) : null;
+                  })()}
+                  <div className="flex flex-col items-start gap-1">
+                    <span className="text-lg font-semibold">{floor.name}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {floor.rooms.length} {floor.rooms.length === 1 ? 'Raum' : 'Räume'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="text-2xl">→</span>

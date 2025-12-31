@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { type Device, getDeviceRoom, useDataStore } from '@/stores/dataStore';
 import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 import { DeviceSettingsSection } from '@/components/DeviceSettingsSection';
 import { DeviceHeader } from './DeviceHeader';
 import { DeviceInfo } from './DeviceInfo';
@@ -26,20 +27,6 @@ import {
   BatteryControls,
 } from './controls';
 
-function getFavoriteIds(): string[] {
-  const stored = localStorage.getItem('hoffmation-favorites');
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return [];
-  }
-}
-
-function saveFavoriteIds(ids: string[]): void {
-  localStorage.setItem('hoffmation-favorites', JSON.stringify(ids));
-}
-
 interface DeviceDetailViewProps {
   device: Device;
   onBack: () => void;
@@ -48,7 +35,7 @@ interface DeviceDetailViewProps {
 export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetailViewProps) {
   const { devices, fetchDevice } = useDataStore();
   const { expertMode } = useSettingsStore();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite: checkIsFavorite, toggleFavorite: toggleFavoriteInStore } = useFavoritesStore();
   const [showRawJson, setShowRawJson] = useState(false);
 
   // Get live device from store
@@ -64,25 +51,11 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
   const currentLevel = device._currentLevel ?? -1;
   const batteryLevel = device.battery?.level ?? device.batteryLevel ?? -99;
   
-
-  useEffect(() => {
-    if (device.id) {
-      const favorites = getFavoriteIds();
-      setIsFavorite(favorites.includes(device.id));
-    }
-  }, [device.id]);
+  const isFavorite = device.id ? checkIsFavorite(device.id) : false;
 
   const toggleFavorite = () => {
-    if (!device.id) return;
-    const favorites = getFavoriteIds();
-    if (isFavorite) {
-      const newFavorites = favorites.filter((id) => id !== device.id);
-      saveFavoriteIds(newFavorites);
-      setIsFavorite(false);
-    } else {
-      favorites.push(device.id);
-      saveFavoriteIds(favorites);
-      setIsFavorite(true);
+    if (device.id) {
+      toggleFavoriteInStore(device.id);
     }
   };
 

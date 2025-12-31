@@ -65,6 +65,77 @@ export function getGroup(room: Room, groupType: GroupType): GroupData | undefine
   return room.groupdict[String(groupType)];
 }
 
+// Floor Plan - Multi-Level Support
+
+export interface FloorDefinition {
+  id: string;
+  name: string;
+  level: number;
+  sortOrder: number;
+  icon?: string;   // Lucide Icon Name
+  color?: string;  // Hex Color (#RRGGBB)
+}
+
+export interface RoomWebUISettings {
+  crossSectionFloors?: string[];  // Floor IDs
+  icon?: string;                  // Lucide Icon Name
+  color?: string;                 // Hex Color (#RRGGBB)
+}
+
+/**
+ * Parse customSettingsJson from room settings
+ */
+export function getRoomWebUISettings(room: Room): RoomWebUISettings | null {
+  try {
+    const json = room.settings?.customSettingsJson;
+    if (typeof json === 'string' && json.length > 0) {
+      const parsed = JSON.parse(json);
+      return parsed.webui || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get floors for a room based on customSettingsJson or fallback to etage
+ */
+export function getFloorsForRoom(room: Room, floorDefinitions: FloorDefinition[]): FloorDefinition[] {
+  // 1. Check customSettingsJson.webui.crossSectionFloors
+  const webui = getRoomWebUISettings(room);
+  if (webui?.crossSectionFloors?.length) {
+    // Validate: Only IDs that exist in floorDefinitions
+    const validFloors = floorDefinitions.filter(f => 
+      webui.crossSectionFloors!.includes(f.id)
+    );
+    if (validFloors.length > 0) return validFloors;
+  }
+  
+  // 2. Fallback: etage → level mapping
+  const etage = getRoomEtage(room);
+  const floor = floorDefinitions.find(f => f.level === etage);
+  return floor ? [floor] : [];
+}
+
+/**
+ * Check if room spans multiple floors
+ */
+export function isMultiFloorRoom(room: Room): boolean {
+  const webui = getRoomWebUISettings(room);
+  return (webui?.crossSectionFloors?.length ?? 0) > 1;
+}
+
+/**
+ * Get room coordinates helper
+ */
+export function getRoomCoords(room: Room): { startPoint: TrilaterationPoint | undefined; endPoint: TrilaterationPoint | undefined } {
+  return {
+    startPoint: room.startPoint,
+    endPoint: room.endPoint
+  };
+}
+
 export interface TemperatureSensor {
   roomTemperature?: number;
   temperature?: number;
@@ -229,6 +300,8 @@ export interface RoomSettings {
   // Trilateration coordinates
   trilaterationStartPoint?: { x: number; y: number; z: number };
   trilaterationEndPoint?: { x: number; y: number; z: number };
+  // WebUI custom settings (JSON string)
+  customSettingsJson?: string;
 }
 
 export interface DeviceSettings {

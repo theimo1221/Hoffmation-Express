@@ -18,6 +18,7 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - **No text dependency** - All actions recognizable by icons only
 - **Large touch targets** - Minimum 60x60px for children's fingers
 - **Direct control** - Tap toggles immediately, hold opens radial menu
+- **Room & Floor Icons/Colors** - "Dein Raum ist der gelbe mit dem Baby-Icon"
 
 **Implemented:**
 - ✅ Tap-to-Toggle for Lamps, Actuators, Shutters, AC, LEDs
@@ -28,6 +29,8 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - ✅ Adjacent room navigation with automatic detection
 - ✅ Room coordinate editing in settings
 - ✅ Device logs display in expert mode (Dec 30, 2024)
+- ✅ Multi-floor room support with customizable icons & colors (Dec 31, 2024)
+- ✅ IconPicker & ColorPicker components for visual room identification
 
 ---
 
@@ -43,6 +46,65 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - Muted color palette with vibrant accents for active states
 - Large touch targets (min 44x44px)
 - Rounded icons (Lucide with rounded stroke)
+
+---
+
+## Floor Plan - Multi-Level Support (Dec 31, 2024)
+
+### Architecture
+
+**Global Floor Definitions** (`webui-settings.json`):
+```typescript
+interface FloorDefinition {
+  id: string;          // Unique ID (e.g., "eg", "og1")
+  name: string;        // Display name (e.g., "EG", "1. OG")
+  level: number;       // Numeric level (-1, 0, 1, 2, ...)
+  sortOrder: number;   // Display order in UI
+  icon?: string;       // Lucide Icon name (e.g., "Home", "Bed")
+  color?: string;      // Hex color (e.g., "#3B82F6")
+}
+```
+
+**Per-Room Settings** (`room.settings.customSettingsJson`):
+```typescript
+interface RoomWebUISettings {
+  crossSectionFloors?: string[];  // Floor IDs (e.g., ["keller", "eg", "og1"])
+  icon?: string;                  // Room icon (e.g., "Baby")
+  color?: string;                 // Room color (e.g., "#FBBF24")
+}
+```
+
+### Features
+
+1. **Multi-Floor Rooms**: Rooms spanning multiple floors (e.g., stairwells) can be assigned to multiple floors via `crossSectionFloors`
+2. **Outdoor/Indoor Separation**: "Draußen" (level 99) separates garden from basement
+3. **Graceful Degradation**: Rooms without `crossSectionFloors` fall back to `etage` → `level` mapping
+4. **Child-Friendly**: Icons & colors for visual room identification ("Dein Raum ist der gelbe")
+5. **Backend-Persisted**: Settings stored in `webui-settings.json` and per-room `customSettingsJson`
+
+### Components
+
+- **IconPicker**: Searchable Lucide icon picker with popular icons and categories
+- **ColorPicker**: Interactive color picker with preset palette and custom hex input
+- **Floor Editor**: (Planned) Settings UI for managing floor definitions
+
+### API
+
+- `GET /api/webui/settings` - Fetch global WebUI settings from `config/private/webui-settings.json`
+  - Returns JSON from file if exists
+  - Returns `{ "version": "0.0" }` if file doesn't exist
+  - Error handling with 500 status on read failure
+- `POST /api/roomSettings/:roomName` - Update room's `customSettingsJson` (existing endpoint)
+  - Used to set `customSettingsJson.webui.crossSectionFloors`, `icon`, `color`
+
+**Note:** `webui-settings.json` is stored in `config/private/` to exclude it from git
+**Note:** Floor definitions are readonly - edit `config/private/webui-settings.json` manually
+
+### Helper Functions
+
+- `getFloorsForRoom(room, floors)` - Get all floors a room belongs to
+- `getRoomWebUISettings(room)` - Parse `customSettingsJson.webui`
+- `isMultiFloorRoom(room)` - Check if room spans multiple floors
 
 ---
 

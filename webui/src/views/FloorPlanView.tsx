@@ -1,18 +1,45 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDataStore, getRoomName } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getFloorsForRoom, type Room } from '@/stores/dataStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { HouseCrossSection, FloorPlan, RoomFloorPlanDetail } from './floorplan';
 
 export function FloorPlanView() {
   useTranslation();
   const navigate = useNavigate();
   const { floorLevel, roomId } = useParams<{ floorLevel?: string; roomId?: string }>();
-  const { floors, devices, fetchData, isLoading } = useDataStore();
+  const { rooms, devices, fetchData, isLoading } = useDataStore();
+  const { floors: floorDefinitions, loadFloors } = useSettingsStore();
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    loadFloors();
+  }, [fetchData, loadFloors]);
+
+  // Build floors with dynamically assigned rooms
+  const floors = useMemo(() => {
+    const roomsByFloor = new Map<string, Room[]>();
+    
+    // Assign each room to its floors
+    Object.values(rooms).forEach((room) => {
+      const roomFloors = getFloorsForRoom(room, floorDefinitions);
+      roomFloors.forEach((floor) => {
+        if (!roomsByFloor.has(floor.id)) {
+          roomsByFloor.set(floor.id, []);
+        }
+        roomsByFloor.get(floor.id)!.push(room);
+      });
+    });
+
+    // Create floor objects sorted by sortOrder
+    return [...floorDefinitions]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((def) => ({
+        ...def,
+        rooms: roomsByFloor.get(def.id) || [],
+      }));
+  }, [rooms, floorDefinitions]);
 
   // Find selected floor and room from URL params
   const selectedFloor = floorLevel 
@@ -23,7 +50,7 @@ export function FloorPlanView() {
     ? selectedFloor.rooms.find(r => (r.id ?? getRoomName(r)) === decodeURIComponent(roomId))
     : null;
 
-  if (isLoading && floors.length === 0) {
+  if (isLoading && Object.keys(rooms).length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

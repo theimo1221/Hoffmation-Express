@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, type Room, type Device } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, getRoomWebUISettings, type Room, type Device } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
 import { Edit3, Save, X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import type { FloorPlanProps, RoomCoords, FixedBounds, DraggingState } from './types';
@@ -404,8 +405,40 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                   style={{
                     width: Math.max(w, 60),
                     height: Math.max(h, 40),
+                    backgroundColor: (() => {
+                      const webui = getRoomWebUISettings(room);
+                      if (webui?.color && !editMode) {
+                        // Convert hex to rgba with 20% opacity
+                        const hex = webui.color.replace('#', '');
+                        const r = parseInt(hex.substring(0, 2), 16);
+                        const g = parseInt(hex.substring(2, 4), 16);
+                        const b = parseInt(hex.substring(4, 6), 16);
+                        return `rgba(${r}, ${g}, ${b}, 0.2)`;
+                      }
+                      return undefined;
+                    })(),
                   }}
                 >
+                  {/* Room icon - positioned at top center */}
+                  {!editMode && (() => {
+                    const webui = getRoomWebUISettings(room);
+                    if (webui?.icon) {
+                      const IconComponent = (LucideIcons as any)[webui.icon];
+                      if (IconComponent) {
+                        return (
+                          <div className="absolute top-1 left-0 right-0 flex justify-center pointer-events-none z-10">
+                            <IconComponent 
+                              size={Math.min(w, h) >= 80 ? 20 : 16} 
+                              style={{ color: webui.color }}
+                              className="drop-shadow-sm"
+                            />
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  })()}
+                  
                   {/* Room name and Z-coordinate input - positioned at bottom */}
                   <div className="absolute bottom-0.5 left-0 right-0 flex flex-col items-center gap-1 pointer-events-none z-10">
                     <span className={cn(

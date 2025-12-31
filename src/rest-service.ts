@@ -1,6 +1,7 @@
 import cors from 'cors';
 import { Express, json, Request, Response, NextFunction, static as expressStatic } from 'express';
 import * as path from 'path';
+import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import {
@@ -298,6 +299,26 @@ export class RestService {
         : undefined;
       const endDate: Date | undefined = req.params.endDate ? new Date(parseInt(req.params.endDate, 10)) : undefined;
       return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(startDate, endDate));
+    });
+
+    // WebUI Settings endpoint (readonly)
+    this._app.get('/webui/settings', (_req, res) => {
+      const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
+      try {
+        if (fs.existsSync(settingsPath)) {
+          const settingsData = fs.readFileSync(settingsPath, 'utf-8');
+          const settings = JSON.parse(settingsData);
+          return res.json(settings);
+        } else {
+          // Return minimal default if file doesn't exist
+          return res.json({ version: '0.0' });
+        }
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to read webui-settings.json: ${err.message}`);
+        res.status(500);
+        return res.json({ error: 'Failed to load WebUI settings', message: err.message });
+      }
     });
 
     this._initialized = true;

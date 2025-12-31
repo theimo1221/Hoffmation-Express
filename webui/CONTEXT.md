@@ -5,6 +5,9 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
+**Latest Build:** 1,181.29 kB (gzip: 252.06 kB) - Dec 31, 2024
+*Note: Bundle size increased due to full Lucide Icons import for IconPicker*
+
 ## Tech Stack
 
 - **Frontend:** React 18, TypeScript, TailwindCSS, Zustand (state), i18next (i18n)
@@ -29,12 +32,26 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 - **Lösung:** Generische `toggleDevice()` Funktion in deviceActions.ts
 - **Ergebnis:** -60 Zeilen in View, Business Logic im Service Layer
 
+### Multi-Floor Support & Child-Friendly Icons (31.12.2024)
+- **Problem:** Räume über mehrere Etagen (Treppenhaus), Garten/Keller-Vermischung bei etage 99
+- **Lösung:** 
+  - Global: `FloorDefinition` mit ID, Name, Level, SortOrder, Icon, Color
+  - Pro Raum: `customSettingsJson.webui.crossSectionFloors` für Multi-Floor
+  - IconPicker & ColorPicker Komponenten für visuelle Identifikation
+- **Ergebnis:** 
+  - Räume können mehreren Etagen zugeordnet werden
+  - "Draußen" als separate Etage (level 99)
+  - Kindgerecht: "Dein Raum ist der gelbe mit dem Baby-Icon"
+  - Backend-persistiert in `webui-settings.json`
+
 ### Architektur-Verbesserungen
 - ✅ DRY-Prinzip: Keine Duplikation mehr durch Wrapper
 - ✅ Service Layer: Business Logic in `/lib/deviceActions.ts`
 - ✅ Self-Contained: RadialDeviceMenu verwaltet eigene Actions
 - ✅ Wiederverwendbar: Alle Komponenten können überall verwendet werden
-- ✅ Bundle: 419.40 kB (gzip: 118.53 kB)
+- ✅ Multi-Floor: Flexible Raum-Etagen-Zuordnung mit Fallback
+- ✅ Child-Friendly: Icons & Farben für visuelle Orientierung
+- ✅ Bundle: 1,181.29 kB (gzip: 252.06 kB)
 
 ## Key Files
 
@@ -48,8 +65,11 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 | `src/views/floorplan/RoomFloorPlanDetail.tsx` | Room detail + device positioning (uses RadialDeviceMenu) |
 | `src/views/floorplan/types.ts` | Shared interfaces |
 | `src/components/DeviceSettingsSection.tsx` | Device settings component |
-| `src/stores/dataStore.ts` | Zustand store for rooms/devices |
-| `src/stores/settingsStore.ts` | App settings (polling, dark mode, etc.) |
+| `src/stores/dataStore.ts` | Zustand store for rooms/devices + FloorDefinition interfaces |
+| `src/stores/settingsStore.ts` | App settings (polling, dark mode, floors, etc.) |
+| `src/api/settings.ts` | WebUI settings API (floors) |
+| `src/components/IconPicker.tsx` | Searchable Lucide icon picker |
+| `src/components/ColorPicker.tsx` | Interactive color picker with presets |
 | `src/api/devices.ts` | Device API functions (incl. setDevicePosition) |
 | `src/lib/deviceActions.ts` | Service layer for device actions (executeDeviceAction, toggleDevice) |
 | `src/stores/deviceStore.ts` | Device helpers (isToggleableDevice, hasCapability, etc.) |
@@ -58,6 +78,62 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 | `src/views/rooms/` | Refactored RoomsView components |
 | `src/components/RadialMenu.tsx` | Radial quick-action menu for floor plan |
 | `src/api/client.ts` | Base API client (apiPost, apiPostNoResponse) |
+
+## Multi-Floor Architecture
+
+### Data Flow
+1. **Backend:** `config/private/webui-settings.json` stores global floor definitions (excluded from git)
+2. **Backend:** `GET /api/webui/settings` returns JSON or `{ "version": "0.0" }` fallback
+3. **Backend:** `room.settings.customSettingsJson` stores per-room WebUI settings (JSON string)
+4. **Frontend:** `settingsStore.loadFloors()` fetches from backend, uses DEFAULT_FLOORS if version is "0.0"
+5. **Frontend:** `getFloorsForRoom(room, floors)` determines which floors a room belongs to
+6. **Frontend:** `getRoomWebUISettings(room)` parses customSettingsJson for icon/color
+7. **Frontend:** Room updates via `POST /api/roomSettings/:roomName` with `JSON.stringify()`
+
+### Key Interfaces
+```typescript
+interface FloorDefinition {
+  id: string;          // "eg", "og1", "draussen"
+  name: string;        // "EG", "1. OG", "Draußen"
+  level: number;       // 0, 1, 99
+  sortOrder: number;   // Display order
+  icon?: string;       // Lucide icon name
+  color?: string;      // Hex color
+}
+
+interface RoomWebUISettings {
+  crossSectionFloors?: string[];  // ["keller", "eg", "og1"]
+  icon?: string;                  // "Baby"
+  color?: string;                 // "#FBBF24"
+}
+```
+
+### Backend Implementation
+- ✅ `config/private/webui-settings.json` - Created with default floor definitions
+- ✅ `GET /api/webui/settings` - Implemented in `rest-service.ts`
+  - Returns JSON from file if exists
+  - Returns `{ "version": "0.0" }` if file doesn't exist
+  - Error handling with logging and 500 status
+- ✅ `POST /api/roomSettings/:roomName` - Update room's `customSettingsJson` (existing endpoint)
+  - Used to set `customSettingsJson.webui.crossSectionFloors`, `icon`, `color`
+  - Requires `JSON.stringify()` for customSettingsJson field
+- ❌ `POST /api/webui/settings` - Not implemented (readonly, manual JSON editing)
+
+**Important:** 
+- File location: `config/private/webui-settings.json` (excluded from git)
+- Floor definitions are readonly - edit JSON file manually
+- Room settings updated via existing `/api/roomSettings/:roomName` endpoint
+
+### Frontend Implementation Status
+- ✅ FloorDefinition & RoomWebUISettings interfaces
+- ✅ Helper functions: `getFloorsForRoom()`, `getRoomWebUISettings()`, `isMultiFloorRoom()`
+- ✅ API Client: `src/api/settings.ts`
+- ✅ settingsStore: `floors`, `loadFloors()`, `saveFloors()`
+- ✅ IconPicker & ColorPicker components
+- ✅ FloorPlanView: Dynamic room-to-floor assignment
+- ✅ HouseCrossSection: Icons & colors with colored left border (4px)
+- ✅ FloorPlan: Room icons (top center) & colors (20% opacity background)
+- ❌ SettingsView: Floor-Editor UI (not needed - manual JSON editing)
 
 ## Device Capabilities (from hoffmation-base)
 

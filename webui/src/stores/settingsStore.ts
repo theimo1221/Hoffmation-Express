@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import type { FloorDefinition } from './dataStore';
+import { getWebUISettings, updateWebUISettings } from '@/api/settings';
 
 interface SettingsState {
   pollingInterval: number;
@@ -7,12 +9,16 @@ interface SettingsState {
   apiBaseUrl: string;
   expertMode: boolean;
   excludedLevels: number[];
+  floors: FloorDefinition[];
+  floorsLoading: boolean;
   setPollingInterval: (interval: number) => void;
   setDarkMode: (mode: 'system' | 'light' | 'dark') => void;
   setLanguage: (lang: 'en' | 'de') => void;
   setApiBaseUrl: (url: string) => void;
   setExpertMode: (enabled: boolean) => void;
   setExcludedLevels: (levels: number[]) => void;
+  loadFloors: () => Promise<void>;
+  saveFloors: (floors: FloorDefinition[]) => Promise<void>;
 }
 
 const getInitialDarkMode = (): 'system' | 'light' | 'dark' => {
@@ -42,6 +48,15 @@ const getInitialExcludedLevels = (): number[] => {
   return [];
 };
 
+const DEFAULT_FLOORS: FloorDefinition[] = [
+  { id: 'keller', name: 'Keller', level: -1, sortOrder: 0, icon: 'Warehouse', color: '#8B4513' },
+  { id: 'draussen', name: 'Draußen', level: 99, sortOrder: 1, icon: 'Trees', color: '#22C55E' },
+  { id: 'eg', name: 'EG', level: 0, sortOrder: 2, icon: 'Home', color: '#3B82F6' },
+  { id: 'og1', name: '1. OG', level: 1, sortOrder: 3, icon: 'Bed', color: '#F59E0B' },
+  { id: 'og2', name: '2. OG', level: 2, sortOrder: 4, icon: 'Users', color: '#8B5CF6' },
+  { id: 'dachboden', name: 'Dachboden', level: 3, sortOrder: 5, icon: 'Package', color: '#6B7280' },
+];
+
 export const useSettingsStore = create<SettingsState>((set) => ({
   pollingInterval: parseInt(localStorage.getItem('hoffmation-polling-interval') || '30', 10),
   darkMode: getInitialDarkMode(),
@@ -49,6 +64,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   apiBaseUrl: localStorage.getItem('hoffmation-api-url') || '/api',
   expertMode: localStorage.getItem('hoffmation-expert-mode') === 'true',
   excludedLevels: getInitialExcludedLevels(),
+  floors: DEFAULT_FLOORS,
+  floorsLoading: false,
 
   setPollingInterval: (interval) => {
     localStorage.setItem('hoffmation-polling-interval', interval.toString());
@@ -79,4 +96,26 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     localStorage.setItem('hoffmation-excluded-levels', JSON.stringify(levels));
     set({ excludedLevels: levels });
   },
+
+  loadFloors: async () => {
+    set({ floorsLoading: true });
+    try {
+      const settings = await getWebUISettings();
+      set({ floors: settings.floors || DEFAULT_FLOORS, floorsLoading: false });
+    } catch (error) {
+      console.error('Failed to load floors, using defaults:', error);
+      set({ floors: DEFAULT_FLOORS, floorsLoading: false });
+    }
+  },
+
+  saveFloors: async (floors: FloorDefinition[]) => {
+    try {
+      await updateWebUISettings({ floors, version: '1.0' });
+      set({ floors });
+    } catch (error) {
+      console.error('Failed to save floors:', error);
+      throw error;
+    }
+  },
 }));
+

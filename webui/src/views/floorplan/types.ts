@@ -1,4 +1,9 @@
-import type { Floor, Room, Device } from '@/stores/dataStore';
+import type { Room, Device, FloorDefinition } from '@/stores/dataStore';
+
+// Extended Floor with rooms array for UI
+export interface Floor extends FloorDefinition {
+  rooms: Room[];
+}
 
 export interface HouseCrossSectionProps {
   floors: Floor[];
