@@ -59,8 +59,15 @@ export class PushNotificationService {
 
   /**
    * Send push notification to all subscriptions
+   * @param priority 'normal' | 'critical' - Critical notifications bypass Do Not Disturb
    */
-  public static async sendToAll(title: string, body: string, url?: string, icon?: string): Promise<void> {
+  public static async sendToAll(
+    title: string,
+    body: string,
+    url?: string,
+    icon?: string,
+    priority: 'normal' | 'critical' = 'normal'
+  ): Promise<void> {
     if (!this.initialized || !this.vapidKeys) {
       ServerLogService.writeLog(LogLevel.Warn, 'Push notifications not initialized');
       return;
@@ -80,6 +87,10 @@ export class PushNotificationService {
         icon: icon || '/ui/icon-192.png',
         badge: '/ui/icon-192.png',
         url: url || '/ui/',
+        requireInteraction: priority === 'critical',
+        tag: priority === 'critical' ? 'critical-alert' : undefined,
+        vibrate: priority === 'critical' ? [200, 100, 200, 100, 200] : [200, 100, 200],
+        silent: false,
       });
 
       const results = await Promise.allSettled(
@@ -106,13 +117,15 @@ export class PushNotificationService {
 
   /**
    * Send push notification to specific subscription
+   * @param priority 'normal' | 'critical' - Critical notifications bypass Do Not Disturb
    */
   public static async sendToSubscription(
     subscription: PushSubscription,
     title: string,
     body: string,
     url?: string,
-    icon?: string
+    icon?: string,
+    priority: 'normal' | 'critical' = 'normal'
   ): Promise<boolean> {
     if (!this.initialized || !this.vapidKeys) {
       return false;
@@ -125,6 +138,10 @@ export class PushNotificationService {
         icon: icon || '/ui/icon-192.png',
         badge: '/ui/icon-192.png',
         url: url || '/ui/',
+        requireInteraction: priority === 'critical',
+        tag: priority === 'critical' ? 'critical-alert' : undefined,
+        vibrate: priority === 'critical' ? [200, 100, 200, 100, 200] : [200, 100, 200],
+        silent: false,
       });
 
       await webpush.sendNotification(subscription, payload);
