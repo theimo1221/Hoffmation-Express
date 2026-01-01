@@ -1,9 +1,11 @@
 /**
  * Device Store
- * Centralized device state and helper functions
+ * Utility functions for device operations
  */
 
-import type { Device } from './dataStore';
+import type { Device } from './types';
+
+export type { Device } from './types';
 
 /**
  * Device Type Checker Functions
@@ -94,10 +96,10 @@ export function getDeviceRoom(device: Device): string {
   return device.info?.room || device._info?.room || '';
 }
 
-export function getDeviceName(device: Device): string {
+export function getDeviceName(device: Device, stripRoomPrefix?: string): string {
   const info = device.info ?? device._info;
   let name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
-  const room = getDeviceRoom(device);
+  const room = stripRoomPrefix ?? getDeviceRoom(device);
   
   if (room && name.toLowerCase().includes(room.toLowerCase())) {
     const roomLower = room.toLowerCase();
@@ -167,7 +169,7 @@ export function getDeviceDetectionsToday(device: Device): number {
 }
 
 export function getDeviceBattery(device: Device): number | undefined {
-  return device.battery?.level ?? device.batteryLevel;
+  return device.battery?.level ?? (device.battery as any)?._level ?? device.batteryLevel;
 }
 
 export function getDeviceColor(device: Device): string | undefined {
@@ -214,6 +216,24 @@ export const DeviceCapability = {
 
 export function hasCapability(device: Device, capability: number): boolean {
   return device.deviceCapabilities?.includes(capability) ?? false;
+}
+
+/**
+ * Additional Device Getters
+ */
+
+export function getDeviceLinkQuality(device: Device): number | undefined {
+  return device.linkQuality ?? device._linkQuality;
+}
+
+export function isDeviceAvailable(device: Device): boolean | undefined {
+  return device.available ?? device._available;
+}
+
+export function getAutomaticBlockedUntil(device: Device): Date | undefined {
+  const ms = (device.blockAutomationHandler as any)?.automaticBlockedUntil;
+  if (!ms || ms === 0) return undefined;
+  return new Date(ms);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { Wind } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
-import { isDeviceOn, useDataStore } from '@/stores/dataStore';
+import type { Device } from '@/stores';
+import { isDeviceOn, useDataStore } from '@/stores';
 import { hasCapability, DeviceCapability } from '@/stores/deviceStore';
 import { setLamp, setActuator, setShutter, setAc, setDimmer } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';

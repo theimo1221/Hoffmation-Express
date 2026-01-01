@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from './client';
-import type { FloorDefinition } from '@/stores/dataStore';
+import type { FloorDefinition } from '@/stores';
 
 export interface WebUISettings {
   floors: FloorDefinition[];

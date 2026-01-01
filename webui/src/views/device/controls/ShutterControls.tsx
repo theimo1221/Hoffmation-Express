@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Blinds } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
+import { getDeviceShutterLevel } from '@/stores/deviceStore';
 import { setShutter } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 
@@ -66,7 +67,7 @@ interface ShutterPositionControlsProps {
 
 export function ShutterPositionControls({ device, onUpdate }: ShutterPositionControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const currentLevel = device._currentLevel ?? -1;
+  const currentLevel = getDeviceShutterLevel(device);
   const [desiredPosition, setDesiredPosition] = useState(Math.round(currentLevel >= 0 ? currentLevel : 0));
   
   const handleSetShutter = async (level: number) => {

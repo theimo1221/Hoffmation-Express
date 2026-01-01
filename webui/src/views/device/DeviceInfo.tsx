@@ -1,5 +1,5 @@
 import { Zap, Clock } from 'lucide-react';
-import { type Device, getCapabilityNames } from '@/stores/dataStore';
+import { type Device, getCapabilityNames } from '@/stores';
 import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 
 interface BaseCommand {
@@ -50,8 +50,8 @@ export function DeviceInfo({
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Capabilities</span>
-          <span className="text-right text-xs max-w-[200px]" title={getCapabilityNames(capabilities)}>
-            {capabilities.length > 0 ? `${capabilities.join(', ')} – ${getCapabilityNames(capabilities)}` : 'N/A'}
+          <span className="text-right text-xs max-w-[200px]" title={getCapabilityNames(device).join(', ')}>
+            {capabilities.length > 0 ? `${capabilities.join(', ')} – ${getCapabilityNames(device).join(', ')}` : 'N/A'}
           </span>
         </div>
         {(() => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Speaker, Play, Square, Camera } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { isDeviceOn } from '@/stores/deviceStore';
 import { speakOnDevice, startScene, endScene } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';

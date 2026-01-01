@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useDataStore, type Device, getDeviceRoom, getDeviceName, isDeviceUnreachable, isDeviceOn, isLampDevice, isShutterDevice, isActuatorDevice, isTempSensorDevice, getDeviceTemperature, getDeviceShutterLevel } from '@/stores/dataStore';
+import { useDataStore, type Device, getDeviceRoom, getDeviceName, isDeviceUnreachable, isDeviceOn, isLampDevice, isShutterDevice, isActuatorDevice, isTempSensorDevice, getDeviceTemperature, getDeviceShutterLevel, getDeviceBattery } from '@/stores';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { Star, Zap, Lightbulb, Thermometer, Blinds, Power, WifiOff, BatteryLow, ChevronRight, ChevronDown, Printer } from 'lucide-react';
 import { setLamp, setActuator, setShutter } from '@/api/devices';
@@ -115,7 +115,7 @@ export function FavoritesView() {
             {showLowBattery && (
               <div className="space-y-2">
                 {lowBatteryDevices.map((device) => {
-                  const batteryLevel = device.battery?.level ?? device.batteryLevel ?? 0;
+                  const batteryLevel = getDeviceBattery(device) ?? 0;
                   return (
                     <CompactDeviceCard 
                       key={device.id} 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Thermometer, Droplets, Snowflake, Flame } from 'lucide-react';
 import type { TemperatureHistoryEntry } from '@/api/devices';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { getDeviceValveLevel, getDeviceTemperature, getDeviceDesiredTemp, getDeviceHumidity } from '@/stores/deviceStore';
 import { getTemperatureHistory } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';

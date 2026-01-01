@@ -3,7 +3,7 @@
  * Centralized room state and helper functions
  */
 
-import type { Room, Device } from './dataStore';
+import type { Room, Device, GroupType, GroupData, RoomWebUISettings } from './types';
 import { getDeviceRoom } from './deviceStore';
 
 /**
@@ -63,6 +63,9 @@ export interface RoomStats {
   onlineDevices: number;
   offlineDevices: number;
   lampsOn: number;
+  lampsTotal: number;
+  acOn: number;
+  acTotal: number;
   temperature?: number;
 }
 
@@ -72,6 +75,9 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
   let onlineDevices = 0;
   let offlineDevices = 0;
   let lampsOn = 0;
+  let lampsTotal = 0;
+  let acOn = 0;
+  let acTotal = 0;
   let temperatures: number[] = [];
   
   for (const device of roomDevices) {
@@ -83,11 +89,20 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
       onlineDevices++;
     }
     
-    // Count lamps that are on
+    // Count lamps
     const isLamp = (device.deviceCapabilities ?? []).some(cap => [8, 9, 18].includes(cap));
     if (isLamp) {
+      lampsTotal++;
       const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
       if (isOn) lampsOn++;
+    }
+    
+    // Count AC
+    const isAc = (device.deviceCapabilities ?? []).includes(0);
+    if (isAc) {
+      acTotal++;
+      const isOn = device.on ?? device._on ?? false;
+      if (isOn) acOn++;
     }
     
     // Collect temperatures
@@ -106,6 +121,54 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
     onlineDevices,
     offlineDevices,
     lampsOn,
+    lampsTotal,
+    acOn,
+    acTotal,
     temperature: avgTemp,
   };
+}
+
+/**
+ * Group Helper Functions
+ */
+
+export function hasGroup(room: Room, groupType: GroupType): boolean {
+  if (!room.groupdict) return false;
+  return Object.keys(room.groupdict).includes(String(groupType));
+}
+
+export function getGroup(room: Room, groupType: GroupType): GroupData | undefined {
+  if (!room.groupdict) return undefined;
+  return room.groupdict[String(groupType)];
+}
+
+/**
+ * Parse customSettingsJson from room settings
+ */
+export function getRoomWebUISettings(room: Room): RoomWebUISettings | null {
+  try {
+    // Try _settingsContainer first (backend structure)
+    const json = (room.settings as any)?._settingsContainer?.customSettingsJson 
+                 ?? room.settings?.customSettingsJson;
+    if (typeof json === 'string' && json.length > 0) {
+      const parsed = JSON.parse(json);
+      return parsed.webui || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get floors for a room based on customSettingsJson or fallback to etage
+ */
+export function getRoomFloors(room: Room): string[] {
+  const webui = getRoomWebUISettings(room);
+  if (webui?.crossSectionFloors && webui.crossSectionFloors.length > 0) {
+    return webui.crossSectionFloors;
+  }
+  // Fallback to etage
+  const etage = getRoomEtage(room);
+  return [String(etage)];
 }

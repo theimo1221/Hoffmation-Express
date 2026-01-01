@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Clock } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { blockAutomatic, liftAutomaticBlock } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 

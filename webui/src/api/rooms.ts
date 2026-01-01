@@ -1,5 +1,5 @@
 import { apiGet, apiPostNoResponse } from './client';
-import type { Room, RoomSettings } from '@/stores/dataStore';
+import type { Room, RoomSettings } from '@/stores';
 
 export async function getRooms(): Promise<Record<string, Room>> {
   return apiGet<Record<string, Room>>('/rooms');

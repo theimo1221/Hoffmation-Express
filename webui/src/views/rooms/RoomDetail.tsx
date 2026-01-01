@@ -1,5 +1,5 @@
 import { ChevronRight, Thermometer, Lightbulb, AirVent, Blinds } from 'lucide-react';
-import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, filterDevicesForExpertMode } from '@/stores/dataStore';
+import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, filterDevicesForExpertMode } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
@@ -23,7 +23,11 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
   const allRoomDevices = Object.values(devices).filter(
     (d) => getDeviceRoom(d).toLowerCase() === roomName.toLowerCase()
   );
-  const roomDevices = filterDevicesForExpertMode(allRoomDevices, expertMode);
+  const filteredDevicesDict = filterDevicesForExpertMode(
+    Object.fromEntries(allRoomDevices.map(d => [d.id ?? '', d])),
+    expertMode
+  );
+  const roomDevices = Object.values(filteredDevicesDict);
 
   return (
     <div className="flex h-full flex-col">

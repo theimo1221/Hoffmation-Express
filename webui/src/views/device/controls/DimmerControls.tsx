@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lightbulb } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { isDeviceOn, getDeviceBrightness } from '@/stores/deviceStore';
 import { setDimmer } from '@/api/devices';
 import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';

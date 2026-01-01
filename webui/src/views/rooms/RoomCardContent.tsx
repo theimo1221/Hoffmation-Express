@@ -1,5 +1,5 @@
 import { Thermometer, Lightbulb, AirVent } from 'lucide-react';
-import { type Room, type Device, getRoomName, getRoomStats } from '@/stores/dataStore';
+import { type Room, type Device, getRoomName, getRoomStats } from '@/stores';
 
 interface RoomCardContentProps {
   room: Room;
@@ -7,7 +7,8 @@ interface RoomCardContentProps {
 }
 
 export function RoomCardContent({ room, devices }: RoomCardContentProps) {
-  const stats = getRoomStats(room, devices);
+  const roomName = getRoomName(room);
+  const stats = getRoomStats(roomName, devices);
 
   return (
     <div className="flex flex-col items-start gap-1">

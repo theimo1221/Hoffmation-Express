@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Room, type Device, type GroupData, getRoomName, getFloorsForRoom } from '@/stores/dataStore';
+import { useDataStore, type Room, type Device, type GroupData, getRoomName, getFloorsForRoom } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Search } from 'lucide-react';
@@ -51,8 +51,8 @@ export function RoomsView() {
   const floors = useMemo(() => {
     return floorDefinitions.map(def => {
       const floorRooms = Object.values(rooms).filter(room => {
-        const roomFloors = getFloorsForRoom(room, floorDefinitions);
-        return roomFloors.some(f => f.id === def.id);
+        const roomFloorIds = getFloorsForRoom(room);
+        return roomFloorIds.includes(def.id);
       });
       return { ...def, rooms: floorRooms };
     });
@@ -60,8 +60,11 @@ export function RoomsView() {
 
   const roomList = Object.values(rooms).filter(
     (room) => {
-      const roomFloors = getFloorsForRoom(room, floorDefinitions);
-      const levels = roomFloors.map(f => f.level);
+      const roomFloorIds = getFloorsForRoom(room);
+      const levels = roomFloorIds.map(floorId => {
+        const def = floorDefinitions.find(f => f.id === floorId);
+        return def?.level ?? 99;
+      });
       
       // Check if any of the room's floors are excluded
       if (levels.every(level => excludedLevels.includes(level))) return false;

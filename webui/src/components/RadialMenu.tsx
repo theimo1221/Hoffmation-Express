@@ -7,7 +7,7 @@ import {
   Wind, Activity, Droplets, Flame, Snowflake,
   Zap, ZapOff
 } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { DeviceCapability } from '@/components/DeviceIcon';
 
 export interface RadialMenuItem {

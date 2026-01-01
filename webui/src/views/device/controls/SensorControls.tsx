@@ -1,6 +1,6 @@
 import { Eye, DoorOpen } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
-import { isMotionDetected, getDeviceDetectionsToday } from '@/stores/deviceStore';
+import type { Device } from '@/stores';
+import { isMotionDetected, getDeviceDetectionsToday, getDeviceHandlePosition } from '@/stores/deviceStore';
 
 interface MotionSensorControlsProps {
   device: Device;
@@ -56,7 +56,7 @@ const handlePositionNames: Record<number, string> = {
 };
 
 export function HandleSensorControls({ device }: HandleSensorControlsProps) {
-  const position = device.position ?? device.handleSensor?.position ?? -1;
+  const position = getDeviceHandlePosition(device);
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

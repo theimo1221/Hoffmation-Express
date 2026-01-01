@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { type Device, getDeviceRoom, useDataStore } from '@/stores/dataStore';
-import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
+import { type Device, getDeviceRoom, useDataStore } from '@/stores';
+import { DeviceCapability, hasCapability, getDeviceTemperature, getDeviceHumidity, getDeviceShutterLevel, getDeviceBattery } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { DeviceSettingsSection } from '@/components/DeviceSettingsSection';
@@ -47,10 +47,10 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
   const room = getDeviceRoom(device);
   
   // Device state values - only for conditional rendering
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
-  const humidity = device.humiditySensor?.humidity ?? device._humidity ?? -1;
-  const currentLevel = device._currentLevel ?? -1;
-  const batteryLevel = device.battery?.level ?? device.batteryLevel ?? -99;
+  const temp = getDeviceTemperature(device);
+  const humidity = getDeviceHumidity(device) ?? -1;
+  const currentLevel = getDeviceShutterLevel(device);
+  const batteryLevel = getDeviceBattery(device) ?? -99;
   
   const isFavorite = device.id ? checkIsFavorite(device.id) : false;
 

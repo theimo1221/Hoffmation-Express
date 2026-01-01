@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { FloorDefinition } from './dataStore';
+import type { FloorDefinition } from './types';
 import { getWebUISettings, updateWebUISettings } from '@/api/settings';
 
 export interface FloorPlanFilters {

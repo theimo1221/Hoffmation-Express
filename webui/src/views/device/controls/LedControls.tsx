@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Lightbulb } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
-import { isDeviceOn, getDeviceBrightness } from '@/stores/deviceStore';
+import type { Device } from '@/stores';
+import { isDeviceOn, getDeviceBrightness, getDeviceColor } from '@/stores/deviceStore';
 import { setLed } from '@/api/devices';
 import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
@@ -14,7 +14,7 @@ export function LedControls({ device, onUpdate }: LedControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
   const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
-  const [desiredColor, setDesiredColor] = useState(device._color ?? '#FFFFFF');
+  const [desiredColor, setDesiredColor] = useState(getDeviceColor(device) ?? '#FFFFFF');
   
   const isOn = isDeviceOn(device);
   const brightness = getDeviceBrightness(device);

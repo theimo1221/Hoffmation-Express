@@ -1,4 +1,4 @@
-import type { Room, Device, GroupData } from '@/stores/dataStore';
+import type { Room, Device, GroupData } from '@/stores';
 
 export interface RoomDetailProps {
   room: Room;

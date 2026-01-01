@@ -1,5 +1,5 @@
 import { Activity, Battery } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { getDeviceBattery } from '@/stores/deviceStore';
 
 interface EnergyManagerControlsProps {

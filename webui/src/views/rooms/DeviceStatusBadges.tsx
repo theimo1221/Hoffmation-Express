@@ -1,5 +1,5 @@
-import type { Device } from '@/stores/dataStore';
-import { isDeviceUnreachable, DeviceCapability, hasCapability, getDeviceTemperature, getDeviceHandlePosition, isMotionDetected, getDeviceDetectionsToday, getDeviceValveLevel, getDeviceBrightness, getDeviceShutterLevel, isDeviceOn } from '@/stores/dataStore';
+import type { Device } from '@/stores';
+import { isDeviceUnreachable, DeviceCapability, hasCapability, getDeviceTemperature, getDeviceHandlePosition, isMotionDetected, getDeviceDetectionsToday, getDeviceValveLevel, getDeviceBrightness, getDeviceShutterLevel, isDeviceOn, getDeviceBattery, getDeviceDesiredTemp, getDeviceColor } from '@/stores';
 
 interface DeviceStatusBadgesProps {
   device: Device;
@@ -18,7 +18,7 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   }
 
   // Battery level (show if device has battery capability or batteryLevel property)
-  const batteryLevel = device.battery?.level ?? device.batteryLevel;
+  const batteryLevel = getDeviceBattery(device);
   if (hasCapability(device, DeviceCapability.batteryDriven) || batteryLevel !== undefined) {
     if (batteryLevel !== undefined && batteryLevel >= 0) {
       const batteryColor = batteryLevel < 20 ? 'text-red-500' : batteryLevel < 50 ? 'text-orange-500' : 'text-green-500';
@@ -68,14 +68,14 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   // Heater: show ist/soll temps and valve level
   if (hasCapability(device, DeviceCapability.heater)) {
     const istTemp = getDeviceTemperature(device);
-    const sollTemp = device.desiredTemp ?? device._desiredTemperatur ?? -99;
+    const sollTemp = getDeviceDesiredTemp(device);
     const valveLevel = getDeviceValveLevel(device);
     
     const parts: string[] = [];
     if (istTemp !== undefined) {
       parts.push(`${istTemp.toFixed(1)}°`);
     }
-    if (sollTemp !== -99) {
+    if (sollTemp !== undefined && sollTemp !== -99) {
       parts.push(`→${sollTemp.toFixed(1)}°`);
     }
     if (valveLevel >= 0 && valveLevel <= 100) {
@@ -125,7 +125,7 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
   // LED: show color and brightness
   if (hasCapability(device, DeviceCapability.ledLamp)) {
     const brightness = getDeviceBrightness(device);
-    const color = device._color ?? '';
+    const color = getDeviceColor(device) ?? '';
     const isOn = isDeviceOn(device);
     if (isOn) {
       badges.push(

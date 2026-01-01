@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useDataStore, getRoomName, getFloorsForRoom, type Room } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getFloorsForRoom, type Room } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { HouseCrossSection, FloorPlan, RoomFloorPlanDetail } from './floorplan';
 
@@ -23,12 +23,12 @@ export function FloorPlanView() {
     
     // Assign each room to its floors
     Object.values(rooms).forEach((room) => {
-      const roomFloors = getFloorsForRoom(room, floorDefinitions);
-      roomFloors.forEach((floor) => {
-        if (!roomsByFloor.has(floor.id)) {
-          roomsByFloor.set(floor.id, []);
+      const roomFloorIds = getFloorsForRoom(room);
+      roomFloorIds.forEach((floorId) => {
+        if (!roomsByFloor.has(floorId)) {
+          roomsByFloor.set(floorId, []);
         }
-        roomsByFloor.get(floor.id)!.push(room);
+        roomsByFloor.get(floorId)!.push(room);
       });
     });
 

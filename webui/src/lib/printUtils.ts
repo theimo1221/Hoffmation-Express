@@ -1,4 +1,4 @@
-import { type Device, getDeviceName, getDeviceRoom, getRoomName, getRoomEtage, type Room } from '@/stores/dataStore';
+import { type Device, getDeviceName, getDeviceRoom, getRoomName, getRoomEtage, type Room } from '@/stores';
 
 export const FLOOR_NAMES: Record<number, string> = {
   [-1]: 'Keller',

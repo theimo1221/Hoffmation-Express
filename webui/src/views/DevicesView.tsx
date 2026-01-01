@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Device, filterDevicesForExpertMode, DeviceCapability } from '@/stores/dataStore';
+import { useDataStore, type Device, filterDevicesForExpertMode, DeviceCapability } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap } from 'lucide-react';
@@ -40,9 +40,9 @@ export function DevicesView() {
   }
 
   // Filter devices by expert mode first, then by search/capability
-  const filteredByExpertMode = filterDevicesForExpertMode(Object.values(devices), expertMode);
+  const filteredByExpertMode = filterDevicesForExpertMode(devices, expertMode);
   
-  const deviceList = filteredByExpertMode.filter((device) => {
+  const deviceList = Object.values(filteredByExpertMode).filter((device) => {
     const info = device.info ?? device._info;
     const name = info?.customName ?? info?._customName ?? info?.fullName ?? '';
     const room = info?.room ?? '';

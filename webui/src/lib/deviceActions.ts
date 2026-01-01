@@ -3,8 +3,8 @@
  * Handles device state changes with proper delays and refresh logic
  */
 
-import type { Device } from '@/stores/dataStore';
-import { isDeviceOn, isAcOn } from '@/stores/dataStore';
+import type { Device } from '@/stores';
+import { isDeviceOn, isAcOn } from '@/stores';
 import { isToggleableDevice } from '@/stores/deviceStore';
 import { setLamp, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
 

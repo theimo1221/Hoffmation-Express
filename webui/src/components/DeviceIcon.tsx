@@ -1,4 +1,4 @@
-import { type Device } from '@/stores/dataStore';
+import { type Device } from '@/stores';
 import { 
   Lightbulb, 
   LightbulbOff, 

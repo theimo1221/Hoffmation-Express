@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { useDataStore } from '@/stores/dataStore';
+import { useDataStore } from '@/stores';
 import * as LucideIcons from 'lucide-react';
 import type { HouseCrossSectionProps } from './types';
 

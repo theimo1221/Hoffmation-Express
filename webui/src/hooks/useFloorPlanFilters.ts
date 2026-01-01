@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { DeviceCapability } from '@/stores/deviceStore';
 
 export interface FloorPlanFilters {

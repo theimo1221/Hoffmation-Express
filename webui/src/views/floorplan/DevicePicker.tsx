@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { getDeviceName, type Device } from '@/stores/dataStore';
+import { getDeviceName, type Device } from '@/stores';
 import { DeviceIcon } from '@/components/DeviceIcon';
 
 interface DevicePickerProps {

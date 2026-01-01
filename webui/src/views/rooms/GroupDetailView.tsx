@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, ArrowLeft, Settings } from 'lucide-react';
-import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, useDataStore } from '@/stores/dataStore';
+import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, useDataStore } from '@/stores';
 import { updateGroupSettings, type HeatGroupSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
 import { DeviceIcon } from '@/components/DeviceIcon';

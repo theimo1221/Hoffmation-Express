@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Power } from 'lucide-react';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 import { isDeviceOn } from '@/stores/deviceStore';
 import { setActuator } from '@/api/devices';
 import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';

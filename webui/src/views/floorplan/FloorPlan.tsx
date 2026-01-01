@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getRoomWebUISettings, type Room, type Device } from '@/stores/dataStore';
+import { useDataStore, getRoomName, getDeviceRoom, getRoomWebUISettings, type Room, type Device } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';

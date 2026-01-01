@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings } from '@/stores/dataStore';
+import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { IconPicker } from './IconPicker';

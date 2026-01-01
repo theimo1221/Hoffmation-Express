@@ -6,7 +6,7 @@ import { RoomsView } from '@/views/RoomsView';
 import { DevicesView } from '@/views/DevicesView';
 import { SettingsView } from '@/views/SettingsView';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useDataStore } from '@/stores/dataStore';
+import { useDataStore } from '@/stores';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { OfflineBanner } from '@/components/OfflineBanner';
 

@@ -14,7 +14,7 @@ import {
   type SceneSettings,
   type SpeakerSettings,
   type DachsSettings,
-} from '@/stores/dataStore';
+} from '@/stores';
 import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 import { updateDeviceSettings } from '@/api/devices';
 

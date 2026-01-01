@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores/dataStore';
-import { DeviceCapability, isToggleableDevice } from '@/stores/deviceStore';
+import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores';
+import { DeviceCapability, isToggleableDevice, getDeviceColor, getDeviceBrightness } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
@@ -448,8 +448,9 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
             const isLed = caps.includes(DeviceCapability.ledLamp);
             const isOn = isDeviceOn(device);
             let ledBorderColor = '';
-            if (isLed && isOn && device._color) {
-              let color = device._color;
+            const deviceColor = getDeviceColor(device);
+            if (isLed && isOn && deviceColor) {
+              let color = deviceColor;
               // Expand shorthand hex notation
               if (color.length === 5 && color.startsWith('#')) {
                 color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3] + color[4] + color[4];
@@ -505,7 +506,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
                   {(caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp)) && isOn && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => {
-                        const brightness = device.brightness ?? device._brightness ?? 0;
+                        const brightness = getDeviceBrightness(device);
                         const threshold = (index + 1) * 12.5; // 100/8 = 12.5% per ray
                         // Always show at least one ray when lamp is on
                         const isActive = index === 0 ? true : brightness >= threshold;

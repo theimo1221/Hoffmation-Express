@@ -1,5 +1,5 @@
 import { apiGet, apiGetNoResponse, apiPostNoResponse } from './client';
-import type { Device } from '@/stores/dataStore';
+import type { Device } from '@/stores';
 
 export async function getDevices(): Promise<Record<string, Device>> {
   return apiGet<Record<string, Device>>('/devices');

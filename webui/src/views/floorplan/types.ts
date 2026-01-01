@@ -1,4 +1,4 @@
-import type { Room, Device, FloorDefinition } from '@/stores/dataStore';
+import type { Room, Device, FloorDefinition } from '@/stores';
 
 // Extended Floor with rooms array for UI
 export interface Floor extends FloorDefinition {

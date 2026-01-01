@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from 'lucide-react';
-import { getRoomName, type Room } from '@/stores/dataStore';
+import { getRoomName, type Room } from '@/stores';
 import type { AdjacentRoom } from './types';
 
 interface AdjacentRoomButtonsProps {
