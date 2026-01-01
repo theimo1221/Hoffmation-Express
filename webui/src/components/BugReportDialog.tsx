@@ -65,6 +65,12 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+      }}
       onClick={(e) => {
         // Close on backdrop click (but not on dialog click)
         if (e.target === e.currentTarget) {

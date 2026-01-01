@@ -82,10 +82,12 @@ export function FloorPlanView() {
         room={selectedRoom}
         devices={devices}
         allRooms={selectedFloor.rooms}
+        currentFloorLevel={selectedFloor.level}
         onBack={() => navigate(`/floor/${floorLevel}`)}
         onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
         onNavigateToRoom={(room) => navigate(`/floor/${floorLevel}/${encodeURIComponent(room.id ?? getRoomName(room))}`, { replace: true })}
         onRoomSettings={() => navigate(`/rooms/${encodeURIComponent(selectedRoom.id ?? getRoomName(selectedRoom))}`)}
+        onChangeFloor={(newFloorLevel) => navigate(`/floor/${newFloorLevel}/${encodeURIComponent(selectedRoom.id ?? getRoomName(selectedRoom))}`, { replace: true })}
       />
     );
   }

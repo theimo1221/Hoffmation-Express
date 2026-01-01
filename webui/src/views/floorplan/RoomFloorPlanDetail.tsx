@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, type Device } from '@/stores';
+import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, getFloorsForRoom, type Device } from '@/stores';
 import { DeviceCapability, isToggleableDevice, getDeviceColor, getDeviceBrightness } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus, Info } from 'lucide-react';
+import { Edit3, Save, X, Plus, Info, ArrowUp, ArrowDown } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
@@ -15,7 +16,7 @@ import { FloorPlanFilterButton } from '@/components/FloorPlanFilterButton';
 import { filterDevicesByCategories } from '@/hooks/useFloorPlanFilters';
 import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
 
-export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom, onRoomSettings }: RoomFloorPlanDetailProps) {
+export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloorLevel, onBack, onSelectDevice, onNavigateToRoom, onRoomSettings, onChangeFloor }: RoomFloorPlanDetailProps) {
   const roomName = getRoomName(room);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -72,36 +73,47 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
   const roomWidth = startPoint && endPoint ? endPoint.x - startPoint.x : 5;
   const roomHeight = startPoint && endPoint ? endPoint.y - startPoint.y : 5;
 
+  // Check if room spans multiple floors
+  const { floors } = useSettingsStore();
+  const roomFloorIds = getFloorsForRoom(room);
+  const roomFloors = roomFloorIds.map((id) => floors.find((f) => f.id === id)).filter((f): f is NonNullable<typeof f> => f !== undefined);
+  const isMultiFloorRoom = roomFloors.length > 1;
+  
+  // Get available floor levels for navigation
+  const availableFloorLevels = roomFloors.map((f) => f.level).sort((a, b) => a - b);
+  const currentFloorIndex = currentFloorLevel ? availableFloorLevels.indexOf(currentFloorLevel) : -1;
+  const canGoUp = isMultiFloorRoom && currentFloorIndex >= 0 && currentFloorIndex < availableFloorLevels.length - 1;
+  const canGoDown = isMultiFloorRoom && currentFloorIndex > 0;
+
   // Find adjacent rooms based on shared boundaries
   const getAdjacentRooms = () => {
     if (!startPoint || !endPoint || !onNavigateToRoom) {
-      console.log('[Adjacent] Missing requirements:', { hasStartPoint: !!startPoint, hasEndPoint: !!endPoint, hasNavigateCallback: !!onNavigateToRoom });
       return [];
     }
-    
-    console.log('[Adjacent] Searching for adjacent rooms to', roomName);
-    console.log('[Adjacent] Current room bounds:', { start: startPoint, end: endPoint });
-    console.log('[Adjacent] All rooms count:', allRooms.length);
     
     const adjacent: AdjacentRoom[] = [];
     const TOLERANCE = 1.0; // Allow small gaps/overlaps (increased for real-world room layouts)
     
+    // Check if current room spans multiple floors
+    const ourZMin = Math.min(startPoint.z ?? 0, endPoint.z ?? 0);
+    const ourZMax = Math.max(startPoint.z ?? 0, endPoint.z ?? 0);
+    const isMultiFloorRoom = Math.abs(ourZMax - ourZMin) > TOLERANCE;
+    
     for (const otherRoom of allRooms) {
       const otherName = getRoomName(otherRoom);
       
-      // Skip if same room (compare by name since IDs might not be unique)
+      // Skip self (but allow same room on different floor)
+      if (otherName === roomName && !isMultiFloorRoom) {
+        continue;
+      }
       if (otherName.toLowerCase() === roomName.toLowerCase()) {
-        console.log(`[Adjacent] Skipping ${otherName}: same room`);
         continue;
       }
       
       const otherStart = otherRoom.startPoint ?? otherRoom.settings?.trilaterationStartPoint;
       const otherEnd = otherRoom.endPoint ?? otherRoom.settings?.trilaterationEndPoint;
       
-      console.log(`[Adjacent] Checking ${otherName}:`, { start: otherStart, end: otherEnd });
-      
       if (!otherStart || !otherEnd) {
-        console.log(`[Adjacent] Skipping ${otherName}: no coordinates`);
         continue;
       }
       
@@ -113,9 +125,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
       
       // Check if z-ranges overlap (rooms on same floor)
       const zOverlap = Math.min(ourZMax, theirZMax) - Math.max(ourZMin, theirZMin);
-      console.log(`[Adjacent] ${otherName} z-check:`, { ourZ: [ourZMin, ourZMax], theirZ: [theirZMin, theirZMax], overlap: zOverlap });
       if (zOverlap < -TOLERANCE) {
-        console.log(`[Adjacent] Skipping ${otherName}: different floor (z-overlap: ${zOverlap})`);
         continue;
       }
       
@@ -131,35 +141,50 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
       // Left: other room's right edge touches our left edge
       const leftEdgeDiff = Math.abs(otherEnd.x - startPoint.x);
       if (leftEdgeDiff < TOLERANCE && overlapY > 0) {
-        console.log(`[Adjacent] ✓ ${otherName} is LEFT adjacent (overlap: ${overlapY.toFixed(2)}m)`);
         adjacent.push({ room: otherRoom, direction: 'left', sharedLength: overlapY, overlapStart: overlapYStart, overlapEnd: overlapYEnd });
       }
       // Right: other room's left edge touches our right edge
       const rightEdgeDiff = Math.abs(otherStart.x - endPoint.x);
       if (rightEdgeDiff < TOLERANCE && overlapY > 0) {
-        console.log(`[Adjacent] ✓ ${otherName} is RIGHT adjacent (overlap: ${overlapY.toFixed(2)}m)`);
         adjacent.push({ room: otherRoom, direction: 'right', sharedLength: overlapY, overlapStart: overlapYStart, overlapEnd: overlapYEnd });
       }
       // Bottom: other room's top edge touches our bottom edge (Y increases upward)
       const bottomEdgeDiff = Math.abs(otherEnd.y - startPoint.y);
       if (bottomEdgeDiff < TOLERANCE && overlapX > 0) {
-        console.log(`[Adjacent] ✓ ${otherName} is BOTTOM adjacent (overlap: ${overlapX.toFixed(2)}m)`);
         adjacent.push({ room: otherRoom, direction: 'bottom', sharedLength: overlapX, overlapStart: overlapXStart, overlapEnd: overlapXEnd });
       }
       // Top: other room's bottom edge touches our top edge
       const topEdgeDiff = Math.abs(otherStart.y - endPoint.y);
       if (topEdgeDiff < TOLERANCE && overlapX > 0) {
-        console.log(`[Adjacent] ✓ ${otherName} is TOP adjacent (overlap: ${overlapX.toFixed(2)}m)`);
         adjacent.push({ room: otherRoom, direction: 'top', sharedLength: overlapX, overlapStart: overlapXStart, overlapEnd: overlapXEnd });
       }
     }
     
-    console.log(`[Adjacent] Found ${adjacent.length} adjacent rooms:`, adjacent.map(a => ({ room: getRoomName(a.room), direction: a.direction })));
-    return adjacent;
+    // Deduplicate adjacent rooms (Bug #9)
+    // Only show ONE arrow per target room (keep the one with longest shared boundary)
+    const deduplicated: AdjacentRoom[] = [];
+    const seenRooms = new Map<string, AdjacentRoom>();
+    
+    for (const adj of adjacent) {
+      const roomKey = getRoomName(adj.room);
+      const existing = seenRooms.get(roomKey);
+      
+      // Keep the one with the longest shared length
+      if (!existing || adj.sharedLength > existing.sharedLength) {
+        if (existing) {
+          // Remove old entry
+          const index = deduplicated.indexOf(existing);
+          if (index > -1) deduplicated.splice(index, 1);
+        }
+        seenRooms.set(roomKey, adj);
+        deduplicated.push(adj);
+      }
+    }
+    
+    return deduplicated;
   };
 
   const adjacentRooms = getAdjacentRooms();
-  console.log('[Adjacent] Final adjacent rooms:', adjacentRooms.length);
 
   // Calculate margins based on which sides have adjacent rooms
   const hasLeft = adjacentRooms.some(r => r.direction === 'left');
@@ -400,8 +425,8 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
         <div 
           className="relative"
           style={{
-            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0) + (!hasRight ? 20 : 0),
-            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0) + (!hasBottom ? 20 : 0),
+            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0),
+            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0),
             maxWidth: '100%',
             maxHeight: '100%',
           }}
@@ -487,7 +512,8 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
                   setDraggingDevice(device.id!);
                 } : undefined}
                 className={cn(
-                  "absolute flex flex-col items-center justify-center rounded-xl select-none touch-none",
+                  "absolute flex flex-col items-center justify-center rounded-xl select-none",
+                  editMode ? "touch-auto" : "touch-none",
                   editMode
                     ? isDragging
                       ? "cursor-grabbing bg-primary/40 border-2 border-primary z-50 p-2 shadow-md"
@@ -576,6 +602,53 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
             onNavigateToRoom={onNavigateToRoom}
           />
         )}
+
+        {/* Multi-floor navigation buttons - inside canvas */}
+        <div
+          className="room-canvas absolute rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
+          style={{
+            width: scaledWidth + 32,
+            height: scaledHeight + 32,
+            left: hasLeft ? '80px' : '0',
+            top: hasTop ? '40px' : '0',
+            pointerEvents: 'none',
+          }}
+        >
+          {!editMode && isMultiFloorRoom && onChangeFloor && (
+            <>
+              {canGoUp && (() => {
+                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex + 1]);
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                return (
+                  <button
+                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex + 1])}
+                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all pointer-events-auto"
+                    style={{ top: '16px' }}
+                    title={`Zur ${targetFloor?.name || 'Etage'}`}
+                  >
+                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
+                    <ArrowUp className="h-3 w-3" />
+                  </button>
+                );
+              })()}
+              {canGoDown && (() => {
+                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex - 1]);
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                return (
+                  <button
+                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex - 1])}
+                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all pointer-events-auto"
+                    style={{ bottom: '16px' }}
+                    title={`Zur ${targetFloor?.name || 'Etage'}`}
+                  >
+                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
+                    <ArrowDown className="h-3 w-3" />
+                  </button>
+                );
+              })()}
+            </>
+          )}
+        </div>
         </div>
       </div>
 

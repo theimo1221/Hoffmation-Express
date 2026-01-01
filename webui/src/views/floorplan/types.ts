@@ -26,10 +26,12 @@ export interface RoomFloorPlanDetailProps {
   room: Room;
   devices: Record<string, Device>;
   allRooms?: Room[];
+  currentFloorLevel?: number;
   onBack: () => void;
   onSelectDevice: (device: Device) => void;
   onNavigateToRoom?: (room: Room) => void;
   onRoomSettings?: () => void;
+  onChangeFloor?: (floorLevel: number) => void;
 }
 
 export interface FixedBounds {
@@ -53,6 +55,7 @@ export interface AdjacentRoom {
   sharedLength: number;
   overlapStart: number;
   overlapEnd: number;
+  isMultiFloor?: boolean; // Same room on different floor
 }
 
 export interface DevicePosition {
