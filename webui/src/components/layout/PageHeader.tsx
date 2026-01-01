@@ -43,9 +43,10 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        'px-4 py-3 bg-background/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-40',
+        'px-4 bg-background/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-50',
         className
       )}
+      style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
     >
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center justify-between">
