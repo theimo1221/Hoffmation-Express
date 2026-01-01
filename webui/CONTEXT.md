@@ -5,7 +5,7 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
-**Latest Build:** 1,199.22 kB (gzip: 256.54 kB) - Jan 1, 2026
+**Latest Build:** 1,201.16 kB (gzip: 257.46 kB) - Jan 1, 2026
 *Note: Bundle size increased due to PWA features (Service Worker, Push Notifications)*
 
 ## Tech Stack
@@ -14,6 +14,37 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 - **Build:** Vite
 - **API Proxy:** Target `http://hoffmation.hoffmation.com:3000`
 - **Backend Types:** `hoffmation-base` npm package
+
+## Store Architecture Refactoring (01.01.2026)
+
+### Problem
+- Alle Store-Funktionen waren in `dataStore.ts` (1000+ Zeilen)
+- Keine klare Trennung zwischen Device-, Room- und State-Management
+- Re-Exports führten zu Verwirrung bei Imports
+
+### Lösung: Modulare Store-Struktur
+```
+stores/
+├── index.ts (140 Zeilen)      # Zentraler Export-Punkt
+├── types.ts (375 Zeilen)      # Alle Interfaces (Device, Room, Settings)
+├── deviceStore.ts (400 Zeilen) # Device-Funktionen & Type-Checker
+├── roomStore.ts (190 Zeilen)   # Room-Funktionen & Etagen-Mapping
+└── dataStore.ts (140 Zeilen)   # Zustand-Management (Zustand) + API-Calls
+```
+
+### Fixes
+- **Zirkuläre Abhängigkeit:** `getRoomEtage` inline in `dataStore.ts`
+- **Backend API:** `/webui/settings` gibt jetzt `{ floors: [] }` zurück
+- **ESM/CommonJS:** `require()` durch `import` ersetzt
+- **Room Namen:** `getRoomName` prüft `info.roomName`
+- **Etagen-Mapping:** `etageToFloorId()` konvertiert Zahlen zu IDs (`1` → `"og1"`)
+- **Batteriestand:** `battery.level` statt `battery` als Number
+
+### Ergebnis
+- ✅ Klare Verantwortlichkeiten (SRP)
+- ✅ Keine zirkulären Dependencies
+- ✅ Konsistente Imports über `@/stores`
+- ✅ Alle Runtime-Fehler behoben
 
 ## Recent Refactoring (31.12.2024)
 

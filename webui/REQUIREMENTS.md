@@ -31,6 +31,8 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - ✅ Device logs display in expert mode (Dec 30, 2024)
 - ✅ Multi-floor room support with customizable icons & colors (Dec 31, 2024)
 - ✅ IconPicker & ColorPicker components for visual room identification
+- ✅ Modular store architecture with clear separation of concerns (Jan 1, 2026)
+- ✅ Battery status display in radial menu (Jan 1, 2026)
 
 ---
 
@@ -673,10 +675,10 @@ The WebUI should provide **full functional parity** with the existing SwiftUI iO
 | Room list with floor filter | ✅ | ✅ | Done |
 | Room detail with groups | ✅ | ✅ | Done |
 | Room detail with device list | ✅ | ✅ | Done |
-| Room settings | ✅ `RoomSettingsView` | ⏳ | Pending |
-| Group navigation | ✅ `GroupView` | ⏳ | Pending |
-| Group settings | ✅ `GroupSettingsView` | ⏳ | Pending |
-| Heat group settings | ✅ `HeatGroupSettingsView` | ⏳ | Pending |
+| Room settings | ✅ `RoomSettingsSection` | ✅ | Done |
+| Group navigation | ✅ `GroupView` | ✅ | Done |
+| Group settings | ✅ `GroupSettingsView` | ✅ | Done |
+| Heat group settings | ✅ `HeatGroupSettingsView` | ✅ | Done |
 
 ### Device Features
 
@@ -715,15 +717,15 @@ The WebUI should provide **full functional parity** with the existing SwiftUI iO
 
 | Settings Type | SwiftUI View | WebUI | Status |
 |---------------|--------------|-------|--------|
-| Actuator Settings | `ActuatorDeviceSettingsView` | ✅ | Done (basic) |
-| Dimmable Settings | `DimmableDeviceSettingsView` | ⏳ | Pending (needs brightness sliders) |
-| LED Settings | `LedDeviceSettingsView` | ⏳ | Pending (needs color pickers) |
-| Shutter Settings | `ShutterSettingsView` | ✅ | Done (basic) |
-| Heater Settings | `HeaterSettingsView` | ⏳ | Pending |
-| AC Settings | `AcSettingsView` | ⏳ | Pending |
-| Handle Settings | `HandleSettingsView` | ⏳ | Pending |
-| Camera Settings | `CameraSettingsView` | ⏳ | Pending |
-| Room Settings | `RoomSettingsView` | ⏳ | Pending |
+| Actuator Settings | `ActuatorDeviceSettingsView` | ✅ | Done |
+| Dimmable Settings | `DimmableDeviceSettingsView` | ✅ | Done |
+| LED Settings | `LedDeviceSettingsView` | ✅ | Done |
+| Shutter Settings | `ShutterSettingsView` | ✅ | Done |
+| Heater Settings | `HeaterSettingsView` | ✅ | Done |
+| AC Settings | `AcSettingsView` | ✅ | Done |
+| Handle Settings | `HandleSettingsView` | ✅ | Done |
+| Camera Settings | `CameraSettingsView` | ✅ | Done |
+| Room Settings | `RoomSettingsSection` | ✅ | Done |
 
 #### SwiftUI Settings Views Details
 
@@ -980,7 +982,7 @@ Groups inherit settings from their devices but can have group-wide controls.
 | Temperature history chart | ✅ `TemperatureHistoryView` | ✅ | Done (24h SVG chart) |
 | Camera live view | ✅ `LiveView` | ✅ | Done (stream links) |
 | Pull-to-refresh | ✅ | ✅ | Done (refresh button in header) |
-| Time selector | ✅ `TimeSelectorView` | ⏳ | Pending |
+| Time selector | ✅ `TimeSelectorView` | ⏳ | Pending (automation rules) |
 
 ---
 
@@ -1118,10 +1120,25 @@ Groups inherit settings from their devices but can have group-wide controls.
   - Applied in: RoomsView (RoomDetail), DevicesView
 
 ### Pending ⏳
-- [ ] Radial quick action menu (long-press - nice-to-have)
-- [ ] Child-Friendly Mode for floor plan (lights & shutters control for 4+ year olds)
-- [ ] DeviceDetailView.tsx refactoring (1398 lines → split into components)
-- [ ] RoomsView.tsx refactoring (742 lines → split into components)
+
+**Component Refactoring:**
+- [ ] DeviceDetailView.tsx refactoring (1387 lines → split into components)
+- [ ] RadialMenu.tsx refactoring - Extract Device-specific logic
+  - **Problem:** `RadialMenu.tsx` (626 lines) contains Device-specific logic (`DeviceStatus`, `getDeviceStatus()`, `getDeviceMenuItems()`)
+  - **Goal:** Make RadialMenu generic, move Device logic to `RadialDeviceMenu.tsx`
+  - **Benefits:** Enables future `RadialRoomMenu`, `RadialGroupMenu` without polluting RadialMenu
+  - **Migration:** Move `DeviceStatus`, `getDeviceStatus()`, `getDeviceMenuItems()` to RadialDeviceMenu.tsx
+
+**Feature Additions:**
+- [ ] Floor Editor UI (Settings page for managing floor definitions)
+- [ ] Time selector component for automation rules
+
+**Code Quality:**
+- [ ] Refactor direct device property access to use deviceStore functions
+  - Many files still access `device.lightOn`, `device.brightness`, etc. directly
+  - Should use `isDeviceOn()`, `getDeviceBrightness()`, etc. from deviceStore
+  - Ensures consistent fallback logic (`lightOn ?? _lightOn ?? on ?? _on`)
+  - Affected: DeviceCard, DeviceStatusBadges, various Control components
 
 ---
 
