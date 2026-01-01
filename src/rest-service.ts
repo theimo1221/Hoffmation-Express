@@ -314,14 +314,14 @@ export class RestService {
           const settings = JSON.parse(settingsData);
           return res.json(settings);
         } else {
-          // Return minimal default if file doesn't exist
-          return res.json({ version: '0.0' });
+          // Return default settings with empty floors array if file doesn't exist
+          return res.json({ version: '1.0', floors: [] });
         }
       } catch (error: unknown) {
         const err = error as { message?: string };
         ServerLogService.writeLog(LogLevel.Error, `Failed to read webui-settings.json: ${err.message}`);
-        res.status(500);
-        return res.json({ error: 'Failed to load WebUI settings', message: err.message });
+        // Return default settings on error
+        return res.json({ version: '1.0', floors: [] });
       }
     });
 

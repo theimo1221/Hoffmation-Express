@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { getRooms } from '@/api/rooms';
 import { getDevices, getDevice } from '@/api/devices';
 import type { Room, Device, TrilaterationPoint } from './types';
-import { getRoomEtage } from './roomStore';
+import { getRoomFloors } from './roomStore';
 
 /**
  * Floor interface for UI
@@ -39,7 +39,8 @@ function deriveFloors(rooms: Record<string, Room>): Floor[] {
   const floorMap = new Map<number, Room[]>();
 
   Object.values(rooms).forEach((room) => {
-    const level = getRoomEtage(room);
+    // Inline getRoomEtage to avoid circular dependency
+    const level = room.info?.etage ?? room.etage ?? 99;
 
     if (!floorMap.has(level)) {
       floorMap.set(level, []);
@@ -122,7 +123,6 @@ export const useDataStore = create<DataState>((set) => ({
  * Helper functions for backward compatibility
  */
 export function getFloorsForRoom(room: Room): string[] {
-  const { getRoomFloors } = require('./roomStore');
   return getRoomFloors(room);
 }
 

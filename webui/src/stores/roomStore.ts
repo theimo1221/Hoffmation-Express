@@ -11,7 +11,7 @@ import { getDeviceRoom } from './deviceStore';
  */
 
 export function getRoomName(room: Room): string {
-  return room.customName ?? room.roomName ?? 'Unbekannter Raum';
+  return room.customName ?? room.info?.roomName ?? room.roomName ?? 'Unbekannter Raum';
 }
 
 export function getRoomEtage(room: Room): number {
@@ -161,6 +161,21 @@ export function getRoomWebUISettings(room: Room): RoomWebUISettings | null {
 }
 
 /**
+ * Map etage number to floor ID
+ */
+function etageToFloorId(etage: number): string {
+  const mapping: Record<number, string> = {
+    [-1]: 'keller',
+    [0]: 'eg',
+    [1]: 'og1',
+    [2]: 'og2',
+    [3]: 'dachboden',
+    [99]: 'draussen',
+  };
+  return mapping[etage] ?? `level-${etage}`;
+}
+
+/**
  * Get floors for a room based on customSettingsJson or fallback to etage
  */
 export function getRoomFloors(room: Room): string[] {
@@ -168,7 +183,7 @@ export function getRoomFloors(room: Room): string[] {
   if (webui?.crossSectionFloors && webui.crossSectionFloors.length > 0) {
     return webui.crossSectionFloors;
   }
-  // Fallback to etage
+  // Fallback to etage - convert to floor ID
   const etage = getRoomEtage(room);
-  return [String(etage)];
+  return [etageToFloorId(etage)];
 }

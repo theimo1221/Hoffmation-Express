@@ -19,17 +19,26 @@ export function FloorPlanView() {
 
   // Build floors with dynamically assigned rooms
   const floors = useMemo(() => {
+    // Guard against undefined floorDefinitions
+    if (!floorDefinitions || floorDefinitions.length === 0) {
+      return [];
+    }
+
     const roomsByFloor = new Map<string, Room[]>();
     
     // Assign each room to its floors
     Object.values(rooms).forEach((room) => {
-      const roomFloorIds = getFloorsForRoom(room);
-      roomFloorIds.forEach((floorId) => {
-        if (!roomsByFloor.has(floorId)) {
-          roomsByFloor.set(floorId, []);
-        }
-        roomsByFloor.get(floorId)!.push(room);
-      });
+      try {
+        const roomFloorIds = getFloorsForRoom(room);
+        roomFloorIds.forEach((floorId) => {
+          if (!roomsByFloor.has(floorId)) {
+            roomsByFloor.set(floorId, []);
+          }
+          roomsByFloor.get(floorId)!.push(room);
+        });
+      } catch (error) {
+        console.error('Error processing room floors:', room, error);
+      }
     });
 
     // Create floor objects sorted by sortOrder
