@@ -8,7 +8,7 @@ import type { HouseCrossSectionProps } from './types';
 export function HouseCrossSection({ floors, onSelectFloor }: HouseCrossSectionProps) {
   const { t } = useTranslation();
   const { fetchData, isLoading } = useDataStore();
-  const sortedFloors = [...floors].sort((a, b) => b.sortOrder - a.sortOrder);
+  const sortedFloors = [...floors].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (
     <div className="flex h-full flex-col">

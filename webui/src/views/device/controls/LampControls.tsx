@@ -3,7 +3,7 @@ import { Lightbulb } from 'lucide-react';
 import type { Device } from '@/stores/dataStore';
 import { isDeviceOn } from '@/stores/deviceStore';
 import { setLamp } from '@/api/devices';
-import { executeDeviceAction } from '@/lib/deviceActions';
+import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface LampControlsProps {
   device: Device;
@@ -26,9 +26,10 @@ export function LampControls({ device, onUpdate }: LampControlsProps) {
   };
   
   const handleForce = async (state: boolean) => {
+    const durationMs = calculateDuration(forceDuration);
     await executeDeviceAction(
       device,
-      (id) => setLamp(id, state, forceDuration),
+      (id) => setLamp(id, state, durationMs),
       onUpdate,
       setIsLoading
     );

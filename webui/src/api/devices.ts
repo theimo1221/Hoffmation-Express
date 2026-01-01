@@ -96,7 +96,8 @@ export async function speakOnDevice(deviceId: string, message: string): Promise<
 
 export async function blockAutomatic(deviceId: string, durationSeconds: number): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  await apiGetNoResponse(`/device/${encodedId}/blockAutomatic/${durationSeconds}`);
+  const durationMs = durationSeconds * 1000; // Backend expects milliseconds
+  await apiGetNoResponse(`/device/${encodedId}/blockAutomatic/${durationMs}`);
 }
 
 export async function liftAutomaticBlock(deviceId: string): Promise<void> {
