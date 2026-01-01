@@ -1,7 +1,12 @@
 function getBaseUrl(): string {
-  // WebUI is at /ui/, API endpoints are at root (e.g., /rooms, /devices)
-  // Use .. to go one level up from /ui/ to root
-  return localStorage.getItem('hoffmation-api-url') || '..';
+  // API endpoints are always at root (e.g., /rooms, /devices)
+  // Allow overriding the full base URL (e.g., 'https://hoffmation.com' or empty for same origin)
+  const override = localStorage.getItem('hoffmation-api-url');
+  if (override) {
+    return override;
+  }
+  // Default: Use current origin (works from any path like /ui/)
+  return window.location.origin;
 }
 
 export async function apiGet<T>(endpoint: string): Promise<T> {
@@ -67,5 +72,5 @@ export function setApiBaseUrl(url: string) {
 }
 
 export function getApiBaseUrl(): string {
-  return localStorage.getItem('hoffmation-api-url') || '..';
+  return localStorage.getItem('hoffmation-api-url') || window.location.origin;
 }
