@@ -1,7 +1,7 @@
-import { ChevronRight, Thermometer, Lightbulb, AirVent, ArrowLeft, Blinds } from 'lucide-react';
+import { ChevronRight, Thermometer, Lightbulb, AirVent, Blinds } from 'lucide-react';
 import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, filterDevicesForExpertMode } from '@/stores/dataStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { MenuButton } from '@/components/layout/MenuBubble';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { RoomSettingsSection } from '@/components/RoomSettingsSection';
 import { DeviceStatusBadges } from './DeviceStatusBadges';
@@ -27,18 +27,16 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
 
   return (
     <div className="flex h-full flex-col">
-      <header className="bg-background/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-40">
-        <div className="mx-auto max-w-6xl flex items-center gap-4 p-4">
-          <MenuButton />
-          <button
-            onClick={onBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold">{roomName}</h1>
-        </div>
-      </header>
+      <PageHeader
+        title={roomName}
+        onBack={onBack}
+        showMenu={false}
+        bugReportContext={{
+          entityType: 'room',
+          entityId: room.id,
+          entityData: room,
+        }}
+      />
 
       <div className="flex-1 overflow-auto pb-tabbar">
         <div className="mx-auto max-w-6xl px-4 py-4">

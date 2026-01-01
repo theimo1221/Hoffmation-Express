@@ -4,7 +4,8 @@ import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { DeviceSettingsSection } from '@/components/DeviceSettingsSection';
-import { DeviceHeader } from './DeviceHeader';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { Star } from 'lucide-react';
 import { DeviceInfo } from './DeviceInfo';
 import {
   LampControls,
@@ -62,12 +63,26 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
 
   return (
     <div className="flex h-full flex-col">
-      <DeviceHeader
-        name={name}
-        room={room}
-        isFavorite={isFavorite}
+      <PageHeader
+        title={name}
+        subtitle={room}
         onBack={onBack}
-        onToggleFavorite={toggleFavorite}
+        showMenu={false}
+        bugReportContext={{
+          entityType: 'device',
+          entityId: device.id,
+          entityData: device,
+        }}
+        rightContent={
+          <button
+            onClick={toggleFavorite}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-soft transition-all active:scale-95 ${
+              isFavorite ? 'bg-yellow-500 text-white' : 'bg-card hover:bg-accent'
+            }`}
+          >
+            <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+        }
       />
 
       <div className="flex-1 overflow-auto pb-tabbar">
