@@ -198,9 +198,9 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
   const totalMarginX = marginLeft + marginRight;
   const totalMarginY = marginTop + marginBottom;
 
-  // Calculate scale with dynamic margins
-  const availableWidth = Math.max(100, containerSize.width - totalMarginX);
-  const availableHeight = Math.max(100, containerSize.height - totalMarginY);
+  // Calculate scale with dynamic margins (20px total for proper spacing)
+  const availableWidth = Math.max(100, containerSize.width - totalMarginX - 20);
+  const availableHeight = Math.max(100, containerSize.height - totalMarginY - 20);
   const calculatedScaleX = availableWidth > 0 ? availableWidth / roomWidth : 100;
   const calculatedScaleY = availableHeight > 0 ? availableHeight / roomHeight : 100;
   const calculatedScale = Math.min(calculatedScaleX, calculatedScaleY, 150);
