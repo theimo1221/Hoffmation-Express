@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff } from 'lucide-react';
 import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -48,6 +50,26 @@ export function SettingsView() {
   const [updateResult, setUpdateResult] = useState<WebUIUpdateResult | null>(null);
   const [isRestarting, setIsRestarting] = useState(false);
   const [restartResult, setRestartResult] = useState<HoffmationRestartResult | null>(null);
+  const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
+  const [isInstalling, setIsInstalling] = useState(false);
+  const pushNotifications = usePushNotifications();
+
+  const handleInstall = async () => {
+    setIsInstalling(true);
+    await promptInstall();
+    setIsInstalling(false);
+  };
+
+  const handlePushSubscribe = async () => {
+    const success = await pushNotifications.subscribe();
+    if (!success) {
+      alert('Push-Benachrichtigungen konnten nicht aktiviert werden. Bitte überprüfe die Browser-Berechtigungen.');
+    }
+  };
+
+  const handlePushUnsubscribe = async () => {
+    await pushNotifications.unsubscribe();
+  };
 
   const handleUpdateWebUI = async () => {
     if (isUpdating) return;
@@ -96,6 +118,105 @@ export function SettingsView() {
 
       <div className="flex-1 overflow-auto pb-tabbar">
         <div className="content-container space-y-6 py-4">
+          {/* PWA Install */}
+          {canInstall && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                App installieren
+              </h2>
+              <button
+                onClick={handleInstall}
+                disabled={isInstalling}
+                className="w-full rounded-xl bg-primary text-primary-foreground p-4 shadow-soft transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isInstalling ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Download className="h-5 w-5" />
+                )}
+                <span className="font-medium">Als App installieren</span>
+              </button>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Installiere Hoffmation als eigenständige App auf deinem Gerät für schnelleren Zugriff und Offline-Funktionalität.
+              </p>
+            </section>
+          )}
+
+          {isInstalled && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                App Status
+              </h2>
+              <div className="rounded-xl bg-card p-4 shadow-soft flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                <span className="text-sm">App ist installiert</span>
+              </div>
+            </section>
+          )}
+
+          {/* Push Notifications */}
+          {pushNotifications.isSupported && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                Push-Benachrichtigungen
+              </h2>
+              
+              {pushNotifications.permission === 'denied' ? (
+                <div className="rounded-xl bg-card p-4 shadow-soft">
+                  <div className="flex items-center gap-3 text-orange-500">
+                    <BellOff className="h-5 w-5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Benachrichtigungen blockiert</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Bitte erlaube Benachrichtigungen in den Browser-Einstellungen
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : pushNotifications.isSubscribed ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl bg-card p-4 shadow-soft flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <span className="text-sm">Benachrichtigungen aktiviert</span>
+                  </div>
+                  <button
+                    onClick={handlePushUnsubscribe}
+                    disabled={pushNotifications.isLoading}
+                    className="w-full rounded-xl bg-secondary p-3 shadow-soft transition-all hover:bg-accent active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {pushNotifications.isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <BellOff className="h-4 w-4" />
+                    )}
+                    <span className="text-sm">Deaktivieren</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    onClick={handlePushSubscribe}
+                    disabled={pushNotifications.isLoading}
+                    className="w-full rounded-xl bg-primary text-primary-foreground p-4 shadow-soft transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {pushNotifications.isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Bell className="h-5 w-5" />
+                    )}
+                    <span className="font-medium">Benachrichtigungen aktivieren</span>
+                  </button>
+                  <p className="text-sm text-muted-foreground">
+                    Erhalte Benachrichtigungen bei wichtigen Ereignissen (z.B. Bewegung erkannt, Türklingel)
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Server URL */}
           <section>
             <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

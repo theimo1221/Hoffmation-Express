@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { PushNotificationService } from './push-notification-service';
 import {
   AcMode,
   ActuatorSetStateCommand,
@@ -48,6 +49,9 @@ export class RestService {
 
   public static initialize(app: Express, config: iRestSettings): void {
     this._app = app;
+    
+    // Initialize push notification service
+    PushNotificationService.initialize();
 
     this._app.use(
       cors({
@@ -318,6 +322,104 @@ export class RestService {
         ServerLogService.writeLog(LogLevel.Error, `Failed to read webui-settings.json: ${err.message}`);
         res.status(500);
         return res.json({ error: 'Failed to load WebUI settings', message: err.message });
+      }
+    });
+
+    // Push Notification: Subscribe
+    this._app.post('/webui/push/subscribe', (req, res) => {
+      const subscription = req.body;
+      const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
+      
+      try {
+        let settings: any = { version: '0.0' };
+        if (fs.existsSync(settingsPath)) {
+          const settingsData = fs.readFileSync(settingsPath, 'utf-8');
+          settings = JSON.parse(settingsData);
+        }
+        
+        // Initialize pushSubscriptions array if not exists
+        if (!settings.pushSubscriptions) {
+          settings.pushSubscriptions = [];
+        }
+        
+        // Check if subscription already exists (by endpoint)
+        const existingIndex = settings.pushSubscriptions.findIndex(
+          (sub: any) => sub.endpoint === subscription.endpoint
+        );
+        
+        if (existingIndex >= 0) {
+          // Update existing subscription
+          settings.pushSubscriptions[existingIndex] = subscription;
+        } else {
+          // Add new subscription
+          settings.pushSubscriptions.push(subscription);
+        }
+        
+        // Write back to file
+        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+        ServerLogService.writeLog(LogLevel.Info, `Push subscription saved (${settings.pushSubscriptions.length} total)`);
+        
+        return res.json({ success: true });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to save push subscription: ${err.message}`);
+        res.status(500);
+        return res.json({ error: 'Failed to save subscription', message: err.message });
+      }
+    });
+
+    // Push Notification: Unsubscribe
+    this._app.post('/webui/push/unsubscribe', (req, res) => {
+      const { endpoint } = req.body;
+      const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
+      
+      try {
+        if (!fs.existsSync(settingsPath)) {
+          return res.json({ success: true });
+        }
+        
+        const settingsData = fs.readFileSync(settingsPath, 'utf-8');
+        const settings = JSON.parse(settingsData);
+        
+        if (settings.pushSubscriptions) {
+          settings.pushSubscriptions = settings.pushSubscriptions.filter(
+            (sub: any) => sub.endpoint !== endpoint
+          );
+          
+          fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+          ServerLogService.writeLog(LogLevel.Info, `Push subscription removed`);
+        }
+        
+        return res.json({ success: true });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to remove push subscription: ${err.message}`);
+        res.status(500);
+        return res.json({ error: 'Failed to unsubscribe', message: err.message });
+      }
+    });
+
+    // Push Notification: Get VAPID Public Key
+    this._app.get('/webui/push/vapid-public-key', (_req, res) => {
+      // VAPID keys should be in webui-settings.json
+      const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
+      try {
+        if (fs.existsSync(settingsPath)) {
+          const settingsData = fs.readFileSync(settingsPath, 'utf-8');
+          const settings = JSON.parse(settingsData);
+          
+          if (settings.vapidPublicKey) {
+            return res.json({ publicKey: settings.vapidPublicKey });
+          }
+        }
+        
+        res.status(404);
+        return res.json({ error: 'VAPID public key not configured' });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to get VAPID key: ${err.message}`);
+        res.status(500);
+        return res.json({ error: 'Failed to get VAPID key', message: err.message });
       }
     });
 

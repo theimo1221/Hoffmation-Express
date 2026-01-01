@@ -36,14 +36,16 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "4.21.1",
-    "hoffmation-base": "3.2.31"
+    "hoffmation-base": "3.2.31",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@alcalzone/pak": "0.11.0",
     "@iobroker/types": "^7.0.6",
     "@types/cors": "^2.8.17",
-    "@alcalzone/pak": "0.11.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.2.0",
+    "@types/web-push": "^3.6.4",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "autoprefixer": "^10.4.20",
@@ -58,4 +60,3 @@
     "typescript": "^5.5.4"
   }
 }
-

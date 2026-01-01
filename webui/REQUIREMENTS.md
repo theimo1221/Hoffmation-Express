@@ -1123,6 +1123,139 @@ Groups inherit settings from their devices but can have group-wide controls.
 - [ ] DeviceDetailView.tsx refactoring (1398 lines → split into components)
 - [ ] RoomsView.tsx refactoring (742 lines → split into components)
 
+---
+
+## PWA (Progressive Web App) Features
+
+### ✅ Implemented (Jan 1, 2026)
+
+#### Basic PWA Setup
+- [x] **Web App Manifest** (`public/manifest.json`)
+  - Name, short name, description
+  - Start URL (`/ui/`)
+  - Display mode: `standalone`
+  - Theme color: `#3B82F6`
+  - Background color: `#000000`
+  - Icons: 192px, 512px (from Swift app)
+  
+- [x] **HTML Meta Tags** (`index.html`)
+  - Viewport (mobile-optimized, `user-scalable=no`, `viewport-fit=cover`)
+  - Apple Mobile Web App Capable: `yes`
+  - Apple Mobile Web App Status Bar Style: `black-translucent`
+  - Theme Color (light/dark media queries)
+  - Manifest link
+  
+- [x] **App Icons**
+  - Favicon: `/icon.png`
+  - Apple Touch Icon: `/icon.png`
+  - PWA Icons: `/icon-192.png`, `/icon-512.png`
+  - Source: Copied from Swift app (`Hoffmation/Shared/Assets.xcassets/AppIcon.appiconset/`)
+
+### 🚀 TODO: PWA Enhancements
+
+#### 1. Service Worker & Offline Support (HIGH PRIORITY)
+- [ ] **Install Vite PWA Plugin**
+  ```bash
+  npm install -D vite-plugin-pwa
+  ```
+  
+- [ ] **Configure Service Worker** (`vite.config.ts`)
+  - Auto-update strategy (`registerType: 'autoUpdate'`)
+  - Cache static assets (JS, CSS, HTML, images)
+  - Runtime caching strategies:
+    - **CacheFirst** for static assets (icons, bundles) - 30 days
+    - **NetworkFirst** for API calls (rooms, devices) - 5 min timeout, 5 min cache
+    - **StaleWhileRevalidate** for settings - 24h cache
+    - **NetworkFirst** for camera images - 2s timeout, 1 min cache
+  
+- [ ] **Benefits:**
+  - ⚡ Instant load times (sub-second after first visit)
+  - 📱 Offline functionality (shows last known state)
+  - 💰 Reduced data usage (cache assets)
+  - 🛡️ Works on poor connections
+
+#### 2. Install Prompt (MEDIUM PRIORITY)
+- [ ] **Create `useInstallPrompt` Hook**
+  - Listen for `beforeinstallprompt` event
+  - Provide `promptInstall()` function
+  - Check if already installed (`display-mode: standalone`)
+  
+- [ ] **Add Install Button** (in Settings or first-time banner)
+  - Show only if prompt available
+  - "📱 App installieren" button
+  - Hide after installation
+
+#### 3. Manifest Enhancements (LOW PRIORITY)
+- [ ] **Extended Manifest Properties**
+  - `scope: "/ui/"`
+  - `orientation: "portrait-primary"`
+  - `categories: ["lifestyle", "utilities"]`
+  
+- [ ] **App Shortcuts** (quick actions from home screen)
+  - Grundriss: `/ui/floor/0`
+  - Favoriten: `/ui/favorites`
+  - Räume: `/ui/rooms`
+  
+- [ ] **Screenshots** (for app stores/install prompts)
+  - Mobile screenshot (540x720)
+  - Desktop screenshot (1280x720)
+
+#### 4. Additional Icon Sizes (LOW PRIORITY)
+- [ ] **Generate Missing Sizes** (from Swift app icon)
+  - 72x72, 96x96, 128x128, 144x144, 152x152, 384x384
+  - Improves compatibility across devices
+  
+- [ ] **Maskable Icons** (Android adaptive icons)
+  - Safe zone design for maskable icons
+  - Add to manifest with `"purpose": "maskable"`
+
+#### 5. iOS-Specific Enhancements (LOW PRIORITY)
+- [ ] **Splash Screens** (iOS launch screens)
+  - iPhone X/XS/11 Pro: 1125x2436
+  - iPhone XR/11: 828x1792
+  - iPad Pro 12.9": 2048x2732
+  - Add `<link rel="apple-touch-startup-image">` tags
+  
+- [ ] **iOS Meta Tags**
+  - `apple-mobile-web-app-title` (shorter name)
+  - Status bar color variations
+
+### 📊 Caching Strategy Details
+
+**Static Assets (CacheFirst - 30 days):**
+- Icons, CSS, JS bundles
+- Instant load, no network needed
+- Auto-update on new app version
+
+**API Data (NetworkFirst - 5 min):**
+- `/rooms`, `/devices` endpoints
+- Always fresh when online
+- Fallback to cache when offline/slow
+- 3s network timeout
+
+**Settings (StaleWhileRevalidate - 24h):**
+- `/webui/settings`, floor definitions
+- Instant response from cache
+- Background update for next request
+
+**Camera Images (NetworkFirst - 1 min):**
+- `/camera/*` endpoints
+- Short cache (images change frequently)
+- 2s network timeout
+
+### 🎯 Priority Order
+
+1. **🔴 HIGH:** Service Worker (offline support, caching)
+2. **🟡 MEDIUM:** Install Prompt (better UX)
+3. **🟢 LOW:** Manifest enhancements, more icons, iOS splash screens
+
+### 📝 Implementation Notes
+
+- Service Worker managed by Vite PWA Plugin (no manual SW code)
+- Cache automatically cleared on app updates
+- Offline mode shows last known device states (read-only)
+- Install prompt only shows on HTTPS (or localhost)
+
 ### Implementation Notes 📝
 
 1. **Settings are partial:** API accepts partial settings objects - only send changed fields

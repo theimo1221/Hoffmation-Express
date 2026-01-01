@@ -7,10 +7,13 @@ import { DevicesView } from '@/views/DevicesView';
 import { SettingsView } from '@/views/SettingsView';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useDataStore } from '@/stores/dataStore';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 function App() {
   const { darkMode, pollingInterval } = useSettingsStore();
   const { fetchData } = useDataStore();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -35,6 +38,7 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
+      <OfflineBanner isOnline={isOnline} />
       <main className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<FloorPlanView />} />
