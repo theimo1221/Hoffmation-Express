@@ -577,6 +577,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
             </div>
           )}
 
+          {/* Add device button in edit mode */}
           {editMode && unplacedDevices.length > 0 && (
             <button
               onClick={() => setShowDevicePicker(true)}
@@ -585,6 +586,42 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
             >
               <Plus className="h-6 w-6" />
             </button>
+          )}
+
+          {/* Multi-floor navigation buttons */}
+          {!editMode && isMultiFloorRoom && onChangeFloor && (
+            <>
+              {canGoUp && (() => {
+                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex + 1]);
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                return (
+                  <button
+                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex + 1])}
+                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all z-10"
+                    style={{ top: '16px' }}
+                    title={`Zur ${targetFloor?.name || 'Etage'}`}
+                  >
+                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
+                    <ArrowUp className="h-3 w-3" />
+                  </button>
+                );
+              })()}
+              {canGoDown && (() => {
+                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex - 1]);
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                return (
+                  <button
+                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex - 1])}
+                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all z-10"
+                    style={{ bottom: '16px' }}
+                    title={`Zur ${targetFloor?.name || 'Etage'}`}
+                  >
+                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
+                    <ArrowDown className="h-3 w-3" />
+                  </button>
+                );
+              })()}
+            </>
           )}
         </div>
 
@@ -602,53 +639,6 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
             onNavigateToRoom={onNavigateToRoom}
           />
         )}
-
-        {/* Multi-floor navigation buttons - inside canvas */}
-        <div
-          className="room-canvas absolute rounded-2xl bg-card p-4 shadow-soft border-2 border-primary/30"
-          style={{
-            width: scaledWidth + 32,
-            height: scaledHeight + 32,
-            left: hasLeft ? '80px' : '0',
-            top: hasTop ? '40px' : '0',
-            pointerEvents: 'none',
-          }}
-        >
-          {!editMode && isMultiFloorRoom && onChangeFloor && (
-            <>
-              {canGoUp && (() => {
-                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex + 1]);
-                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
-                return (
-                  <button
-                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex + 1])}
-                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all pointer-events-auto"
-                    style={{ top: '16px' }}
-                    title={`Zur ${targetFloor?.name || 'Etage'}`}
-                  >
-                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
-                    <ArrowUp className="h-3 w-3" />
-                  </button>
-                );
-              })()}
-              {canGoDown && (() => {
-                const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex - 1]);
-                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
-                return (
-                  <button
-                    onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex - 1])}
-                    className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/90 text-primary-foreground shadow-lg hover:bg-primary transition-all pointer-events-auto"
-                    style={{ bottom: '16px' }}
-                    title={`Zur ${targetFloor?.name || 'Etage'}`}
-                  >
-                    {FloorIcon && <FloorIcon className="h-4 w-4" />}
-                    <ArrowDown className="h-3 w-3" />
-                  </button>
-                );
-              })()}
-            </>
-          )}
-        </div>
         </div>
       </div>
 
