@@ -586,7 +586,11 @@ export function getAutomaticBlockedUntil(device: Device): Date | undefined {
 }
 
 export function getDeviceTemperature(device: Device): number | undefined {
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  // Priority: _temperature (device value) > temperature > roomTemperature > _roomTemperature
+  const temp = device.temperatureSensor?._temperature 
+               ?? device.temperatureSensor?.temperature
+               ?? device.temperatureSensor?.roomTemperature 
+               ?? device._roomTemperature;
   // -99 means no data
   return temp === -99 ? undefined : temp;
 }

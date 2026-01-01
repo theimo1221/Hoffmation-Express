@@ -61,7 +61,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   pollingInterval: parseInt(localStorage.getItem('hoffmation-polling-interval') || '30', 10),
   darkMode: getInitialDarkMode(),
   language: getInitialLanguage(),
-  apiBaseUrl: localStorage.getItem('hoffmation-api-url') || '/api',
+  apiBaseUrl: localStorage.getItem('hoffmation-api-url') || '..',
   expertMode: localStorage.getItem('hoffmation-expert-mode') === 'true',
   excludedLevels: getInitialExcludedLevels(),
   floors: DEFAULT_FLOORS,

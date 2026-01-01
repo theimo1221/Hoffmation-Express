@@ -1,5 +1,7 @@
 function getBaseUrl(): string {
-  return localStorage.getItem('hoffmation-api-url') || '/api';
+  // WebUI is at /ui/, API endpoints are at root (e.g., /rooms, /devices)
+  // Use .. to go one level up from /ui/ to root
+  return localStorage.getItem('hoffmation-api-url') || '..';
 }
 
 export async function apiGet<T>(endpoint: string): Promise<T> {
@@ -65,5 +67,5 @@ export function setApiBaseUrl(url: string) {
 }
 
 export function getApiBaseUrl(): string {
-  return localStorage.getItem('hoffmation-api-url') || '/api';
+  return localStorage.getItem('hoffmation-api-url') || '..';
 }
