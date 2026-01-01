@@ -22,6 +22,7 @@ interface SettingsState {
   floors: FloorDefinition[];
   floorsLoading: boolean;
   floorPlanFilters: FloorPlanFilters;
+  floorViewFilters: FloorPlanFilters;
   setPollingInterval: (interval: number) => void;
   setDarkMode: (mode: 'system' | 'light' | 'dark') => void;
   setLanguage: (lang: 'en' | 'de') => void;
@@ -29,6 +30,7 @@ interface SettingsState {
   setExpertMode: (enabled: boolean) => void;
   setExcludedLevels: (levels: number[]) => void;
   toggleFloorPlanFilter: (key: keyof FloorPlanFilters) => void;
+  toggleFloorViewFilter: (key: keyof FloorPlanFilters) => void;
   loadFloors: () => Promise<void>;
   saveFloors: (floors: FloorDefinition[]) => Promise<void>;
 }
@@ -82,6 +84,18 @@ const getInitialFloorPlanFilters = (): FloorPlanFilters => {
   return DEFAULT_FLOOR_PLAN_FILTERS;
 };
 
+const getInitialFloorViewFilters = (): FloorPlanFilters => {
+  const stored = localStorage.getItem('hoffmation-floorview-filters');
+  if (stored) {
+    try {
+      return { ...DEFAULT_FLOOR_PLAN_FILTERS, ...JSON.parse(stored) };
+    } catch {
+      return DEFAULT_FLOOR_PLAN_FILTERS;
+    }
+  }
+  return DEFAULT_FLOOR_PLAN_FILTERS;
+};
+
 const DEFAULT_FLOORS: FloorDefinition[] = [
   { id: 'keller', name: 'Keller', level: -1, sortOrder: 0, icon: 'Warehouse', color: '#8B4513' },
   { id: 'draussen', name: 'Draußen', level: 99, sortOrder: 1, icon: 'Trees', color: '#22C55E' },
@@ -101,6 +115,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   floors: DEFAULT_FLOORS,
   floorsLoading: false,
   floorPlanFilters: getInitialFloorPlanFilters(),
+  floorViewFilters: getInitialFloorViewFilters(),
 
   setPollingInterval: (interval) => {
     localStorage.setItem('hoffmation-polling-interval', interval.toString());
@@ -137,6 +152,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       const updated = { ...state.floorPlanFilters, [key]: !state.floorPlanFilters[key] };
       localStorage.setItem('hoffmation-floorplan-filters', JSON.stringify(updated));
       return { floorPlanFilters: updated };
+    });
+  },
+
+  toggleFloorViewFilter: (key) => {
+    set((state) => {
+      const updated = { ...state.floorViewFilters, [key]: !state.floorViewFilters[key] };
+      localStorage.setItem('hoffmation-floorview-filters', JSON.stringify(updated));
+      return { floorViewFilters: updated };
     });
   },
 

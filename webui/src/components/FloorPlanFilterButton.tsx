@@ -5,25 +5,29 @@ interface FloorPlanFilterButtonProps {
   icon: keyof typeof LucideIcons;
   label: string;
   active: boolean;
+  activeColor: string;
   onClick: () => void;
 }
 
-export function FloorPlanFilterButton({ icon, label, active, onClick }: FloorPlanFilterButtonProps) {
-  const IconComponent = LucideIcons[icon] as React.ComponentType<{ size?: number; className?: string }>;
+export function FloorPlanFilterButton({ icon, label, active, activeColor, onClick }: FloorPlanFilterButtonProps) {
+  const IconComponent = LucideIcons[icon] as React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
   
   return (
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95',
-        active 
-          ? 'bg-primary text-primary-foreground shadow-soft' 
-          : 'bg-secondary text-muted-foreground hover:bg-accent'
+        'p-2 rounded-lg transition-all active:scale-95',
+        active ? 'bg-background/50' : 'opacity-40 hover:opacity-60'
       )}
       title={label}
+      aria-label={label}
     >
-      {IconComponent && <IconComponent size={20} />}
-      <span className="text-xs font-medium whitespace-nowrap">{label}</span>
+      {IconComponent && (
+        <IconComponent 
+          size={20} 
+          style={{ color: active ? activeColor : '#9CA3AF' }}
+        />
+      )}
     </button>
   );
 }

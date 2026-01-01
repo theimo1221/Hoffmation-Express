@@ -365,35 +365,29 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
               </button>
             ) : undefined
           ) : (
-            expertMode ? (
-              <button
-                onClick={() => {
-                  setFixedScale(calculatedScale);
-                  setEditMode(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
-              >
-                <Edit3 className="h-4 w-4" />
-                Bearbeiten
-              </button>
-            ) : undefined
+            <div className="flex items-center gap-1">
+              <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorPlanFilters.lamps} activeColor="#F59E0B" onClick={() => toggleFloorPlanFilter('lamps')} />
+              <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorPlanFilters.doorSensors} activeColor="#8B4513" onClick={() => toggleFloorPlanFilter('doorSensors')} />
+              <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorPlanFilters.speakers} activeColor="#8B5CF6" onClick={() => toggleFloorPlanFilter('speakers')} />
+              <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorPlanFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorPlanFilter('climate')} />
+              <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorPlanFilters.shutters} activeColor="#6B7280" onClick={() => toggleFloorPlanFilter('shutters')} />
+              <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorPlanFilters.temperatures} activeColor="#EF4444" onClick={() => toggleFloorPlanFilter('temperatures')} />
+              <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorPlanFilters.heaters} activeColor="#F97316" onClick={() => toggleFloorPlanFilter('heaters')} />
+              {expertMode && (
+                <button
+                  onClick={() => {
+                    setFixedScale(calculatedScale);
+                    setEditMode(true);
+                  }}
+                  className="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-sm font-medium transition-all hover:bg-accent"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           )
         }
       />
-
-      {!editMode && (
-        <div className="px-4 pb-3">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorPlanFilters.lamps} onClick={() => toggleFloorPlanFilter('lamps')} />
-            <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorPlanFilters.doorSensors} onClick={() => toggleFloorPlanFilter('doorSensors')} />
-            <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorPlanFilters.speakers} onClick={() => toggleFloorPlanFilter('speakers')} />
-            <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorPlanFilters.climate} onClick={() => toggleFloorPlanFilter('climate')} />
-            <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorPlanFilters.shutters} onClick={() => toggleFloorPlanFilter('shutters')} />
-            <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorPlanFilters.temperatures} onClick={() => toggleFloorPlanFilter('temperatures')} />
-            <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorPlanFilters.heaters} onClick={() => toggleFloorPlanFilter('heaters')} />
-          </div>
-        </div>
-      )}
 
       <div ref={containerRef} className="flex-1 overflow-hidden px-4 py-6 flex items-center justify-center">
         {/* Wrapper with fixed size including space for arrows */}

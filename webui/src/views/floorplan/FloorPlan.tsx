@@ -7,11 +7,13 @@ import { Edit3, Save, X } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
+import { FloorPlanFilterButton } from '@/components/FloorPlanFilterButton';
+import { filterDevicesByCategories } from '@/hooks/useFloorPlanFilters';
 import type { FloorPlanProps, RoomCoords, FixedBounds, DraggingState } from './types';
 
 export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { expertMode } = useSettingsStore();
+  const { expertMode, floorViewFilters, toggleFloorViewFilter } = useSettingsStore();
   const { fetchData, devices } = useDataStore();
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [editMode, setEditMode] = useState(false);
@@ -31,7 +33,7 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
 
   // Helper to get placed devices for a room
   const getPlacedDevicesForRoom = (roomName: string): Device[] => {
-    return Object.values(devices).filter((d) => {
+    const allDevices = Object.values(devices).filter((d) => {
       if (getDeviceRoom(d).toLowerCase() !== roomName.toLowerCase()) return false;
       const pos = d.trilaterationRoomPosition ?? d._trilaterationRoomPosition ?? 
                   d.settings?.trilaterationRoomPosition;
@@ -39,6 +41,8 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
       if (!pos || (pos.x === 0 && pos.y === 0 && pos.z === 0)) return false;
       return true;
     });
+    // Apply floor view filters
+    return filterDevicesByCategories(allDevices, floorViewFilters);
   };
 
   const roomsWithCoords = floor.rooms.filter((r) => getRoomCoords(r).hasCoords);
@@ -311,15 +315,23 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
               </button>
             ) : undefined
           ) : (
-            expertMode ? (
-              <button
-                onClick={enterEditMode}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-sm font-medium transition-all hover:bg-accent"
-              >
-                <Edit3 className="h-4 w-4" />
-                Bearbeiten
-              </button>
-            ) : undefined
+            <div className="flex items-center gap-1">
+              <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorViewFilters.lamps} activeColor="#F59E0B" onClick={() => toggleFloorViewFilter('lamps')} />
+              <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorViewFilters.doorSensors} activeColor="#8B4513" onClick={() => toggleFloorViewFilter('doorSensors')} />
+              <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorViewFilters.speakers} activeColor="#8B5CF6" onClick={() => toggleFloorViewFilter('speakers')} />
+              <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorViewFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorViewFilter('climate')} />
+              <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorViewFilters.shutters} activeColor="#6B7280" onClick={() => toggleFloorViewFilter('shutters')} />
+              <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorViewFilters.temperatures} activeColor="#EF4444" onClick={() => toggleFloorViewFilter('temperatures')} />
+              <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorViewFilters.heaters} activeColor="#F97316" onClick={() => toggleFloorViewFilter('heaters')} />
+              {expertMode && (
+                <button
+                  onClick={enterEditMode}
+                  className="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-sm font-medium transition-all hover:bg-accent"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           )
         }
       />
