@@ -512,11 +512,11 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
                   setDraggingDevice(device.id!);
                 } : undefined}
                 className={cn(
-                  "absolute flex flex-col items-center justify-center rounded-xl select-none",
+                  "absolute flex flex-col items-center justify-center rounded-xl select-none z-20",
                   editMode ? "touch-auto" : "touch-none",
                   editMode
                     ? isDragging
-                      ? "cursor-grabbing bg-primary/40 border-2 border-primary z-50 p-2 shadow-md"
+                      ? "cursor-grabbing bg-primary/40 border-2 border-primary p-2 shadow-lg scale-110"
                       : isLocallyEdited
                         ? "cursor-grab bg-orange-500/30 border-2 border-orange-500 p-2 shadow-md"
                         : "cursor-grab bg-primary/20 border-2 border-primary p-2 shadow-md"
@@ -580,7 +580,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
           {editMode && unplacedDevices.length > 0 && (
             <button
               onClick={() => setShowDevicePicker(true)}
-              className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-110"
+              className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all hover:scale-110 z-20"
               title="Gerät platzieren"
             >
               <Plus className="h-6 w-6" />
