@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Bug, CheckCircle, AlertCircle } from 'lucide-react';
 import { useBugReport } from '@/hooks/useBugReport';
 
@@ -15,6 +15,17 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const { submitBugReport, isSubmitting } = useBugReport();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-focus textarea when dialog opens (with delay for iOS)
+  useEffect(() => {
+    if (isOpen && textareaRef.current) {
+      // Delay focus for iOS PWA to ensure keyboard shows properly
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -52,8 +63,19 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-card shadow-2xl">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={(e) => {
+        // Close on backdrop click (but not on dialog click)
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
+      <div 
+        className="w-full max-w-lg rounded-2xl bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
@@ -91,6 +113,7 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
               Beschreibung des Problems <span className="text-red-500">*</span>
             </label>
             <textarea
+              ref={textareaRef}
               id="bug-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -98,6 +121,10 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
               placeholder="Was ist passiert? Was hast du erwartet?"
               rows={6}
               className="w-full rounded-xl bg-secondary px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               required
             />
             <p className="mt-1 text-xs text-muted-foreground">
