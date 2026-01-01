@@ -316,13 +316,10 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
             ) : undefined
           ) : (
             <div className="flex items-center gap-1">
-              <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorViewFilters.lamps} activeColor="#F59E0B" onClick={() => toggleFloorViewFilter('lamps')} />
-              <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorViewFilters.doorSensors} activeColor="#8B4513" onClick={() => toggleFloorViewFilter('doorSensors')} />
-              <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorViewFilters.speakers} activeColor="#8B5CF6" onClick={() => toggleFloorViewFilter('speakers')} />
-              <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorViewFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorViewFilter('climate')} />
-              <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorViewFilters.shutters} activeColor="#6B7280" onClick={() => toggleFloorViewFilter('shutters')} />
-              <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorViewFilters.temperatures} activeColor="#EF4444" onClick={() => toggleFloorViewFilter('temperatures')} />
-              <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorViewFilters.heaters} activeColor="#F97316" onClick={() => toggleFloorViewFilter('heaters')} />
+              <FloorPlanFilterButton icon="Lightbulb" label="Schaltbar" active={floorViewFilters.switchable} activeColor="#F59E0B" onClick={() => toggleFloorViewFilter('switchable')} />
+              <FloorPlanFilterButton icon="Shield" label="Sicherheit" active={floorViewFilters.security} activeColor="#8B4513" onClick={() => toggleFloorViewFilter('security')} />
+              <FloorPlanFilterButton icon="Thermometer" label="Klima" active={floorViewFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorViewFilter('climate')} />
+              <FloorPlanFilterButton icon="MoreHorizontal" label="Sonstiges" active={floorViewFilters.other} activeColor="#6B7280" onClick={() => toggleFloorViewFilter('other')} />
               {expertMode && (
                 <button
                   onClick={enterEditMode}

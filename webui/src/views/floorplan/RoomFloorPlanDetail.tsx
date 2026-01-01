@@ -366,13 +366,10 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
             ) : undefined
           ) : (
             <div className="flex items-center gap-1">
-              <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorPlanFilters.lamps} activeColor="#F59E0B" onClick={() => toggleFloorPlanFilter('lamps')} />
-              <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorPlanFilters.doorSensors} activeColor="#8B4513" onClick={() => toggleFloorPlanFilter('doorSensors')} />
-              <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorPlanFilters.speakers} activeColor="#8B5CF6" onClick={() => toggleFloorPlanFilter('speakers')} />
-              <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorPlanFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorPlanFilter('climate')} />
-              <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorPlanFilters.shutters} activeColor="#6B7280" onClick={() => toggleFloorPlanFilter('shutters')} />
-              <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorPlanFilters.temperatures} activeColor="#EF4444" onClick={() => toggleFloorPlanFilter('temperatures')} />
-              <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorPlanFilters.heaters} activeColor="#F97316" onClick={() => toggleFloorPlanFilter('heaters')} />
+              <FloorPlanFilterButton icon="Lightbulb" label="Schaltbar" active={floorPlanFilters.switchable} activeColor="#F59E0B" onClick={() => toggleFloorPlanFilter('switchable')} />
+              <FloorPlanFilterButton icon="Shield" label="Sicherheit" active={floorPlanFilters.security} activeColor="#8B4513" onClick={() => toggleFloorPlanFilter('security')} />
+              <FloorPlanFilterButton icon="Thermometer" label="Klima" active={floorPlanFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorPlanFilter('climate')} />
+              <FloorPlanFilterButton icon="MoreHorizontal" label="Sonstiges" active={floorPlanFilters.other} activeColor="#6B7280" onClick={() => toggleFloorPlanFilter('other')} />
               {expertMode && (
                 <button
                   onClick={() => {

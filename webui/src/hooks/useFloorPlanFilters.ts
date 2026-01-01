@@ -2,25 +2,19 @@ import { useState } from 'react';
 import type { Device } from '@/stores/dataStore';
 
 export interface FloorPlanFilters {
-  lamps: boolean;
-  doorSensors: boolean;
-  speakers: boolean;
-  climate: boolean;
-  shutters: boolean;
-  temperatures: boolean;
-  heaters: boolean;
+  switchable: boolean;      // Lampen, Stecker, Szenen
+  security: boolean;        // Rollos, Griffe, Bewegungsmelder, Tür/Fenster
+  climate: boolean;         // Temperatursensoren, Heizungen, Klima
+  other: boolean;           // Lautsprecher, Rauchmelder, etc.
 }
 
 const STORAGE_KEY = 'hoffmation-floorplan-filters';
 
 const DEFAULT_FILTERS: FloorPlanFilters = {
-  lamps: true,
-  doorSensors: true,
-  speakers: true,
+  switchable: true,
+  security: true,
   climate: true,
-  shutters: true,
-  temperatures: true,
-  heaters: true,
+  other: true,
 };
 
 function loadFilters(): FloorPlanFilters {
@@ -64,39 +58,28 @@ export function getDeviceCategories(device: Device): (keyof FloorPlanFilters)[] 
   const caps = device.deviceCapabilities ?? [];
   const categories: (keyof FloorPlanFilters)[] = [];
   
-  // Lamps (Lamp=8, Dimmer=9, LED=18)
-  if (caps.some(c => [8, 9, 18].includes(c))) {
-    categories.push('lamps');
+  // Switchable: Lampen, Stecker, Szenen
+  // Lamp=8, Dimmer=9, LED=18, Actuator=1, Scene=103
+  if (caps.some(c => [1, 8, 9, 18, 103].includes(c))) {
+    categories.push('switchable');
   }
   
-  // Door/Window Sensors (WindowSensor=2, DoorSensor=3, Lock=4, MotionSensor=10)
-  if (caps.some(c => [2, 3, 4, 10].includes(c))) {
-    categories.push('doorSensors');
+  // Security: Rollos, Griffe, Bewegungsmelder, Tür/Fenster, Magnetkontakt
+  // Shutter=11, HandleSensor=15, MotionSensor=10, MagnetSensor=22, GarageDoorOpener=21
+  if (caps.some(c => [10, 11, 15, 21, 22].includes(c))) {
+    categories.push('security');
   }
   
-  // Speakers (Speaker=14)
-  if (caps.includes(14)) {
-    categories.push('speakers');
-  }
-  
-  // Climate (AC=0)
-  if (caps.includes(0)) {
+  // Climate: Temperatursensoren, Heizungen, Klima, Luftfeuchtigkeit
+  // AC=0, Heater=5, TemperatureSensor=12, HumiditySensor=6
+  if (caps.some(c => [0, 5, 6, 12].includes(c))) {
     categories.push('climate');
   }
   
-  // Shutters (Shutter=11)
-  if (caps.includes(11)) {
-    categories.push('shutters');
-  }
-  
-  // Temperature Sensors (TemperatureSensor=12)
-  if (caps.includes(12)) {
-    categories.push('temperatures');
-  }
-  
-  // Heaters (Heater=15, Thermostat=16)
-  if (caps.some(c => [15, 16].includes(c))) {
-    categories.push('heaters');
+  // Other: Lautsprecher, Rauchmelder, Vibration, TV, Kamera, Türklingel
+  // Speaker=14, SmokeSensor=19, VibrationSensor=13, TV=17, Camera=105, Doorbell=106
+  if (caps.some(c => [13, 14, 17, 19, 105, 106].includes(c))) {
+    categories.push('other');
   }
   
   return categories;

@@ -3,13 +3,10 @@ import type { FloorDefinition } from './dataStore';
 import { getWebUISettings, updateWebUISettings } from '@/api/settings';
 
 export interface FloorPlanFilters {
-  lamps: boolean;
-  doorSensors: boolean;
-  speakers: boolean;
-  climate: boolean;
-  shutters: boolean;
-  temperatures: boolean;
-  heaters: boolean;
+  switchable: boolean;      // Lampen, Stecker, Szenen
+  security: boolean;        // Rollos, Griffe, Bewegungsmelder, Tür/Fenster
+  climate: boolean;         // Temperatursensoren, Heizungen, Klima
+  other: boolean;           // Lautsprecher, Rauchmelder, etc.
 }
 
 interface SettingsState {
@@ -63,13 +60,10 @@ const getInitialExcludedLevels = (): number[] => {
 };
 
 const DEFAULT_FLOOR_PLAN_FILTERS: FloorPlanFilters = {
-  lamps: true,
-  doorSensors: true,
-  speakers: true,
+  switchable: true,
+  security: true,
   climate: true,
-  shutters: true,
-  temperatures: true,
-  heaters: true,
+  other: true,
 };
 
 const getInitialFloorPlanFilters = (): FloorPlanFilters => {
