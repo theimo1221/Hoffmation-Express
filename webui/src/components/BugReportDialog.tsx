@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bug, CheckCircle, AlertCircle } from 'lucide-react';
 import { useBugReport } from '@/hooks/useBugReport';
 
@@ -62,14 +63,14 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
     }
   };
 
-  return (
+  const dialog = (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       style={{
-        paddingTop: 'max(1rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-        paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
       }}
       onClick={(e) => {
         // Close on backdrop click (but not on dialog click)
@@ -79,7 +80,7 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
       }}
     >
       <div 
-        className="w-full max-w-lg rounded-2xl bg-card shadow-2xl"
+        className="w-full max-w-lg rounded-2xl bg-card shadow-2xl m-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -175,4 +176,7 @@ export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityD
       </div>
     </div>
   );
+
+  // Render dialog as portal directly in body to avoid header safe-area-inset issues
+  return isOpen ? createPortal(dialog, document.body) : null;
 }
