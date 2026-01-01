@@ -69,8 +69,8 @@ export function getDeviceCategories(device: Device): (keyof FloorPlanFilters)[] 
     categories.push('lamps');
   }
   
-  // Door/Window Sensors (WindowSensor=2, DoorSensor=3, Lock=4)
-  if (caps.some(c => [2, 3, 4].includes(c))) {
+  // Door/Window Sensors (WindowSensor=2, DoorSensor=3, Lock=4, MotionSensor=10)
+  if (caps.some(c => [2, 3, 4, 10].includes(c))) {
     categories.push('doorSensors');
   }
   

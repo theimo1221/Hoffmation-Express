@@ -1151,74 +1151,72 @@ Groups inherit settings from their devices but can have group-wide controls.
   - PWA Icons: `/icon-192.png`, `/icon-512.png`
   - Source: Copied from Swift app (`Hoffmation/Shared/Assets.xcassets/AppIcon.appiconset/`)
 
-### 🚀 TODO: PWA Enhancements
+### ✅ PWA Features (IMPLEMENTED - 01.01.2026)
 
-#### 1. Service Worker & Offline Support (HIGH PRIORITY)
-- [ ] **Install Vite PWA Plugin**
-  ```bash
-  npm install -D vite-plugin-pwa
-  ```
-  
-- [ ] **Configure Service Worker** (`vite.config.ts`)
+#### 1. Service Worker & Offline Support ✅
+- ✅ Vite PWA Plugin installed
+- ✅ Service Worker configured (`vite.config.ts`)
   - Auto-update strategy (`registerType: 'autoUpdate'`)
-  - Cache static assets (JS, CSS, HTML, images)
-  - Runtime caching strategies:
-    - **CacheFirst** for static assets (icons, bundles) - 30 days
-    - **NetworkFirst** for API calls (rooms, devices) - 5 min timeout, 5 min cache
-    - **StaleWhileRevalidate** for settings - 24h cache
-    - **NetworkFirst** for camera images - 2s timeout, 1 min cache
-  
-- [ ] **Benefits:**
-  - ⚡ Instant load times (sub-second after first visit)
-  - 📱 Offline functionality (shows last known state)
-  - 💰 Reduced data usage (cache assets)
-  - 🛡️ Works on poor connections
+  - Hybrid caching strategy:
+    - **CacheFirst** for static assets (30 days)
+    - **NetworkFirst** for API calls (30s cache, 5s timeout)
+    - **StaleWhileRevalidate** for settings (24h)
+    - **NetworkOnly** for camera images
+- ✅ Offline detection (`useOnlineStatus` hook)
+- ✅ Offline banner (orange warning when offline)
 
-#### 2. Install Prompt (MEDIUM PRIORITY)
-- [ ] **Create `useInstallPrompt` Hook**
-  - Listen for `beforeinstallprompt` event
-  - Provide `promptInstall()` function
-  - Check if already installed (`display-mode: standalone`)
-  
-- [ ] **Add Install Button** (in Settings or first-time banner)
-  - Show only if prompt available
-  - "📱 App installieren" button
-  - Hide after installation
+#### 2. Install Prompt ✅
+- ✅ `useInstallPrompt` hook created
+  - Listens for `beforeinstallprompt` event
+  - Provides `promptInstall()` function
+  - Detects if already installed
+- ✅ Install button in Settings
+  - Shows only when prompt available
+  - "Als App installieren" button
+  - Shows "App ist installiert" status when installed
 
-#### 3. Manifest Enhancements (LOW PRIORITY)
-- [ ] **Extended Manifest Properties**
+#### 3. Manifest Enhancements ✅
+- ✅ Extended manifest properties
   - `scope: "/ui/"`
   - `orientation: "portrait-primary"`
   - `categories: ["lifestyle", "utilities"]`
-  
-- [ ] **App Shortcuts** (quick actions from home screen)
+- ✅ App shortcuts implemented
   - Grundriss: `/ui/floor/0`
   - Favoriten: `/ui/favorites`
   - Räume: `/ui/rooms`
-  
-- [ ] **Screenshots** (for app stores/install prompts)
-  - Mobile screenshot (540x720)
-  - Desktop screenshot (1280x720)
 
-#### 4. Additional Icon Sizes (LOW PRIORITY)
-- [ ] **Generate Missing Sizes** (from Swift app icon)
-  - 72x72, 96x96, 128x128, 144x144, 152x152, 384x384
-  - Improves compatibility across devices
-  
-- [ ] **Maskable Icons** (Android adaptive icons)
-  - Safe zone design for maskable icons
-  - Add to manifest with `"purpose": "maskable"`
-
-#### 5. iOS-Specific Enhancements (LOW PRIORITY)
-- [ ] **Splash Screens** (iOS launch screens)
+#### 4. iOS Support ✅
+- ✅ Splash screens generated (5 sizes)
   - iPhone X/XS/11 Pro: 1125x2436
   - iPhone XR/11: 828x1792
+  - iPhone XS Max/11 Pro Max: 1242x2688
+  - iPhone 12/13/14: 1170x2532
   - iPad Pro 12.9": 2048x2732
-  - Add `<link rel="apple-touch-startup-image">` tags
-  
-- [ ] **iOS Meta Tags**
-  - `apple-mobile-web-app-title` (shorter name)
-  - Status bar color variations
+- ✅ iOS meta tags
+  - `apple-mobile-web-app-title`
+  - Dark mode theme color
+  - `<link rel="apple-touch-startup-image">` tags
+
+#### 5. Push Notifications ✅
+- ✅ VAPID keys generated and secured
+  - Public key in `webui-settings.json` (API-accessible)
+  - Private key in `vapid-keys.json` (NOT API-accessible)
+- ✅ Backend endpoints
+  - `POST /webui/push/subscribe` - Save subscription
+  - `POST /webui/push/unsubscribe` - Remove subscription
+  - `GET /webui/push/vapid-public-key` - Get public key
+- ✅ Frontend implementation
+  - `usePushNotifications` hook
+  - Subscribe/Unsubscribe UI in Settings
+  - Permission handling
+- ✅ Service Worker push handler (`sw-push.js`)
+  - Receives push notifications
+  - Shows notifications
+  - Handles notification clicks
+- ✅ `PushNotificationService` (Backend)
+  - `sendToAll(title, body, url)` - Send to all subscriptions
+  - `sendToSubscription(sub, title, body, url)` - Send to specific subscription
+  - Automatic cleanup of invalid subscriptions
 
 ### 📊 Caching Strategy Details
 

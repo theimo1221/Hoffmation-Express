@@ -5,8 +5,8 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
-**Latest Build:** 1,181.29 kB (gzip: 252.06 kB) - Dec 31, 2024
-*Note: Bundle size increased due to full Lucide Icons import for IconPicker*
+**Latest Build:** 1,199.22 kB (gzip: 256.54 kB) - Jan 1, 2026
+*Note: Bundle size increased due to PWA features (Service Worker, Push Notifications)*
 
 ## Tech Stack
 
@@ -385,6 +385,50 @@ Add to RoomDetail view with all room settings:
 - Settings can be applied partially (only send changed fields)
 - Settings data is included in device/room API responses
 - Backend issue: Some devices (temperature sensors, smoke detectors) have `settings: null`
+
+## PWA Features (01.01.2026)
+
+### Implemented
+- ✅ **Service Worker** (Vite PWA Plugin)
+  - Auto-update strategy
+  - Hybrid caching (CacheFirst for assets, NetworkFirst for API)
+- ✅ **Offline Support**
+  - 30-day cache for static assets (JS, CSS, icons)
+  - 30-second cache for API data (rooms, devices)
+  - Offline banner with warning
+- ✅ **Install Prompt**
+  - `useInstallPrompt` hook
+  - Install button in Settings
+  - Detects if already installed
+- ✅ **Web Manifest**
+  - App shortcuts (Grundriss, Favoriten, Räume)
+  - Portrait orientation, categories
+- ✅ **iOS Support**
+  - Splash screens (5 sizes: iPhone X-14, iPad Pro)
+  - Apple meta tags
+- ✅ **Push Notifications**
+  - VAPID keys (secure: private key in `vapid-keys.json`, public in `webui-settings.json`)
+  - Subscribe/Unsubscribe UI in Settings
+  - Service Worker push handler
+  - `PushNotificationService` backend service
+  - Subscriptions stored in `webui-settings.json`
+
+### Floor Plan Filters (01.01.2026)
+- ✅ **Icon-only filter buttons** in PageHeader
+  - Color-coded when active (yellow=lamps, brown=sensors, etc.)
+  - Gray when inactive
+- ✅ **Separate filter states**
+  - Room view: `hoffmation-floorplan-filters` (localStorage)
+  - Floor view: `hoffmation-floorview-filters` (localStorage)
+- ✅ **Filter categories**
+  - Lamps (Lamp=8, Dimmer=9, LED=18)
+  - Door/Window/Motion Sensors (WindowSensor=2, DoorSensor=3, Lock=4, MotionSensor=10)
+  - Speakers (Speaker=14)
+  - Climate (AC=0)
+  - Shutters (Shutter=11)
+  - Temperatures (TemperatureSensor=12)
+  - Heaters (Heater=15, Thermostat=16)
+- ✅ **Bug Fix:** Motion sensors now correctly included in doorSensors category
 
 ### Pending Features
 - [ ] Complete device settings views (Dimmer, LED, Heater, AC, Handle, Camera)
