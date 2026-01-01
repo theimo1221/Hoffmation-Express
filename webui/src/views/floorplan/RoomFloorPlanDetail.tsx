@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus, Settings } from 'lucide-react';
+import { Edit3, Save, X, Plus, Info } from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
@@ -374,9 +374,9 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
                 <button
                   onClick={onRoomSettings}
                   className="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-sm font-medium transition-all hover:bg-accent"
-                  title="Raumeinstellungen"
+                  title="Raumdetails"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Info className="h-4 w-4" />
                 </button>
               )}
               {expertMode && (
