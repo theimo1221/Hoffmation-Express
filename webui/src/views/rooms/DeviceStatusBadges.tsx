@@ -185,6 +185,17 @@ export function DeviceStatusBadges({ device }: DeviceStatusBadgesProps) {
     );
   }
 
+  // Load Metering: show current power consumption
+  const loadPower = (device as any).loadPower;
+  if (hasCapability(device, DeviceCapability.loadMetering) && loadPower !== undefined && loadPower >= 0) {
+    const powerColor = loadPower > 1000 ? 'text-orange-500' : loadPower > 100 ? 'text-yellow-500' : 'text-muted-foreground';
+    badges.push(
+      <span key="power" className={`text-xs ${powerColor}`}>
+        ⚡ {loadPower >= 1000 ? `${(loadPower / 1000).toFixed(2)} kW` : `${Math.round(loadPower)} W`}
+      </span>
+    );
+  }
+
   if (badges.length === 0) return null;
 
   return (

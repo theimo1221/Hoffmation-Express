@@ -5,9 +5,10 @@ import { useDataStore, type Device, filterDevicesForExpertMode, DeviceCapability
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { Search, Lightbulb, Blinds, Thermometer, Camera, Speaker, Zap } from 'lucide-react';
-import { DeviceDetailView } from './device';
 import { DeviceIcon, getDeviceStatusColor } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { DeviceStatusBadges } from './rooms/DeviceStatusBadges';
+import { DeviceDetailView } from './device';
 
 const CAPABILITY_FILTERS = [
   { capability: null, label: 'Alle', icon: Zap },
@@ -144,7 +145,8 @@ function DeviceCard({ device, onClick }: DeviceCardProps) {
         </div>
         <div className="flex flex-col items-start">
           <span className="font-medium">{name}</span>
-          <span className="text-sm text-muted-foreground">{room}</span>
+          <DeviceStatusBadges device={device} />
+          {room && <span className="text-sm text-muted-foreground">{room}</span>}
         </div>
       </div>
     </button>

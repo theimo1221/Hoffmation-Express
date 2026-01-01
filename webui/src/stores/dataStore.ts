@@ -376,6 +376,8 @@ export interface Device {
   // Energy Manager
   excessEnergy?: number;
   selfConsumingWattage?: number;
+  // Load Metering
+  loadPower?: number;
   // Block Automatic
   blockAutomationHandler?: BlockAutomationHandler;
   // Camera
