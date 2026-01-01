@@ -1,8 +1,10 @@
 import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings } from 'lucide-react';
+import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { BugReportDialog } from '@/components/BugReportDialog';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 interface PageHeaderProps {
   title: string;
@@ -15,6 +17,11 @@ interface PageHeaderProps {
   children?: ReactNode;
   className?: string;
   showMenu?: boolean;
+  bugReportContext?: {
+    entityType?: 'device' | 'room' | 'scene' | 'group';
+    entityId?: string;
+    entityData?: any;
+  };
 }
 
 export function PageHeader({
@@ -28,9 +35,12 @@ export function PageHeader({
   children,
   className,
   showMenu = true,
+  bugReportContext,
 }: PageHeaderProps) {
   const { t } = useTranslation();
+  const expertMode = useSettingsStore((state) => state.expertMode);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
   const tabs = [
     { to: '/', icon: Layers, label: t('tabs.floorPlan') },
@@ -102,6 +112,16 @@ export function PageHeader({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {rightContent}
+          {expertMode && (
+            <button
+              onClick={() => setBugDialogOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95"
+              aria-label="Bug melden"
+              title="Bug melden"
+            >
+              <Bug className="h-5 w-5 text-red-500" />
+            </button>
+          )}
           {onRefresh && (
             <button
               onClick={onRefresh}
@@ -116,6 +136,14 @@ export function PageHeader({
         </div>
       </div>
       {children && <div className="mx-auto max-w-3xl mt-3">{children}</div>}
+      
+      <BugReportDialog
+        isOpen={bugDialogOpen}
+        onClose={() => setBugDialogOpen(false)}
+        entityType={bugReportContext?.entityType}
+        entityId={bugReportContext?.entityId}
+        entityData={bugReportContext?.entityData}
+      />
     </header>
   );
 }

@@ -428,6 +428,42 @@ export class RestService {
       this._app.get(handler.path, handler.handler);
     }
 
+    // Bug report endpoint
+    this._app.post('/webui/bug-report', (req, res) => {
+      try {
+        const bugReport = req.body;
+        const timestamp = new Date().toISOString();
+        const reportWithTimestamp = { ...bugReport, timestamp, id: Date.now().toString() };
+        
+        const reportsPath = path.join(__dirname, '..', 'config', 'private', 'bug-reports.json');
+        let reports: any[] = [];
+        
+        // Load existing reports
+        if (fs.existsSync(reportsPath)) {
+          try {
+            const data = fs.readFileSync(reportsPath, 'utf-8');
+            reports = JSON.parse(data);
+          } catch (parseError) {
+            ServerLogService.writeLog(LogLevel.Warn, 'Failed to parse bug-reports.json, creating new file');
+          }
+        }
+        
+        // Add new report
+        reports.push(reportWithTimestamp);
+        
+        // Save to file
+        fs.writeFileSync(reportsPath, JSON.stringify(reports, null, 2), 'utf-8');
+        
+        ServerLogService.writeLog(LogLevel.Info, `Bug report saved: ${bugReport.description?.substring(0, 50)}...`);
+        
+        return res.json({ success: true, id: reportWithTimestamp.id });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to save bug report: ${err.message}`);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    });
+
     // Hoffmation service restart endpoint
     // Use process.exit to let systemd handle the restart automatically
     this._app.post('/hoffmation/restart', async (_req, res) => {
