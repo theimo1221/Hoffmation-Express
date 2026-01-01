@@ -119,11 +119,11 @@ export function SettingsView() {
       <div className="flex-1 overflow-auto pb-tabbar">
         <div className="content-container space-y-6 py-4">
           {/* PWA Install */}
-          {canInstall && (
+          {canInstall && !isInstalled && (
             <section>
               <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                <Smartphone className="h-4 w-4" />
-                App installieren
+                <Download className="h-4 w-4" />
+                App Installation
               </h2>
               <button
                 onClick={handleInstall}
@@ -140,6 +140,25 @@ export function SettingsView() {
               <p className="mt-2 text-sm text-muted-foreground">
                 Installiere Hoffmation als eigenständige App auf deinem Gerät für schnelleren Zugriff und Offline-Funktionalität.
               </p>
+            </section>
+          )}
+
+          {!canInstall && !isInstalled && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                App Installation (iOS)
+              </h2>
+              <div className="rounded-xl bg-card p-4 shadow-soft space-y-3">
+                <p className="text-sm">
+                  <strong>So installierst du die App auf iOS:</strong>
+                </p>
+                <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+                  <li>Tippe auf das Teilen-Symbol (Quadrat mit Pfeil nach oben)</li>
+                  <li>Scrolle nach unten und wähle "Zum Home-Bildschirm"</li>
+                  <li>Tippe auf "Hinzufügen"</li>
+                </ol>
+              </div>
             </section>
           )}
 
