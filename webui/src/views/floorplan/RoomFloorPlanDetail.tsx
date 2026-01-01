@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus } from 'lucide-react';
+import { Edit3, Save, X, Plus, Settings } from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
@@ -15,7 +15,7 @@ import { FloorPlanFilterButton } from '@/components/FloorPlanFilterButton';
 import { filterDevicesByCategories } from '@/hooks/useFloorPlanFilters';
 import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
 
-export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom }: RoomFloorPlanDetailProps) {
+export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom, onRoomSettings }: RoomFloorPlanDetailProps) {
   const roomName = getRoomName(room);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -370,6 +370,15 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
               <FloorPlanFilterButton icon="Shield" label="Sicherheit" active={floorPlanFilters.security} activeColor="#8B4513" onClick={() => toggleFloorPlanFilter('security')} />
               <FloorPlanFilterButton icon="Thermometer" label="Klima" active={floorPlanFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorPlanFilter('climate')} />
               <FloorPlanFilterButton icon="MoreHorizontal" label="Sonstiges" active={floorPlanFilters.other} activeColor="#6B7280" onClick={() => toggleFloorPlanFilter('other')} />
+              {onRoomSettings && (
+                <button
+                  onClick={onRoomSettings}
+                  className="ml-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary text-sm font-medium transition-all hover:bg-accent"
+                  title="Raumeinstellungen"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              )}
               {expertMode && (
                 <button
                   onClick={() => {

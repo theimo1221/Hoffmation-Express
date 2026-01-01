@@ -29,6 +29,7 @@ export interface RoomFloorPlanDetailProps {
   onBack: () => void;
   onSelectDevice: (device: Device) => void;
   onNavigateToRoom?: (room: Room) => void;
+  onRoomSettings?: () => void;
 }
 
 export interface FixedBounds {

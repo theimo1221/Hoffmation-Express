@@ -5,7 +5,7 @@ import {
   Square,
   Battery, Signal, Thermometer,
   Wind, Activity, Droplets, Flame, Snowflake,
-  Zap, ZapOff
+  Zap, ZapOff, Play, Square as StopIcon
 } from 'lucide-react';
 import type { Device } from '@/stores';
 import { DeviceCapability } from '@/components/DeviceIcon';
@@ -347,6 +347,8 @@ export function getDeviceMenuItems(
     onAcOff?: () => void;
     onActuatorOn?: () => void;
     onActuatorOff?: () => void;
+    onSceneStart?: () => void;
+    onSceneEnd?: () => void;
   }
 ): RadialMenuItem[] {
   const caps = device.deviceCapabilities ?? [];
@@ -457,6 +459,27 @@ export function getDeviceMenuItems(
       color: '#22c55e',
       onClick: handlers.onActuatorOn ?? (() => {}),
       clockPosition: 2, // Actions: 10-14h (right = on)
+    });
+  }
+  
+  // Scene controls - Play/Stop icons
+  else if (caps.includes(DeviceCapability.scene)) {
+    items.push({
+      id: 'scene-stop',
+      icon: <StopIcon className="h-5 w-5 text-gray-400" />,
+      label: 'Stop',
+      color: '#9ca3af',
+      onClick: handlers.onSceneEnd ?? (() => {}),
+      clockPosition: 10, // Actions: 10-14h (left = stop)
+    });
+    
+    items.push({
+      id: 'scene-start',
+      icon: <Play className="h-5 w-5 text-green-500" />,
+      label: 'Start',
+      color: '#22c55e',
+      onClick: handlers.onSceneStart ?? (() => {}),
+      clockPosition: 2, // Actions: 10-14h (right = start)
     });
   }
   

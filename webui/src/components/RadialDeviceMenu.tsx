@@ -2,7 +2,7 @@ import { Wind } from 'lucide-react';
 import type { Device } from '@/stores';
 import { isDeviceOn, useDataStore } from '@/stores';
 import { hasCapability, DeviceCapability } from '@/stores/deviceStore';
-import { setLamp, setActuator, setShutter, setAc, setDimmer } from '@/api/devices';
+import { setLamp, setActuator, setShutter, setAc, setDimmer, startScene, endScene } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 import { DeviceIcon } from './DeviceIcon';
 import { RadialMenu, getDeviceMenuItems } from './RadialMenu';
@@ -93,6 +93,26 @@ export function RadialDeviceMenu({
     );
   };
 
+  const handleSceneStart = async () => {
+    onClose();
+    await executeDeviceAction(
+      device,
+      (id) => startScene(id),
+      async () => { if (device.id) await fetchDevice(device.id); },
+      () => {}
+    );
+  };
+
+  const handleSceneEnd = async () => {
+    onClose();
+    await executeDeviceAction(
+      device,
+      (id) => endScene(id),
+      async () => { if (device.id) await fetchDevice(device.id); },
+      () => {}
+    );
+  };
+
   const items = getDeviceMenuItems(device, {
     onDetails,
     onLampOn: handleLampOn,
@@ -105,6 +125,8 @@ export function RadialDeviceMenu({
     onAcOff: () => handleAcPower(false),
     onActuatorOn: () => handleActuatorPower(true),
     onActuatorOff: () => handleActuatorPower(false),
+    onSceneStart: handleSceneStart,
+    onSceneEnd: handleSceneEnd,
   });
 
   // Generate center icon based on device type

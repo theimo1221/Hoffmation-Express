@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDataStore, type Room, type Device, type GroupData, getRoomName, getFloorsForRoom } from '@/stores';
+import { useDataStore, type Room, type GroupData, getRoomName, getFloorsForRoom } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 import { ChevronRight, Search } from 'lucide-react';
@@ -14,16 +14,16 @@ import { GroupDetailView } from './GroupDetailView';
 export function RoomsView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { roomId } = useParams<{ roomId?: string }>();
+  const { roomId, deviceId } = useParams<{ roomId?: string; deviceId?: string }>();
   const { rooms, devices, fetchData, isLoading } = useDataStore();
   const { excludedLevels, floors: floorDefinitions, loadFloors } = useSettingsStore();
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<{ room: Room; groupType: string; group: GroupData } | null>(null);
   const [floorFilter, setFloorFilter] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 
-  // Get selected room from URL param
+  // Get selected room and device from URL params
   const selectedRoom = roomId ? Object.values(rooms).find(r => (r.id ?? getRoomName(r)) === decodeURIComponent(roomId)) : null;
+  const selectedDevice = deviceId ? devices[deviceId] : null;
 
   useEffect(() => {
     fetchData();
@@ -31,7 +31,7 @@ export function RoomsView() {
   }, [fetchData, loadFloors]);
 
   if (selectedDevice) {
-    return <DeviceDetailView device={selectedDevice} onBack={() => setSelectedDevice(null)} />;
+    return <DeviceDetailView device={selectedDevice} onBack={() => navigate(-1)} />;
   }
 
   if (selectedGroup && selectedRoom) {
@@ -42,7 +42,7 @@ export function RoomsView() {
         group={selectedGroup.group}
         devices={devices}
         onBack={() => setSelectedGroup(null)}
-        onSelectDevice={setSelectedDevice}
+        onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
       />
     );
   }
@@ -97,7 +97,7 @@ export function RoomsView() {
         room={selectedRoom} 
         devices={devices} 
         onBack={() => navigate(-1)} 
-        onSelectDevice={setSelectedDevice}
+        onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
         onSelectGroup={(room, groupType, group) => setSelectedGroup({ room, groupType, group })}
       />
     );
