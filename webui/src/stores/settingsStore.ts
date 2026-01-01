@@ -2,6 +2,16 @@ import { create } from 'zustand';
 import type { FloorDefinition } from './dataStore';
 import { getWebUISettings, updateWebUISettings } from '@/api/settings';
 
+export interface FloorPlanFilters {
+  lamps: boolean;
+  doorSensors: boolean;
+  speakers: boolean;
+  climate: boolean;
+  shutters: boolean;
+  temperatures: boolean;
+  heaters: boolean;
+}
+
 interface SettingsState {
   pollingInterval: number;
   darkMode: 'system' | 'light' | 'dark';
@@ -11,12 +21,14 @@ interface SettingsState {
   excludedLevels: number[];
   floors: FloorDefinition[];
   floorsLoading: boolean;
+  floorPlanFilters: FloorPlanFilters;
   setPollingInterval: (interval: number) => void;
   setDarkMode: (mode: 'system' | 'light' | 'dark') => void;
   setLanguage: (lang: 'en' | 'de') => void;
   setApiBaseUrl: (url: string) => void;
   setExpertMode: (enabled: boolean) => void;
   setExcludedLevels: (levels: number[]) => void;
+  toggleFloorPlanFilter: (key: keyof FloorPlanFilters) => void;
   loadFloors: () => Promise<void>;
   saveFloors: (floors: FloorDefinition[]) => Promise<void>;
 }
@@ -48,6 +60,28 @@ const getInitialExcludedLevels = (): number[] => {
   return [];
 };
 
+const DEFAULT_FLOOR_PLAN_FILTERS: FloorPlanFilters = {
+  lamps: true,
+  doorSensors: true,
+  speakers: true,
+  climate: true,
+  shutters: true,
+  temperatures: true,
+  heaters: true,
+};
+
+const getInitialFloorPlanFilters = (): FloorPlanFilters => {
+  const stored = localStorage.getItem('hoffmation-floorplan-filters');
+  if (stored) {
+    try {
+      return { ...DEFAULT_FLOOR_PLAN_FILTERS, ...JSON.parse(stored) };
+    } catch {
+      return DEFAULT_FLOOR_PLAN_FILTERS;
+    }
+  }
+  return DEFAULT_FLOOR_PLAN_FILTERS;
+};
+
 const DEFAULT_FLOORS: FloorDefinition[] = [
   { id: 'keller', name: 'Keller', level: -1, sortOrder: 0, icon: 'Warehouse', color: '#8B4513' },
   { id: 'draussen', name: 'Draußen', level: 99, sortOrder: 1, icon: 'Trees', color: '#22C55E' },
@@ -66,6 +100,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   excludedLevels: getInitialExcludedLevels(),
   floors: DEFAULT_FLOORS,
   floorsLoading: false,
+  floorPlanFilters: getInitialFloorPlanFilters(),
 
   setPollingInterval: (interval) => {
     localStorage.setItem('hoffmation-polling-interval', interval.toString());
@@ -95,6 +130,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setExcludedLevels: (levels) => {
     localStorage.setItem('hoffmation-excluded-levels', JSON.stringify(levels));
     set({ excludedLevels: levels });
+  },
+
+  toggleFloorPlanFilter: (key) => {
+    set((state) => {
+      const updated = { ...state.floorPlanFilters, [key]: !state.floorPlanFilters[key] };
+      localStorage.setItem('hoffmation-floorplan-filters', JSON.stringify(updated));
+      return { floorPlanFilters: updated };
+    });
   },
 
   loadFloors: async () => {

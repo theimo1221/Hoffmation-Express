@@ -11,6 +11,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
 import { AdjacentRoomButtons } from './AdjacentRoomButtons';
 import { DevicePicker } from './DevicePicker';
+import { FloorPlanFilterButton } from '@/components/FloorPlanFilterButton';
+import { filterDevicesByCategories } from '@/hooks/useFloorPlanFilters';
 import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
 
 export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSelectDevice, onNavigateToRoom }: RoomFloorPlanDetailProps) {
@@ -26,7 +28,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
   const [radialMenu, setRadialMenu] = useState<{ device: Device; position: { x: number; y: number } } | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
-  const { expertMode } = useSettingsStore();
+  const { expertMode, floorPlanFilters, toggleFloorPlanFilter } = useSettingsStore();
   const { fetchData, fetchDevice } = useDataStore();
 
   const LONG_PRESS_DURATION = 400; // ms
@@ -45,7 +47,8 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
   const allRoomDevices = Object.values(devices).filter(
     (d) => getDeviceRoom(d).toLowerCase() === roomName.toLowerCase()
   );
-  const placedDevices = allRoomDevices.filter((d) => getDevicePos(d));
+  const allPlacedDevices = allRoomDevices.filter((d) => getDevicePos(d));
+  const placedDevices = filterDevicesByCategories(allPlacedDevices, floorPlanFilters);
   const unplacedDevices = allRoomDevices.filter((d) => !getDevicePos(d));
   const locallyPlacedDeviceIds = Object.keys(editedPositions);
   const locallyPlacedDevices = allRoomDevices.filter(d => d.id && locallyPlacedDeviceIds.includes(d.id));
@@ -377,6 +380,20 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], onBack, onSe
           )
         }
       />
+
+      {!editMode && (
+        <div className="px-4 pb-3">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <FloorPlanFilterButton icon="Lightbulb" label="Lampen" active={floorPlanFilters.lamps} onClick={() => toggleFloorPlanFilter('lamps')} />
+            <FloorPlanFilterButton icon="DoorOpen" label="Griffe" active={floorPlanFilters.doorSensors} onClick={() => toggleFloorPlanFilter('doorSensors')} />
+            <FloorPlanFilterButton icon="Speaker" label="Audio" active={floorPlanFilters.speakers} onClick={() => toggleFloorPlanFilter('speakers')} />
+            <FloorPlanFilterButton icon="Snowflake" label="Klima" active={floorPlanFilters.climate} onClick={() => toggleFloorPlanFilter('climate')} />
+            <FloorPlanFilterButton icon="Blinds" label="Rollo" active={floorPlanFilters.shutters} onClick={() => toggleFloorPlanFilter('shutters')} />
+            <FloorPlanFilterButton icon="Thermometer" label="Temp" active={floorPlanFilters.temperatures} onClick={() => toggleFloorPlanFilter('temperatures')} />
+            <FloorPlanFilterButton icon="Flame" label="Heizung" active={floorPlanFilters.heaters} onClick={() => toggleFloorPlanFilter('heaters')} />
+          </div>
+        </div>
+      )}
 
       <div ref={containerRef} className="flex-1 overflow-hidden px-4 py-6 flex items-center justify-center">
         {/* Wrapper with fixed size including space for arrows */}
