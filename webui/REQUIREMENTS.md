@@ -33,6 +33,8 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - ✅ IconPicker & ColorPicker components for visual room identification
 - ✅ Modular store architecture with clear separation of concerns (Jan 1, 2026)
 - ✅ Battery status display in radial menu (Jan 1, 2026)
+- ✅ Responsive filter menu for mobile devices (Jan 2, 2026)
+- ✅ iOS PWA fixes: Dialog portal rendering, z-index hierarchy (Jan 2, 2026)
 
 ---
 

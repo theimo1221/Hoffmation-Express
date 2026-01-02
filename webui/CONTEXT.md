@@ -5,7 +5,7 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
-**Latest Build:** 1,201.16 kB (gzip: 257.46 kB) - Jan 1, 2026
+**Latest Build:** 1,204.28 kB (gzip: 258.26 kB) - Jan 2, 2026
 *Note: Bundle size increased due to PWA features (Service Worker, Push Notifications)*
 
 ## Tech Stack
@@ -460,6 +460,21 @@ Add to RoomDetail view with all room settings:
   - Temperatures (TemperatureSensor=12)
   - Heaters (Heater=15, Thermostat=16)
 - ✅ **Bug Fix:** Motion sensors now correctly included in doorSensors category
+- ✅ **Responsive Filter Menu (02.01.2026)**
+  - Mobile: Single filter icon with badge showing active count
+  - Desktop: Four individual filter buttons (Schaltbar, Sicherheit, Klima, Sonstiges)
+  - Mobile popup with text labels on click
+  - Auto-close after selection or backdrop click
+
+### iOS PWA Fixes (02.01.2026)
+- ✅ **Bug Report Dialog**
+  - Portal rendering (outside PageHeader) to prevent safe-area conflicts
+  - Proper safe-area-inset handling without being pushed off-screen
+- ✅ **Room Floor Plan Detail**
+  - z-index hierarchy: Devices (z-20) > Multi-Floor Buttons (z-10)
+  - Multi-floor navigation buttons consolidated into main canvas
+  - Removed redundant canvas wrapper with pointer-events
+  - Room scaling: 20px padding to prevent border touching edges
 
 ### Pending Features
 - [ ] Complete device settings views (Dimmer, LED, Heater, AC, Handle, Camera)

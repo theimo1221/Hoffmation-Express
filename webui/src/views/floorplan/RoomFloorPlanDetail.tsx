@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { RadialDeviceMenu } from '@/components/RadialDeviceMenu';
 import { AdjacentRoomButtons } from './AdjacentRoomButtons';
 import { DevicePicker } from './DevicePicker';
-import { FloorPlanFilterButton } from '@/components/FloorPlanFilterButton';
+import { FloorPlanFilterMenu } from '@/components/FloorPlanFilterMenu';
 import { filterDevicesByCategories } from '@/hooks/useFloorPlanFilters';
 import type { RoomFloorPlanDetailProps, AdjacentRoom } from './types';
 
@@ -391,10 +391,10 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
             ) : undefined
           ) : (
             <div className="flex items-center gap-1">
-              <FloorPlanFilterButton icon="Lightbulb" label="Schaltbar" active={floorPlanFilters.switchable} activeColor="#F59E0B" onClick={() => toggleFloorPlanFilter('switchable')} />
-              <FloorPlanFilterButton icon="Shield" label="Sicherheit" active={floorPlanFilters.security} activeColor="#8B4513" onClick={() => toggleFloorPlanFilter('security')} />
-              <FloorPlanFilterButton icon="Thermometer" label="Klima" active={floorPlanFilters.climate} activeColor="#3B82F6" onClick={() => toggleFloorPlanFilter('climate')} />
-              <FloorPlanFilterButton icon="MoreHorizontal" label="Sonstiges" active={floorPlanFilters.other} activeColor="#6B7280" onClick={() => toggleFloorPlanFilter('other')} />
+              <FloorPlanFilterMenu 
+                filters={floorPlanFilters}
+                onToggle={toggleFloorPlanFilter}
+              />
               {onRoomSettings && (
                 <button
                   onClick={onRoomSettings}
@@ -425,10 +425,10 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
         <div 
           className="relative"
           style={{
-            width: scaledWidth + 32 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0),
-            height: scaledHeight + 32 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0),
-            maxWidth: '100%',
-            maxHeight: '100%',
+            width: scaledWidth + 12 + (hasLeft ? 80 : 0) + (hasRight ? 80 : 0),
+            height: scaledHeight + 12 + (hasTop ? 40 : 0) + (hasBottom ? 40 : 0),
+            maxWidth: 'calc(100% - 16px)',
+            maxHeight: 'calc(100% - 16px)',
           }}
         >
         <div
