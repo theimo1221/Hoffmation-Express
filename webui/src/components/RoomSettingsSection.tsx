@@ -77,6 +77,8 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
     sonnenUntergangRolloDelay: getDisplayValue('sonnenUntergangRolloDelay', 15),
     sonnenUntergangRolloMaxTime: getDisplayValue('sonnenUntergangRolloMaxTime', { hours: 21, minutes: 30 }),
     sonnenUntergangRolloAdditionalOffsetPerCloudiness: getDisplayValue('sonnenUntergangRolloAdditionalOffsetPerCloudiness', 0.25),
+    nightStart: getDisplayValue('nightStart', undefined),
+    nightEnd: getDisplayValue('nightEnd', undefined),
     movementResetTimer: getDisplayValue('movementResetTimer', 240),
     radioUrl: getDisplayValue('radioUrl', ''),
     trilaterationStartPoint: getDisplayValue('trilaterationStartPoint', room.startPoint),
@@ -205,6 +207,41 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
             min={0} max={0.5} step={0.025} unit=" min/%"
             onChange={(v) => updateField('sonnenUntergangRolloAdditionalOffsetPerCloudiness', v)} 
             disabled={!isEditing} />
+        </SettingsGroup>
+
+        {/* Night Time Settings */}
+        <SettingsGroup title="Nachtzeit-Einstellungen" disabled={!isEditing}>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Definiere raum-spezifische Nachtzeiten. Leer = Globale Einstellungen verwenden.
+            </p>
+            <SettingOptionalTimePicker 
+              label="Nacht-Beginn" 
+              hours={localSettings.nightStart?.hours} 
+              minutes={localSettings.nightStart?.minutes}
+              onChange={(h, m) => {
+                if (h !== undefined && m !== undefined) {
+                  updateField('nightStart', { hours: h, minutes: m });
+                } else {
+                  updateField('nightStart', undefined);
+                }
+              }}
+              disabled={!isEditing} 
+            />
+            <SettingOptionalTimePicker 
+              label="Nacht-Ende" 
+              hours={localSettings.nightEnd?.hours} 
+              minutes={localSettings.nightEnd?.minutes}
+              onChange={(h, m) => {
+                if (h !== undefined && m !== undefined) {
+                  updateField('nightEnd', { hours: h, minutes: m });
+                } else {
+                  updateField('nightEnd', undefined);
+                }
+              }}
+              disabled={!isEditing} 
+            />
+          </div>
         </SettingsGroup>
 
         {/* WebUI Settings */}
@@ -522,6 +559,75 @@ function SettingNumberInput({ label, value, onChange, disabled, step = 0.1, min,
         max={max}
         className="w-full rounded-lg bg-secondary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
       />
+    </div>
+  );
+}
+
+interface SettingOptionalTimePickerProps {
+  label: string;
+  hours?: number;
+  minutes?: number;
+  onChange: (hours: number | undefined, minutes: number | undefined) => void;
+  disabled?: boolean;
+}
+
+function SettingOptionalTimePicker({ label, hours, minutes, onChange, disabled }: SettingOptionalTimePickerProps) {
+  const isSet = hours !== undefined && minutes !== undefined;
+  
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm">{label}</span>
+        <div className="flex items-center gap-2">
+          {isSet ? (
+            <>
+              <div className="flex items-center gap-1">
+                <select
+                  value={hours}
+                  onChange={(e) => onChange(Number(e.target.value), minutes)}
+                  disabled={disabled}
+                  className="rounded-lg bg-secondary px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <span>:</span>
+                <select
+                  value={minutes}
+                  onChange={(e) => onChange(hours, Number(e.target.value))}
+                  disabled={disabled}
+                  className="rounded-lg bg-secondary px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 60 }, (_, i) => (
+                    <option key={i} value={i}>{String(i).padStart(2, '0')}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange(undefined, undefined)}
+                disabled={disabled}
+                className="px-2 py-1 text-xs rounded-lg bg-secondary hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                Löschen
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onChange(22, 0)}
+              disabled={disabled}
+              className="px-3 py-1 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              Zeit setzen
+            </button>
+          )}
+        </div>
+      </div>
+      {!isSet && (
+        <p className="text-xs text-muted-foreground">Nicht gesetzt - Globale Einstellungen werden verwendet</p>
+      )}
     </div>
   );
 }

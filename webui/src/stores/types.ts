@@ -87,6 +87,9 @@ export interface RoomSettings {
   sonnenUntergangRolloDelay?: number;
   sonnenUntergangRolloMaxTime?: { hours?: number; minutes?: number };
   sonnenUntergangRolloAdditionalOffsetPerCloudiness?: number;
+  // Night time settings
+  nightStart?: { hours: number; minutes: number };
+  nightEnd?: { hours: number; minutes: number };
   // Motion settings
   movementResetTimer?: number;
   // Trilateration coordinates
