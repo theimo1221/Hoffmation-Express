@@ -428,31 +428,43 @@ export class RestService {
       this._app.get(handler.path, handler.handler);
     }
 
-    // Bug report endpoint
+    // Bug report endpoints
+    const reportsPath = path.join(__dirname, '..', 'config', 'private', 'bug-reports.json');
+    
+    // Helper function to load bug reports
+    const loadBugReports = (): any[] => {
+      if (fs.existsSync(reportsPath)) {
+        try {
+          const data = fs.readFileSync(reportsPath, 'utf-8');
+          return JSON.parse(data);
+        } catch (parseError) {
+          ServerLogService.writeLog(LogLevel.Warn, 'Failed to parse bug-reports.json');
+          return [];
+        }
+      }
+      return [];
+    };
+    
+    // Helper function to save bug reports
+    const saveBugReports = (reports: any[]): void => {
+      fs.writeFileSync(reportsPath, JSON.stringify(reports, null, 2), 'utf-8');
+    };
+    
+    // POST /webui/bug-report - Create new bug report
     this._app.post('/webui/bug-report', (req, res) => {
       try {
         const bugReport = req.body;
         const timestamp = new Date().toISOString();
-        const reportWithTimestamp = { ...bugReport, timestamp, id: Date.now().toString() };
+        const reportWithTimestamp = { 
+          ...bugReport, 
+          createdAt: timestamp, 
+          id: Date.now().toString(),
+          done: false 
+        };
         
-        const reportsPath = path.join(__dirname, '..', 'config', 'private', 'bug-reports.json');
-        let reports: any[] = [];
-        
-        // Load existing reports
-        if (fs.existsSync(reportsPath)) {
-          try {
-            const data = fs.readFileSync(reportsPath, 'utf-8');
-            reports = JSON.parse(data);
-          } catch (parseError) {
-            ServerLogService.writeLog(LogLevel.Warn, 'Failed to parse bug-reports.json, creating new file');
-          }
-        }
-        
-        // Add new report
+        const reports = loadBugReports();
         reports.push(reportWithTimestamp);
-        
-        // Save to file
-        fs.writeFileSync(reportsPath, JSON.stringify(reports, null, 2), 'utf-8');
+        saveBugReports(reports);
         
         ServerLogService.writeLog(LogLevel.Info, `Bug report saved: ${bugReport.description?.substring(0, 50)}...`);
         
@@ -460,6 +472,56 @@ export class RestService {
       } catch (error: unknown) {
         const err = error as { message?: string };
         ServerLogService.writeLog(LogLevel.Error, `Failed to save bug report: ${err.message}`);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    
+    // GET /webui/bug-reports - Get all bug reports
+    this._app.get('/webui/bug-reports', (_req, res) => {
+      try {
+        const reports = loadBugReports();
+        return res.json(reports);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to load bug reports: ${err.message}`);
+        return res.status(500).json({ success: false, error: err.message });
+      }
+    });
+    
+    // PATCH /webui/bug-report/:id - Update bug report
+    this._app.patch('/webui/bug-report/:id', (req, res) => {
+      try {
+        const { id } = req.params;
+        const updates = req.body;
+        
+        const reports = loadBugReports();
+        const reportIndex = reports.findIndex((r: any) => r.id === id);
+        
+        if (reportIndex === -1) {
+          return res.status(404).json({ success: false, error: 'Bug report not found' });
+        }
+        
+        // Update report
+        const updatedReport = { ...reports[reportIndex], ...updates };
+        
+        // If marking as done, add doneAt timestamp
+        if (updates.done === true && !reports[reportIndex].done) {
+          updatedReport.doneAt = new Date().toISOString();
+        }
+        // If unmarking as done, remove doneAt timestamp
+        if (updates.done === false && reports[reportIndex].done) {
+          delete updatedReport.doneAt;
+        }
+        
+        reports[reportIndex] = updatedReport;
+        saveBugReports(reports);
+        
+        ServerLogService.writeLog(LogLevel.Info, `Bug report ${id} updated`);
+        
+        return res.json({ success: true, report: updatedReport });
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to update bug report: ${err.message}`);
         return res.status(500).json({ success: false, error: err.message });
       }
     });

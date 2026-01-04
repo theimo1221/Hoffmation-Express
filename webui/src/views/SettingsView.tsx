@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff } from 'lucide-react';
+import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff, Bug } from 'lucide-react';
 import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { BugReportsManagement } from '@/components/BugReportsManagement';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -53,6 +54,7 @@ export function SettingsView() {
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const [isInstalling, setIsInstalling] = useState(false);
   const pushNotifications = usePushNotifications();
+  const [showBugReports, setShowBugReports] = useState(false);
 
   const handleInstall = async () => {
     setIsInstalling(true);
@@ -402,6 +404,28 @@ export function SettingsView() {
             </div>
           </section>
 
+          {/* Bug Reports Management (Expert Mode Only) */}
+          {expertMode && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Bug className="h-4 w-4" />
+                Bug-Reports
+              </h2>
+              <div className="rounded-2xl bg-card p-4 shadow-soft">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Verwalte gemeldete Bugs: Bearbeiten, Abhaken und Historie einsehen.
+                </p>
+                <button
+                  onClick={() => setShowBugReports(true)}
+                  className="w-full rounded-xl bg-red-500 py-3 text-sm font-medium text-white transition-all hover:bg-red-600 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Bug className="h-4 w-4" />
+                  Bug-Verwaltung öffnen
+                </button>
+              </div>
+            </section>
+          )}
+
           {/* Hoffmation Restart */}
           <section>
             <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -510,6 +534,12 @@ export function SettingsView() {
           </section>
         </div>
       </div>
+
+      {/* Bug Reports Management Dialog */}
+      <BugReportsManagement 
+        isOpen={showBugReports} 
+        onClose={() => setShowBugReports(false)} 
+      />
     </div>
   );
 }

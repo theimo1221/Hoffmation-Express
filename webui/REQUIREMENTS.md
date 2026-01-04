@@ -1281,3 +1281,35 @@ Groups inherit settings from their devices but can have group-wide controls.
 4. **Capability check:** Always verify device capabilities before showing settings section
 5. **SwiftUI reference:** See `/Users/thiemo/0_dev/Github/Hoffmation/Shared/Views/Devices/Settings/`
 6. **Context file:** See `CONTEXT.md` for detailed implementation notes and session continuity
+
+---
+
+## Future Features / Backlog
+
+### 📊 Grafana Integration (Planned)
+
+**Goal:** Embed existing Grafana dashboards/panels directly into the WebUI to visualize historical device data.
+
+**Approach:**
+- **iframe-Embedding** of Grafana panels with kiosk mode
+- **Dynamic Parameters:** Pass device ID and time range via URL parameters
+- **No Data Duplication:** Leverage existing Grafana infrastructure instead of rebuilding charts
+- **Responsive Design:** Collapsible sections to avoid clutter
+
+**Use Cases:**
+- Historical temperature/humidity trends per room
+- Energy consumption graphs per device
+- System-wide statistics and analytics
+
+**Integration Points (TBD):**
+- Room detail view (per-room graphs)
+- Device detail view (per-device graphs)
+- Dedicated "Analytics" page (system-wide overview)
+
+**Technical Considerations:**
+- Grafana URL structure: `https://grafana.local/d-solo/dashboard-id/panel-id?orgId=1&theme=dark&kiosk&var-device_id=XXX&from=now-24h&to=now`
+- Authentication: Token-based or public dashboards
+- CORS: May require Grafana configuration
+- Responsive: iframe height/width management
+
+**Status:** 🟡 Interest confirmed, implementation details pending

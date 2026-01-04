@@ -13,6 +13,15 @@ export interface BugReportContext {
 }
 
 export interface BugReport {
+  id: string;
+  description: string;
+  context: BugReportContext;
+  createdAt: string;
+  done: boolean;
+  doneAt?: string;
+}
+
+export interface BugReportSubmission {
   description: string;
   context: BugReportContext;
 }
@@ -48,7 +57,7 @@ export function useBugReport() {
 
     try {
       const context = getContext(entityType, entityId, entityData);
-      const bugReport: BugReport = {
+      const bugReport: BugReportSubmission = {
         description: description.trim(),
         context,
       };
@@ -75,8 +84,51 @@ export function useBugReport() {
     }
   };
 
+  const fetchBugReports = async (): Promise<{ success: boolean; reports?: BugReport[]; error?: string }> => {
+    try {
+      const response = await fetch('/webui/bug-reports');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const reports = await response.json();
+      return { success: true, reports };
+    } catch (error) {
+      console.error('Failed to fetch bug reports:', error);
+      return { success: false, error: 'Fehler beim Laden der Bug-Reports' };
+    }
+  };
+
+  const updateBugReport = async (
+    id: string,
+    updates: Partial<Pick<BugReport, 'description' | 'done'>>
+  ): Promise<{ success: boolean; report?: BugReport; error?: string }> => {
+    try {
+      const response = await fetch(`/webui/bug-report/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return { success: true, report: result.report };
+    } catch (error) {
+      console.error('Failed to update bug report:', error);
+      return { success: false, error: 'Fehler beim Aktualisieren des Bug-Reports' };
+    }
+  };
+
   return {
     submitBugReport,
+    fetchBugReports,
+    updateBugReport,
     isSubmitting,
   };
 }
