@@ -1,4 +1,5 @@
 import { type Device, getDeviceName, getDeviceRoom, getRoomName, getRoomEtage, type Room } from '@/stores';
+import { DeviceCapability, hasCapability } from '@/stores/deviceStore';
 
 export const FLOOR_NAMES: Record<number, string> = {
   [-1]: 'Keller',
@@ -15,20 +16,19 @@ export function getFloorName(level: number): string {
 
 export const LOW_BATTERY_THRESHOLD = 20;
 
-export function getCapabilityIcon(capabilities: number[]): string {
-  if (capabilities.includes(10)) return '👤'; // Motion sensor
-  if (capabilities.includes(12)) return '🌡️'; // Temperature sensor
-  if (capabilities.includes(15)) return '🚪'; // Handle sensor
-  if (capabilities.includes(8) || capabilities.includes(9) || capabilities.includes(18)) return '💡'; // Lamp/LED
-  if (capabilities.includes(11)) return '🪟'; // Shutter
-  if (capabilities.includes(1)) return '🔌'; // Actuator
-  if (capabilities.includes(5)) return '🔥'; // Heater
-  if (capabilities.includes(0)) return '❄️'; // AC
-  if (capabilities.includes(14)) return '🔊'; // Speaker
-  if (capabilities.includes(6)) return '💧'; // Humidity
-  if (capabilities.includes(7)) return '☁️'; // CO2
-  if (capabilities.includes(103)) return '⚡'; // Scene
-  return '📱'; // Default
+export function getDeviceEmoji(device: Device): string {
+  if (hasCapability(device, DeviceCapability.motionSensor)) return '👁️';
+  if (hasCapability(device, DeviceCapability.temperatureSensor)) return '🌡️';
+  if (hasCapability(device, DeviceCapability.handleSensor)) return '🚪';
+  if (hasCapability(device, DeviceCapability.lamp) || hasCapability(device, DeviceCapability.dimmableLamp) || hasCapability(device, DeviceCapability.ledLamp)) return '💡';
+  if (hasCapability(device, DeviceCapability.shutter)) return '🪟';
+  if (hasCapability(device, DeviceCapability.actuator)) return '🔌';
+  if (hasCapability(device, DeviceCapability.heater)) return '🔥';
+  if (hasCapability(device, DeviceCapability.ac)) return '❄️';
+  if (hasCapability(device, DeviceCapability.speaker)) return '🔊';
+  if (hasCapability(device, DeviceCapability.humiditySensor)) return '💧';
+  if (hasCapability(device, DeviceCapability.illuminationSensor)) return '☁️';
+  return '📱';
 }
 
 interface PrintableDevice {
@@ -187,8 +187,7 @@ export function printUnreachableDevices(
     
     sortedDevices.forEach(({ device, roomName }) => {
       const deviceName = getDeviceName(device);
-      const capabilities = device.deviceCapabilities ?? [];
-      const icon = getCapabilityIcon(capabilities);
+      const icon = getDeviceEmoji(device);
       
       html += `
         <tr>

@@ -5,6 +5,7 @@
 
 import type { Room, Device, GroupType, GroupData, RoomWebUISettings } from './types';
 import { getDeviceRoom } from './deviceStore';
+import { isLampDevice, isAcDevice } from './deviceStore';
 
 /**
  * Room Helper Functions
@@ -90,16 +91,14 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
     }
     
     // Count lamps
-    const isLamp = (device.deviceCapabilities ?? []).some(cap => [8, 9, 18].includes(cap));
-    if (isLamp) {
+    if (isLampDevice(device)) {
       lampsTotal++;
       const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
       if (isOn) lampsOn++;
     }
     
     // Count AC
-    const isAc = (device.deviceCapabilities ?? []).includes(0);
-    if (isAc) {
+    if (isAcDevice(device)) {
       acTotal++;
       const isOn = device.on ?? device._on ?? false;
       if (isOn) acOn++;

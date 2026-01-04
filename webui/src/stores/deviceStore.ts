@@ -12,44 +12,45 @@ export type { Device } from './types';
  */
 
 export function isLampDevice(device: Device): boolean {
-  const caps = device.deviceCapabilities ?? [];
-  return caps.includes(8) || caps.includes(9) || caps.includes(18); // lamp, dimmableLamp, ledLamp
+  return hasCapability(device, DeviceCapability.lamp) || 
+         hasCapability(device, DeviceCapability.dimmableLamp) || 
+         hasCapability(device, DeviceCapability.ledLamp);
 }
 
 export function isActuatorDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(1);
+  return hasCapability(device, DeviceCapability.actuator);
 }
 
 export function isShutterDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(11);
+  return hasCapability(device, DeviceCapability.shutter);
 }
 
 export function isSceneDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(13);
+  return hasCapability(device, DeviceCapability.scene);
 }
 
 export function isAcDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(0);
+  return hasCapability(device, DeviceCapability.ac);
 }
 
 export function isHeaterDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(5);
+  return hasCapability(device, DeviceCapability.heater);
 }
 
 export function isMotionSensorDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(10);
+  return hasCapability(device, DeviceCapability.motionSensor);
 }
 
 export function isHandleSensorDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(15);
+  return hasCapability(device, DeviceCapability.handleSensor);
 }
 
 export function isTempSensorDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(12);
+  return hasCapability(device, DeviceCapability.temperatureSensor);
 }
 
 export function isHumiditySensorDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(6);
+  return hasCapability(device, DeviceCapability.humiditySensor);
 }
 
 /**
@@ -77,15 +78,15 @@ export function getDeviceToggleAction(device: Device): { type: 'lamp' | 'actuato
 }
 
 export function isSpeakerDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(14);
+  return hasCapability(device, DeviceCapability.speaker);
 }
 
 export function isCameraDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(105);
+  return hasCapability(device, DeviceCapability.camera);
 }
 
 export function isButtonSwitchDevice(device: Device): boolean {
-  return (device.deviceCapabilities ?? []).includes(2);
+  return hasCapability(device, DeviceCapability.buttonSwitch);
 }
 
 /**
@@ -195,12 +196,13 @@ export const DeviceCapability = {
   excessEnergyConsumer: 4,
   heater: 5,
   humiditySensor: 6,
+  illuminationSensor: 7,
   lamp: 8,
   dimmableLamp: 9,
   motionSensor: 10,
   shutter: 11,
   temperatureSensor: 12,
-  scene: 13,
+  vibrationSensor: 13,
   speaker: 14,
   handleSensor: 15,
   batteryDriven: 16,
@@ -208,10 +210,14 @@ export const DeviceCapability = {
   ledLamp: 18,
   smokeSensor: 19,
   loadMetering: 20,
+  garageDoorOpener: 21,
+  magnetSensor: 22,
   bluetoothDetector: 101,
   trackableDevice: 102,
+  scene: 103,
+  blockAutomatic: 104,
   camera: 105,
-  vibrationSensor: 106,
+  doorbell: 106,
 } as const;
 
 export function hasCapability(device: Device, capability: number): boolean {
@@ -324,6 +330,8 @@ const COMPLEX_CAPABILITIES = [
   DeviceCapability.bluetoothDetector,
   DeviceCapability.trackableDevice,
   DeviceCapability.camera,
+  DeviceCapability.doorbell,
+  DeviceCapability.garageDoorOpener,
 ];
 
 export function isDeviceComplex(device: Device): boolean {
@@ -351,12 +359,13 @@ export const CAPABILITY_NAMES: Record<number, string> = {
   [DeviceCapability.excessEnergyConsumer]: 'Überschuss-Verbraucher',
   [DeviceCapability.heater]: 'Heizung',
   [DeviceCapability.humiditySensor]: 'Luftfeuchtigkeit',
+  [DeviceCapability.illuminationSensor]: 'Helligkeitssensor',
   [DeviceCapability.lamp]: 'Lampe',
   [DeviceCapability.dimmableLamp]: 'Dimmer',
   [DeviceCapability.motionSensor]: 'Bewegungsmelder',
   [DeviceCapability.shutter]: 'Rolladen',
   [DeviceCapability.temperatureSensor]: 'Temperatur',
-  [DeviceCapability.scene]: 'Szene',
+  [DeviceCapability.vibrationSensor]: 'Vibrationssensor',
   [DeviceCapability.speaker]: 'Lautsprecher',
   [DeviceCapability.handleSensor]: 'Fenstersensor',
   [DeviceCapability.batteryDriven]: 'Batterie',
@@ -364,10 +373,14 @@ export const CAPABILITY_NAMES: Record<number, string> = {
   [DeviceCapability.ledLamp]: 'LED',
   [DeviceCapability.smokeSensor]: 'Rauchmelder',
   [DeviceCapability.loadMetering]: 'Verbrauchsmessung',
+  [DeviceCapability.garageDoorOpener]: 'Garagentor',
+  [DeviceCapability.magnetSensor]: 'Magnetsensor',
   [DeviceCapability.bluetoothDetector]: 'Bluetooth-Detektor',
   [DeviceCapability.trackableDevice]: 'Ortbares Gerät',
+  [DeviceCapability.scene]: 'Szene',
+  [DeviceCapability.blockAutomatic]: 'Automatik blockiert',
   [DeviceCapability.camera]: 'Kamera',
-  [DeviceCapability.vibrationSensor]: 'Vibrationssensor',
+  [DeviceCapability.doorbell]: 'Türklingel',
 };
 
 export function getCapabilityName(capability: number): string {

@@ -5,7 +5,7 @@
 
 import type { Device } from '@/stores';
 import { isDeviceOn, isAcOn } from '@/stores';
-import { isToggleableDevice } from '@/stores/deviceStore';
+import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice } from '@/stores/deviceStore';
 import { setLamp, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
 
 export const REFRESH_DELAY_MS = 300;
@@ -84,26 +84,24 @@ export async function toggleDevice(
   await executeDeviceAction(
     device,
     (id) => {
-      const caps = device.deviceCapabilities ?? [];
-      
       // Lamp, Dimmer, LED
-      if (caps.some(c => [8, 9, 18].includes(c))) {
+      if (isLampDevice(device)) {
         return setLamp(id, !currentState);
       }
       // Actuator
-      if (caps.includes(1)) {
+      if (isActuatorDevice(device)) {
         return setActuator(id, !currentState);
       }
       // Shutter (toggle between open and closed)
-      if (caps.includes(11)) {
+      if (isShutterDevice(device)) {
         return setShutter(id, currentLevel < 50 ? 100 : 0);
       }
       // AC
-      if (caps.includes(0)) {
+      if (isAcDevice(device)) {
         return setAc(id, !currentAcState);
       }
       // Scene
-      if (caps.includes(13)) {
+      if (isSceneDevice(device)) {
         return currentState ? endScene(id) : startScene(id);
       }
       return Promise.resolve();
