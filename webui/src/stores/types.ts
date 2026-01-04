@@ -99,6 +99,15 @@ export interface RoomSettings {
   customSettingsJson?: string;
 }
 
+export interface TimeCallback {
+  name?: string;
+  type?: number;
+  minuteOffset?: number;
+  nextToDo?: number;  // Unix timestamp in milliseconds
+  lastDone?: number;
+  cloudOffset?: number;
+}
+
 export interface Room {
   id?: string;
   roomName?: string;
@@ -109,6 +118,9 @@ export interface Room {
   startPoint?: TrilaterationPoint;
   endPoint?: TrilaterationPoint;
   settings?: RoomSettings;
+  sunriseShutterCallback?: TimeCallback;
+  sunsetShutterCallback?: TimeCallback;
+  sonnenAufgangLichtCallback?: TimeCallback;
 }
 
 // ============================================================================

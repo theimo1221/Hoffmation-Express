@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Blinds } from 'lucide-react';
-import type { Device } from '@/stores';
+import type { Device, Room } from '@/stores';
 import { getDeviceShutterLevel } from '@/stores/deviceStore';
 import { setShutter } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface ShutterQuickControlsProps {
   device: Device;
+  room?: Room;
   onUpdate: () => Promise<void>;
 }
 
-export function ShutterQuickControls({ device, onUpdate }: ShutterQuickControlsProps) {
+export function ShutterQuickControls({ device, room, onUpdate }: ShutterQuickControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSetShutter = async (level: number) => {
@@ -31,7 +32,36 @@ export function ShutterQuickControls({ device, onUpdate }: ShutterQuickControlsP
         <Blinds className="h-4 w-4" />
         Rolladen
       </h2>
-      <div className="rounded-2xl bg-card p-4 shadow-soft">
+      <div className="rounded-2xl bg-card p-4 shadow-soft space-y-4">
+        {/* Shutter Times */}
+        {room && (room.sunriseShutterCallback?.nextToDo || room.sunsetShutterCallback?.nextToDo) && (
+          <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
+            <div className="font-medium text-muted-foreground">Geplante Zeiten:</div>
+            {room.sunriseShutterCallback?.nextToDo && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Nächstes Öffnen:</span>
+                <span className="font-mono font-medium">
+                  {new Date(room.sunriseShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            )}
+            {room.sunsetShutterCallback?.nextToDo && (
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Nächstes Schließen:</span>
+                <span className="font-mono font-medium">
+                  {new Date(room.sunsetShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => handleSetShutter(0)}

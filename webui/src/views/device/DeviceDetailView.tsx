@@ -34,7 +34,7 @@ interface DeviceDetailViewProps {
 }
 
 export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetailViewProps) {
-  const { devices, fetchDevice } = useDataStore();
+  const { devices, rooms, fetchDevice } = useDataStore();
   const { expertMode } = useSettingsStore();
   const { isFavorite: checkIsFavorite, toggleFavorite: toggleFavoriteInStore } = useFavoritesStore();
   const [showRawJson, setShowRawJson] = useState(false);
@@ -44,7 +44,8 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
 
   const info = device.info ?? device._info;
   const name = info?.customName ?? info?._customName ?? info?.fullName ?? 'Unbekannt';
-  const room = getDeviceRoom(device);
+  const roomName = getDeviceRoom(device);
+  const room = rooms[roomName];
   
   // Device state values - only for conditional rendering
   const temp = getDeviceTemperature(device);
@@ -65,7 +66,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
     <div className="flex h-full flex-col">
       <PageHeader
         title={name}
-        subtitle={room}
+        subtitle={roomName}
         onBack={onBack}
         showMenu={false}
         bugReportContext={{
@@ -100,6 +101,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, DeviceCapability.shutter) && (
                 <ShutterQuickControls
                   device={device}
+                  room={room}
                   onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}

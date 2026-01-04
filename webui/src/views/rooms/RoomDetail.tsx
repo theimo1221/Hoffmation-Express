@@ -99,8 +99,39 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
                 <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground">
                   Raum-Info
                 </h2>
-                <div className="rounded-2xl bg-card p-4 shadow-soft text-muted-foreground">
-                  <p>Etage: {room.info?.etage ?? 'Unbekannt'}</p>
+                <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
+                  <div className="text-muted-foreground">
+                    <span className="font-medium">Etage:</span> {room.info?.etage ?? 'Unbekannt'}
+                  </div>
+                  
+                  {/* Shutter Times */}
+                  {(room.sunriseShutterCallback?.nextToDo || room.sunsetShutterCallback?.nextToDo) && (
+                    <div className="pt-3 border-t border-border space-y-2">
+                      <div className="text-sm font-medium text-foreground">Rollo-Zeiten:</div>
+                      {room.sunriseShutterCallback?.nextToDo && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Nächstes Öffnen:</span>
+                          <span className="font-mono font-medium text-foreground">
+                            {new Date(room.sunriseShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {room.sunsetShutterCallback?.nextToDo && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">Nächstes Schließen:</span>
+                          <span className="font-mono font-medium text-foreground">
+                            {new Date(room.sunsetShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
 
