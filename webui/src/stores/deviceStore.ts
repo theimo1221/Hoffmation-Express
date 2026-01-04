@@ -185,6 +185,14 @@ export function getAcMode(device: Device): number {
   return (device as any)._mode ?? (device as any)._acMode ?? 0;
 }
 
+export function getHandleState(device: Device): string | undefined {
+  return (device as any).state ?? (device as any)._state;
+}
+
+export function isMotionCurrentlyDetected(device: Device): boolean {
+  return isMotionDetected(device);
+}
+
 /**
  * Device Capability Constants
  */

@@ -349,7 +349,7 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                 <span>{((minX + maxX) / 2).toFixed(1)}</span>
                 <span>{maxX.toFixed(1)}</span>
               </div>
-              <div className="absolute -left-5 top-4 bottom-4 flex flex-col justify-between text-[10px] text-muted-foreground">
+              <div className="absolute -left-10 top-4 bottom-4 flex flex-col justify-between text-[10px] text-muted-foreground text-right w-8">
                 <span>{maxY.toFixed(1)}</span>
                 <span>{((minY + maxY) / 2).toFixed(1)}</span>
                 <span>{minY.toFixed(1)}</span>

@@ -4,8 +4,19 @@
  */
 
 import type { Room, Device, GroupType, GroupData, RoomWebUISettings } from './types';
-import { getDeviceRoom } from './deviceStore';
-import { isLampDevice, isAcDevice } from './deviceStore';
+import { 
+  getDeviceRoom, 
+  isLampDevice, 
+  isAcDevice, 
+  isShutterDevice, 
+  isHandleSensorDevice, 
+  isMotionSensorDevice, 
+  isDeviceOn,
+  getDeviceShutterLevel,
+  getHandleState,
+  isMotionCurrentlyDetected,
+  getAcMode
+} from './deviceStore';
 
 /**
  * Room Helper Functions
@@ -93,15 +104,13 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
     // Count lamps
     if (isLampDevice(device)) {
       lampsTotal++;
-      const isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
-      if (isOn) lampsOn++;
+      if (isDeviceOn(device)) lampsOn++;
     }
     
     // Count AC
     if (isAcDevice(device)) {
       acTotal++;
-      const isOn = device.on ?? device._on ?? false;
-      if (isOn) acOn++;
+      if (isDeviceOn(device)) acOn++;
     }
     
     // Collect temperatures
@@ -124,6 +133,77 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
     acOn,
     acTotal,
     temperature: avgTemp,
+  };
+}
+
+/**
+ * Get floor statistics by aggregating all rooms on that floor
+ */
+export interface FloorStats {
+  lampsOn: number;
+  acCooling: number;
+  acHeating: number;
+  shuttersOpen: number;
+  windowsOpen: number;
+  motionActive: number;
+}
+
+export function getFloorStats(rooms: Room[], devices: Record<string, Device>): FloorStats {
+  let lampsOn = 0;
+  let acCooling = 0;
+  let acHeating = 0;
+  let shuttersOpen = 0;
+  let windowsOpen = 0;
+  let motionActive = 0;
+  
+  for (const room of rooms) {
+    const roomName = room.customName ?? room.info?.roomName ?? room.roomName ?? '';
+    const roomDevices = getRoomDevices(roomName, devices);
+    
+    for (const device of roomDevices) {
+      // Count lamps that are on
+      if (isLampDevice(device) && isDeviceOn(device)) {
+        lampsOn++;
+      }
+      
+      // Count AC by mode (cooling vs heating)
+      if (isAcDevice(device) && isDeviceOn(device)) {
+        const mode = getAcMode(device);
+        const currentMonth = new Date().getMonth();
+        const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
+        const isCooling = mode === 1 || (mode === 0 && isSummerSeason);
+        const isHeating = mode === 4 || (mode === 0 && !isSummerSeason);
+        
+        if (isCooling) acCooling++;
+        else if (isHeating) acHeating++;
+      }
+      
+      // Count shutters that are open (not closed)
+      if (isShutterDevice(device)) {
+        const level = getDeviceShutterLevel(device);
+        if (level > 50) shuttersOpen++;
+      }
+      
+      // Count windows that are open or tilted
+      if (isHandleSensorDevice(device)) {
+        const state = getHandleState(device);
+        if (state === 'open' || state === 'tilted') windowsOpen++;
+      }
+      
+      // Count motion sensors with active detection
+      if (isMotionSensorDevice(device)) {
+        if (isMotionCurrentlyDetected(device)) motionActive++;
+      }
+    }
+  }
+  
+  return {
+    lampsOn,
+    acCooling,
+    acHeating,
+    shuttersOpen,
+    windowsOpen,
+    motionActive,
   };
 }
 
