@@ -7,10 +7,9 @@ import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface ActuatorControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function ActuatorControls({ device, onUpdate }: ActuatorControlsProps) {
+export function ActuatorControls({ device }: ActuatorControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
   
@@ -21,7 +20,6 @@ export function ActuatorControls({ device, onUpdate }: ActuatorControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setActuator(id, state, durationMs),
-      onUpdate,
       setIsLoading
     );
   };

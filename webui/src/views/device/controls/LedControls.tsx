@@ -7,10 +7,9 @@ import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface LedControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function LedControls({ device, onUpdate }: LedControlsProps) {
+export function LedControls({ device }: LedControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
   const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
@@ -24,7 +23,6 @@ export function LedControls({ device, onUpdate }: LedControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setLed(id, state, bright, color, durationMs),
-      onUpdate,
       setIsLoading
     );
   };
@@ -34,7 +32,6 @@ export function LedControls({ device, onUpdate }: LedControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setLed(id, state, desiredBrightness, desiredColor, durationMs),
-      onUpdate,
       setIsLoading
     );
   };

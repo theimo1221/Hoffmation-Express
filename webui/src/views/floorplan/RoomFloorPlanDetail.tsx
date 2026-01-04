@@ -30,7 +30,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
   const { expertMode, floorPlanFilters, toggleFloorPlanFilter } = useSettingsStore();
-  const { fetchData, fetchDevice } = useDataStore();
+  const { fetchData } = useDataStore();
 
   const LONG_PRESS_DURATION = 400; // ms
 
@@ -311,11 +311,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
     if (!isLongPress) {
       if (isToggleableDevice(device)) {
         // Quick tap on toggleable device = toggle
-        toggleDevice(
-          device,
-          async () => { if (device.id) await fetchDevice(device.id); },
-          () => {}
-        );
+        toggleDevice(device, () => {});
       } else {
         // Sensors and other devices: open radial menu on tap (child-friendly)
         // This includes handle sensors, motion sensors, temperature sensors

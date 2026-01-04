@@ -7,10 +7,9 @@ import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface DimmerControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function DimmerControls({ device, onUpdate }: DimmerControlsProps) {
+export function DimmerControls({ device }: DimmerControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
   const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
@@ -23,7 +22,6 @@ export function DimmerControls({ device, onUpdate }: DimmerControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setDimmer(id, state, bright, durationMs),
-      onUpdate,
       setIsLoading
     );
   };
@@ -33,7 +31,6 @@ export function DimmerControls({ device, onUpdate }: DimmerControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setDimmer(id, state, desiredBrightness, durationMs),
-      onUpdate,
       setIsLoading
     );
   };

@@ -7,10 +7,9 @@ import { executeDeviceAction, calculateDuration } from '@/lib/deviceActions';
 
 interface LampControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function LampControls({ device, onUpdate }: LampControlsProps) {
+export function LampControls({ device }: LampControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
   
@@ -20,7 +19,6 @@ export function LampControls({ device, onUpdate }: LampControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setLamp(id, !isOn),
-      onUpdate,
       setIsLoading
     );
   };
@@ -30,7 +28,6 @@ export function LampControls({ device, onUpdate }: LampControlsProps) {
     await executeDeviceAction(
       device,
       (id) => setLamp(id, state, durationMs),
-      onUpdate,
       setIsLoading
     );
   };

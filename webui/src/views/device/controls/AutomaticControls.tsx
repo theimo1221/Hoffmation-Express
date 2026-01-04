@@ -6,7 +6,6 @@ import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface BlockAutomaticControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
 function formatBlockedUntil(timestamp: number): string {
@@ -15,7 +14,7 @@ function formatBlockedUntil(timestamp: number): string {
   return new Date(timestamp).toLocaleString('de-DE');
 }
 
-export function BlockAutomaticControls({ device, onUpdate }: BlockAutomaticControlsProps) {
+export function BlockAutomaticControls({ device }: BlockAutomaticControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [blockHours, setBlockHours] = useState(1);
   const [blockUntilDate, setBlockUntilDate] = useState('');
@@ -35,7 +34,6 @@ export function BlockAutomaticControls({ device, onUpdate }: BlockAutomaticContr
     await executeDeviceAction(
       device,
       (id) => blockAutomatic(id, hours * 3600),
-      onUpdate,
       setIsLoading
     );
   };
@@ -44,7 +42,6 @@ export function BlockAutomaticControls({ device, onUpdate }: BlockAutomaticContr
     await executeDeviceAction(
       device,
       (id) => liftAutomaticBlock(id),
-      onUpdate,
       setIsLoading
     );
   };
@@ -58,7 +55,6 @@ export function BlockAutomaticControls({ device, onUpdate }: BlockAutomaticContr
       await executeDeviceAction(
         device,
         (id) => blockAutomatic(id, diffSeconds),
-        onUpdate,
         setIsLoading
       );
     }

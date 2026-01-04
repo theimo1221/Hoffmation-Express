@@ -7,8 +7,7 @@ interface RoomCardContentProps {
 }
 
 export function RoomCardContent({ room, devices }: RoomCardContentProps) {
-  const roomName = getRoomName(room);
-  const stats = getRoomStats(roomName, devices);
+  const stats = getRoomStats(room, devices);
 
   return (
     <div className="flex flex-col items-start gap-1">

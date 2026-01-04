@@ -10,7 +10,8 @@ import {
   isDeviceOn, 
   getDeviceDetectionsToday, 
   isMotionDetected,
-  getDeviceBattery
+  getDeviceBattery,
+  getDeviceLinkQuality
 } from '@/stores/deviceStore';
 import { 
   Info, Lightbulb,
@@ -298,7 +299,7 @@ export function getDeviceStatus(device: Device): DeviceStatus {
   if (batteryVal !== undefined && batteryVal >= 0) status.battery = Math.round(batteryVal);
   
   // Link Quality (normalize to 0-100)
-  let lq = device._linkQuality;
+  let lq = getDeviceLinkQuality(device);
   if (lq !== undefined) {
     if (lq > 100) lq = Math.round((lq / 255) * 100);
     status.linkQuality = lq;

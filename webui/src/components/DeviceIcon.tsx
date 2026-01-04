@@ -1,5 +1,15 @@
 import { type Device } from '@/stores';
-import { getDeviceShutterLevel } from '@/stores/deviceStore';
+import { 
+  getDeviceShutterLevel, 
+  isDeviceOn, 
+  getDeviceTemperature, 
+  getAcMode, 
+  isMotionDetected, 
+  isDeviceAvailable, 
+  getDeviceLastUpdate,
+  getPrimaryCapability,
+  getHandlePosition
+} from '@/stores/deviceStore';
 import { 
   Lightbulb, 
   LightbulbOff, 
@@ -46,9 +56,8 @@ interface DeviceIconProps {
 }
 
 export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIconProps) {
-  const capabilities = device.deviceCapabilities ?? [];
-  const isOn = device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  const isOn = isDeviceOn(device);
+  const temp = getDeviceTemperature(device);
   
   const sizeClass = {
     xs: 'h-3 w-3',
@@ -57,26 +66,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     lg: 'h-6 w-6',
   }[size];
 
-  // Priority order for display capability (matching SwiftUI primaryCap order)
-  const getPrimaryCap = (): number | null => {
-    if (capabilities.includes(DeviceCapability.scene)) return DeviceCapability.scene;
-    if (capabilities.includes(DeviceCapability.handleSensor)) return DeviceCapability.handleSensor;
-    if (capabilities.includes(DeviceCapability.ledLamp)) return DeviceCapability.ledLamp;
-    if (capabilities.includes(DeviceCapability.dimmableLamp)) return DeviceCapability.dimmableLamp;
-    if (capabilities.includes(DeviceCapability.lamp)) return DeviceCapability.lamp;
-    if (capabilities.includes(DeviceCapability.actuator)) return DeviceCapability.actuator;
-    if (capabilities.includes(DeviceCapability.ac)) return DeviceCapability.ac;
-    if (capabilities.includes(DeviceCapability.shutter)) return DeviceCapability.shutter;
-    if (capabilities.includes(DeviceCapability.speaker)) return DeviceCapability.speaker;
-    if (capabilities.includes(DeviceCapability.co2Sensor)) return DeviceCapability.co2Sensor;
-    if (capabilities.includes(DeviceCapability.motionSensor)) return DeviceCapability.motionSensor;
-    if (capabilities.includes(DeviceCapability.heater)) return DeviceCapability.heater;
-    if (capabilities.includes(DeviceCapability.temperatureSensor)) return DeviceCapability.temperatureSensor;
-    if (capabilities.includes(DeviceCapability.batteryDriven)) return DeviceCapability.batteryDriven;
-    return null;
-  };
-
-  const primaryCap = getPrimaryCap();
+  const primaryCap = getPrimaryCapability(device);
 
   // Lamp icons - always yellow when on, LED color shown via border elsewhere
   if (primaryCap === DeviceCapability.lamp || primaryCap === DeviceCapability.dimmableLamp || primaryCap === DeviceCapability.ledLamp) {
@@ -103,7 +93,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
   // AC icons - color based on mode: off=gray, cooling=blue, heating=red, auto=green
   if (primaryCap === DeviceCapability.ac) {
-    const mode = device._mode ?? (device.settings as Record<string, unknown>)?.mode;
+    const mode = getAcMode(device);
     if (!showStatus || !isOn) {
       return <Wind className={`${sizeClass} text-muted-foreground`} />;
     }
@@ -138,7 +128,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
   // Motion sensor
   if (primaryCap === DeviceCapability.motionSensor) {
-    const movementDetected = device.movementDetected ?? device._movementDetected ?? false;
+    const movementDetected = isMotionDetected(device);
     if (showStatus && movementDetected) {
       return <PersonStanding className={`${sizeClass} text-green-500`} />;
     }
@@ -147,7 +137,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
   // Handle sensor - green when closed, orange when tilted, red when open
   if (primaryCap === DeviceCapability.handleSensor) {
-    const position = device.position ?? device.handleSensor?.position ?? -1;
+    const position = getHandlePosition(device);
     if (position === 0) {
       // Closed = green (secure) - locked icon
       return <Lock className={`${sizeClass} text-green-500`} />;
@@ -194,8 +184,8 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 
 export function getDeviceStatusColor(device: Device): string {
   // Check if device is unreachable - return bright red
-  const isUnreachable = device.available === false || device._available === false;
-  const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
+  const isUnreachable = !isDeviceAvailable(device);
+  const lastUpdateRaw = getDeviceLastUpdate(device);
   let isStale = false;
   if (lastUpdateRaw) {
     const lastUpdateDate = new Date(lastUpdateRaw);
@@ -207,6 +197,6 @@ export function getDeviceStatusColor(device: Device): string {
     return 'bg-red-500';
   }
   
-  const isOn = device.lightOn ?? device._lightOn ?? device.actuatorOn ?? device._actuatorOn ?? device.on ?? device._on ?? false;
+  const isOn = isDeviceOn(device);
   return isOn ? 'bg-primary' : 'bg-primary/10';
 }

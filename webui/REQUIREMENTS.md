@@ -35,6 +35,9 @@ The floor plan route should be designed so that a 4-year-old child without readi
 - ✅ Battery status display in radial menu (Jan 1, 2026)
 - ✅ Responsive filter menu for mobile devices (Jan 2, 2026)
 - ✅ iOS PWA fixes: Dialog portal rendering, z-index hierarchy (Jan 2, 2026)
+- ✅ Automatic device refresh after actions (Jan 5, 2026)
+- ✅ Centralized property access via getter functions (Jan 5, 2026)
+- ✅ Temperature logic fix: device vs room temperature (Jan 5, 2026)
 
 ---
 
@@ -164,6 +167,20 @@ interface RoomWebUISettings {
   - **Vorher:** 5 spezifische Toggle-Handler in View (60 Zeilen)
   - **Nachher:** 1 generische `toggleDevice()` Funktion in deviceActions.ts
   - **Ergebnis:** Architektur-Prinzip "Keine Business Logic in Views" eingehalten
+
+**Refactoring Session 05.01.2026:**
+- **Automatic Device Refresh:** `executeDeviceAction` ruft jetzt automatisch `getDevice()` auf
+  - **Vorher:** Manuelles `fetchDevice()` in 35+ Komponenten, `onUpdate` Callbacks überall
+  - **Nachher:** Automatisches Refresh nach jeder Action, keine `onUpdate` Parameter mehr
+  - **Ergebnis:** -200 Zeilen Code, konsistente Refresh-Logik, einfachere API
+- **Property Access Standardization:** Alle direkten Property-Zugriffe durch Getter ersetzt
+  - **Vorher:** `device._temperature`, `device.lightOn`, `device.brightness` überall verstreut
+  - **Nachher:** `getDeviceTemperature()`, `isDeviceOn()`, `getDeviceBrightness()` zentral
+  - **Ergebnis:** Type-safe, wartbar, konsistent, `getPrimaryCapability()` in deviceStore verschoben
+- **Temperature Logic Fix:** Trennung von Sensor-Temperatur und Raum-Durchschnitt
+  - **Problem:** `getDeviceTemperature()` gab Raum-Durchschnitt statt Sensor-Wert zurück
+  - **Lösung:** Zwei Funktionen - `getDeviceTemperature()` für Sensor, `getRoomTemperature()` für Raum
+  - **Ergebnis:** AC/Heater nutzen Raum-Durchschnitt, Device-Views zeigen Sensor-Temperatur
 
 **Anti-Pattern vermeiden:**
 ```typescript

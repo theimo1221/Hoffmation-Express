@@ -7,10 +7,9 @@ import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface SpeakerControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function SpeakerControls({ device, onUpdate }: SpeakerControlsProps) {
+export function SpeakerControls({ device }: SpeakerControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [speakMessage, setSpeakMessage] = useState('');
   
@@ -18,7 +17,6 @@ export function SpeakerControls({ device, onUpdate }: SpeakerControlsProps) {
     await executeDeviceAction(
       device,
       (id) => speakOnDevice(id, message),
-      onUpdate,
       setIsLoading
     );
   };
@@ -52,10 +50,9 @@ export function SpeakerControls({ device, onUpdate }: SpeakerControlsProps) {
 
 interface SceneControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function SceneControls({ device, onUpdate }: SceneControlsProps) {
+export function SceneControls({ device }: SceneControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [sceneTimeout, setSceneTimeout] = useState(0);
   const isOn = isDeviceOn(device);
@@ -64,7 +61,6 @@ export function SceneControls({ device, onUpdate }: SceneControlsProps) {
     await executeDeviceAction(
       device,
       (id) => start ? startScene(id, timeout) : endScene(id),
-      onUpdate,
       setIsLoading
     );
   };

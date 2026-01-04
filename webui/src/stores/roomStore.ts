@@ -15,7 +15,9 @@ import {
   getDeviceShutterLevel,
   getHandleState,
   isMotionCurrentlyDetected,
-  getAcMode
+  getAcMode,
+  isTempSensorDevice,
+  getRoomTemperature
 } from './deviceStore';
 
 /**
@@ -81,8 +83,8 @@ export interface RoomStats {
   temperature?: number;
 }
 
-export function getRoomStats(roomName: string, devices: Record<string, Device>): RoomStats {
-  const roomDevices = getRoomDevices(roomName, devices);
+export function getRoomStats(room: Room, devices: Record<string, Device>): RoomStats {
+  const roomDevices = getRoomDevices(getRoomName(room), devices);
   
   let onlineDevices = 0;
   let offlineDevices = 0;
@@ -90,7 +92,7 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
   let lampsTotal = 0;
   let acOn = 0;
   let acTotal = 0;
-  let temperatures: number[] = [];
+  let roomTemp: number | undefined = undefined;
   
   for (const device of roomDevices) {
     // Check availability
@@ -113,16 +115,15 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
       if (isDeviceOn(device)) acOn++;
     }
     
-    // Collect temperatures
-    const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
-    if (temp !== undefined && temp !== -99) {
-      temperatures.push(temp);
+    // Get room temperature from first temperature sensor
+    // Note: roomTemperature is already the room average from backend
+    if (!roomTemp && isTempSensorDevice(device)) {
+      const temp = getRoomTemperature(device);
+      if (temp !== undefined && temp !== -99) {
+        roomTemp = temp;
+      }
     }
   }
-  
-  const avgTemp = temperatures.length > 0
-    ? temperatures.reduce((sum, t) => sum + t, 0) / temperatures.length
-    : undefined;
   
   return {
     totalDevices: roomDevices.length,
@@ -132,7 +133,7 @@ export function getRoomStats(roomName: string, devices: Record<string, Device>):
     lampsTotal,
     acOn,
     acTotal,
-    temperature: avgTemp,
+    temperature: roomTemp,
   };
 }
 

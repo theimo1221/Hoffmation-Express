@@ -134,7 +134,17 @@ export function getDeviceBrightness(device: Device): number {
 }
 
 export function getDeviceTemperature(device: Device): number | undefined {
-  const temp = device.temperatureSensor?.roomTemperature ?? device._roomTemperature;
+  // Get device's own temperature, not room average
+  const temp = (device as any).temperatureSensor?._temperature ?? 
+               (device as any).temperatureSensor?.temperature ?? 
+               (device as any)._temperature;
+  return temp === -99 ? undefined : temp;
+}
+
+export function getRoomTemperature(device: Device): number | undefined {
+  // Get room average temperature
+  const temp = (device as any).temperatureSensor?.roomTemperature ?? 
+               (device as any)._roomTemperature;
   return temp === -99 ? undefined : temp;
 }
 
@@ -189,8 +199,36 @@ export function getHandleState(device: Device): string | undefined {
   return (device as any).state ?? (device as any)._state;
 }
 
+export function getHandlePosition(device: Device): number {
+  return (device as any).position ?? (device as any).handleSensor?.position ?? -1;
+}
+
 export function isMotionCurrentlyDetected(device: Device): boolean {
   return isMotionDetected(device);
+}
+
+export function getDeviceLastUpdate(device: Device): number | string | undefined {
+  return (device as any).lastUpdate ?? (device as any)._lastUpdate;
+}
+
+export function getPrimaryCapability(device: Device): number | null {
+  const capabilities = device.deviceCapabilities ?? [];
+  
+  // Priority order for display capability (matching SwiftUI primaryCap order)
+  if (capabilities.includes(DeviceCapability.scene)) return DeviceCapability.scene;
+  if (capabilities.includes(DeviceCapability.handleSensor)) return DeviceCapability.handleSensor;
+  if (capabilities.includes(DeviceCapability.ledLamp)) return DeviceCapability.ledLamp;
+  if (capabilities.includes(DeviceCapability.dimmableLamp)) return DeviceCapability.dimmableLamp;
+  if (capabilities.includes(DeviceCapability.lamp)) return DeviceCapability.lamp;
+  if (capabilities.includes(DeviceCapability.actuator)) return DeviceCapability.actuator;
+  if (capabilities.includes(DeviceCapability.ac)) return DeviceCapability.ac;
+  if (capabilities.includes(DeviceCapability.shutter)) return DeviceCapability.shutter;
+  if (capabilities.includes(DeviceCapability.speaker)) return DeviceCapability.speaker;
+  if (capabilities.includes(DeviceCapability.motionSensor)) return DeviceCapability.motionSensor;
+  if (capabilities.includes(DeviceCapability.heater)) return DeviceCapability.heater;
+  if (capabilities.includes(DeviceCapability.temperatureSensor)) return DeviceCapability.temperatureSensor;
+  if (capabilities.includes(DeviceCapability.batteryDriven)) return DeviceCapability.batteryDriven;
+  return null;
 }
 
 /**

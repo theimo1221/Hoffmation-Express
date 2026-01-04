@@ -5,8 +5,8 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
-**Latest Build:** 1,204.28 kB (gzip: 258.26 kB) - Jan 2, 2026
-*Note: Bundle size increased due to PWA features (Service Worker, Push Notifications)*
+**Latest Build:** 1,216.87 kB (gzip: 261.09 kB) - Jan 5, 2026
+*Note: Bundle size increased due to PWA features and refactoring improvements*
 
 ## Tech Stack
 
@@ -476,7 +476,58 @@ Add to RoomDetail view with all room settings:
   - Removed redundant canvas wrapper with pointer-events
   - Room scaling: 20px padding to prevent border touching edges
 
+## Major Refactoring (05.01.2026)
+
+### Device Action Refactoring
+- **Problem:** Manual `fetchDevice()` calls scattered across 35+ components
+- **Solution:** Automatic device refresh in `executeDeviceAction()`
+- **Changes:**
+  - `executeDeviceAction()` now calls `getDevice()` automatically after every action
+  - Removed `onUpdate` parameter from all Control components
+  - Removed `fetchDevice` imports from Views
+  - Simplified all device action handlers
+- **Result:** -200 lines code, consistent refresh logic, no manual refresh needed
+
+### Property Access Standardization
+- **Problem:** Direct property access (`device._temperature`, `device.lightOn`) scattered everywhere
+- **Solution:** Centralized getter functions in `deviceStore.ts`
+- **Changes:**
+  - All views now use getter functions (`getDeviceTemperature()`, `isDeviceOn()`, etc.)
+  - Added missing getters: `getDeviceLastUpdate()`, `getHandlePosition()`, `getRoomTemperature()`
+  - Moved `getPrimaryCapability()` from DeviceIcon to deviceStore
+- **Result:** Consistent property access, easier to maintain, type-safe
+
+### Temperature Logic Fix (Bug #11)
+- **Problem:** Confused device temperature vs room temperature
+  - `getDeviceTemperature()` returned room average instead of sensor value
+  - AC/Heater showed wrong temperature (sensor instead of room average)
+- **Solution:** Split into two functions
+  - `getDeviceTemperature()` → Returns sensor's own temperature (for device views)
+  - `getRoomTemperature()` → Returns room average from backend (for room stats & climate control)
+- **Result:** Correct temperatures everywhere, AC/Heater use room average
+
+### Shutter Logic Fix (Bug #9)
+- **Problem:** Inverted shutter values (0% shown as open, 100% as closed)
+- **Solution:** Corrected interpretation across all components
+  - 0% = closed (green icon)
+  - 100% = open (gray icon)
+  - Updated DeviceIcon, roomStore, RadialDeviceMenu, RadialMenu
+- **Result:** Consistent shutter display matching backend logic
+
+### Dimmer Toggle Fix (Bug #10)
+- **Problem:** Dimmers could be turned off but not on
+- **Solution:** Use `setDimmer()` without brightness parameter (like Swift app)
+  - Backend handles default brightness automatically
+  - Removed brightness parameter from toggle calls
+- **Result:** Dimmer toggle works in both directions
+
+### Bugs Fixed (05.01.2026)
+- ✅ Bug #1-10: Various UI/logic fixes
+- ✅ Bug #11: Temperature display (sensor vs room average)
+- ✅ Bug #8: Command Log (already implemented, was empty due to server restart)
+
 ### Pending Features
+- [ ] Bug #4: Rollo-Zeiten im Grundriss anzeigen (waiting for backend filter adjustment)
 - [ ] Complete device settings views (Dimmer, LED, Heater, AC, Handle, Camera)
 - [ ] Room settings view (full implementation)
 - [ ] Group settings view

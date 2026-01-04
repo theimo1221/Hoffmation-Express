@@ -1,7 +1,6 @@
 import { Wind } from 'lucide-react';
 import type { Device } from '@/stores';
-import { isDeviceOn, useDataStore } from '@/stores';
-import { hasCapability, DeviceCapability } from '@/stores/deviceStore';
+import { isDeviceOn, hasCapability, DeviceCapability } from '@/stores/deviceStore';
 import { setLamp, setActuator, setShutter, setAc, setDimmer, startScene, endScene } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 import { DeviceIcon } from './DeviceIcon';
@@ -28,7 +27,6 @@ export function RadialDeviceMenu({
   deviceName,
   onDetails,
 }: RadialDeviceMenuProps) {
-  const { fetchDevice } = useDataStore();
   
   if (!device) return null;
 
@@ -38,7 +36,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setLamp(id, true),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -48,7 +45,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setLamp(id, false),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -58,7 +54,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setDimmer(id, true, 50),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -68,7 +63,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setShutter(id, level),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -78,7 +72,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setAc(id, power),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -88,7 +81,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => setActuator(id, power),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -98,7 +90,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => startScene(id),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };
@@ -108,7 +99,6 @@ export function RadialDeviceMenu({
     await executeDeviceAction(
       device,
       (id) => endScene(id),
-      async () => { if (device.id) await fetchDevice(device.id); },
       () => {}
     );
   };

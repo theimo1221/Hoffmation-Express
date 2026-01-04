@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Thermometer, Droplets, Snowflake, Flame } from 'lucide-react';
 import type { TemperatureHistoryEntry } from '@/api/devices';
 import type { Device } from '@/stores';
-import { getDeviceValveLevel, getDeviceTemperature, getDeviceDesiredTemp, getDeviceHumidity } from '@/stores/deviceStore';
+import { getDeviceValveLevel, getDeviceTemperature, getRoomTemperature, getDeviceDesiredTemp, getDeviceHumidity } from '@/stores/deviceStore';
 import { getTemperatureHistory } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 
@@ -113,22 +113,20 @@ import { setAc } from '@/api/devices';
 
 interface AcControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function AcControls({ device, onUpdate }: AcControlsProps) {
+export function AcControls({ device }: AcControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   
   const isOn = isDeviceOn(device);
   const acMode = getAcMode(device);
   const desiredTemp = getDeviceDesiredTemp(device);
-  const roomTemp = getDeviceTemperature(device) ?? -99;
+  const roomTemp = getRoomTemperature(device) ?? -99;
   
   const handleAc = async (power: boolean, mode?: number, tempVal?: number) => {
     await executeDeviceAction(
       device,
       (id) => setAc(id, power, mode, tempVal),
-      onUpdate,
       setIsLoading
     );
   };
@@ -217,7 +215,7 @@ interface HeaterControlsProps {
 
 export function HeaterControls({ device }: HeaterControlsProps) {
   const valveLevel = getDeviceValveLevel(device);
-  const roomTemp = getDeviceTemperature(device) ?? -99;
+  const roomTemp = getRoomTemperature(device) ?? -99;
   const desiredTemp = getDeviceDesiredTemp(device);
   return (
     <section>

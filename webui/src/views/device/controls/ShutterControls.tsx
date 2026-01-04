@@ -8,23 +8,17 @@ import { executeDeviceAction } from '@/lib/deviceActions';
 interface ShutterQuickControlsProps {
   device: Device;
   room?: Room;
-  onUpdate: () => Promise<void>;
 }
 
-export function ShutterQuickControls({ device, room, onUpdate }: ShutterQuickControlsProps) {
+export function ShutterQuickControls({ device, room }: ShutterQuickControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSetShutter = async (level: number) => {
-    if (!device.id) return;
-    setIsLoading(true);
-    try {
-      await setShutter(device.id, level);
-      await new Promise(resolve => setTimeout(resolve, 300));
-      await onUpdate();
-    } catch (e) {
-      console.error('Failed to set shutter:', e);
-    }
-    setIsLoading(false);
+    await executeDeviceAction(
+      device,
+      (id) => setShutter(id, level),
+      setIsLoading
+    );
   };
   return (
     <section>
@@ -92,10 +86,9 @@ export function ShutterQuickControls({ device, room, onUpdate }: ShutterQuickCon
 
 interface ShutterPositionControlsProps {
   device: Device;
-  onUpdate: () => Promise<void>;
 }
 
-export function ShutterPositionControls({ device, onUpdate }: ShutterPositionControlsProps) {
+export function ShutterPositionControls({ device }: ShutterPositionControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const currentLevel = getDeviceShutterLevel(device);
   const [desiredPosition, setDesiredPosition] = useState(Math.round(currentLevel >= 0 ? currentLevel : 0));
@@ -104,7 +97,6 @@ export function ShutterPositionControls({ device, onUpdate }: ShutterPositionCon
     await executeDeviceAction(
       device,
       (id) => setShutter(id, level),
-      onUpdate,
       setIsLoading
     );
   };

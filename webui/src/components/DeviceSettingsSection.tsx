@@ -20,10 +20,9 @@ import { updateDeviceSettings } from '@/api/devices';
 
 interface DeviceSettingsSectionProps {
   device: Device;
-  onUpdate: () => void;
 }
 
-export function DeviceSettingsSection({ device, onUpdate }: DeviceSettingsSectionProps) {
+export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -177,7 +176,7 @@ export function DeviceSettingsSection({ device, onUpdate }: DeviceSettingsSectio
       
       await updateDeviceSettings(device.id, settings);
       setIsEditing(false);
-      onUpdate();
+      // Device refresh now handled automatically by getDevice in executeDeviceAction
     } catch (e) {
       console.error('Failed to save settings:', e);
     }

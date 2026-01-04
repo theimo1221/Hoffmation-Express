@@ -6,7 +6,7 @@
 import type { Device } from '@/stores';
 import { isDeviceOn, isAcOn } from '@/stores';
 import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice } from '@/stores/deviceStore';
-import { setLamp, setDimmer, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
+import { setLamp, setDimmer, setActuator, setShutter, setAc, startScene, endScene, getDevice } from '@/api/devices';
 
 export const REFRESH_DELAY_MS = 300;
 export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
@@ -16,7 +16,7 @@ export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
  * - Device ID validation
  * - Loading state management
  * - API call execution
- * - Delay and refresh
+ * - Delay and automatic device refresh
  * - Error handling
  * 
  * @example
@@ -24,7 +24,6 @@ export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
  *   await executeDeviceAction(
  *     device,
  *     async (id) => await setLamp(id, !isOn),
- *     onUpdate,
  *     setIsLoading
  *   );
  * };
@@ -32,7 +31,6 @@ export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
 export async function executeDeviceAction(
   device: Device,
   action: (deviceId: string) => Promise<void>,
-  onUpdate: () => Promise<void>,
   setIsLoading: (loading: boolean) => void,
   delayMs: number = REFRESH_DELAY_MS
 ): Promise<void> {
@@ -42,7 +40,8 @@ export async function executeDeviceAction(
   try {
     await action(device.id);
     await new Promise(resolve => setTimeout(resolve, delayMs));
-    await onUpdate();
+    // Automatically refresh device state after action
+    await getDevice(device.id);
   } catch (e) {
     console.error('Device action failed:', e);
   } finally {
@@ -64,7 +63,6 @@ export function calculateDuration(minutes: number): number {
  */
 export async function toggleDevice(
   device: Device,
-  onUpdate: () => Promise<void>,
   setIsLoading: (loading: boolean) => void
 ): Promise<void> {
   if (!isToggleableDevice(device)) return;
@@ -115,7 +113,6 @@ export async function toggleDevice(
       }
       return Promise.resolve();
     },
-    onUpdate,
     setIsLoading
   );
 }

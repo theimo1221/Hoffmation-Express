@@ -195,7 +195,6 @@ interface DeviceQuickCardProps {
 }
 
 function DeviceQuickCard({ device, onSelect }: DeviceQuickCardProps) {
-  const { fetchDevice } = useDataStore();
   const [isLoading, setIsLoading] = useState(false);
   
   const name = getDeviceName(device);
@@ -213,7 +212,6 @@ function DeviceQuickCard({ device, onSelect }: DeviceQuickCardProps) {
     await executeDeviceAction(
       device,
       (id) => setLamp(id, !isOn),
-      async () => { if (device.id) await fetchDevice(device.id); },
       setIsLoading
     );
   };
@@ -222,7 +220,6 @@ function DeviceQuickCard({ device, onSelect }: DeviceQuickCardProps) {
     await executeDeviceAction(
       device,
       (id) => setActuator(id, !isOn),
-      async () => { if (device.id) await fetchDevice(device.id); },
       setIsLoading
     );
   };
@@ -231,7 +228,6 @@ function DeviceQuickCard({ device, onSelect }: DeviceQuickCardProps) {
     await executeDeviceAction(
       device,
       (id) => setShutter(id, level),
-      async () => { if (device.id) await fetchDevice(device.id); },
       setIsLoading
     );
   };

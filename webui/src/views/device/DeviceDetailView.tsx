@@ -34,7 +34,7 @@ interface DeviceDetailViewProps {
 }
 
 export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetailViewProps) {
-  const { devices, rooms, fetchDevice } = useDataStore();
+  const { devices, rooms } = useDataStore();
   const { expertMode } = useSettingsStore();
   const { isFavorite: checkIsFavorite, toggleFavorite: toggleFavoriteInStore } = useFavoritesStore();
   const [showRawJson, setShowRawJson] = useState(false);
@@ -94,7 +94,6 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, DeviceCapability.lamp) && !hasCapability(device, DeviceCapability.dimmableLamp) && !hasCapability(device, DeviceCapability.ledLamp) && (
                 <LampControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -102,7 +101,6 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                 <ShutterQuickControls
                   device={device}
                   room={room}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -113,28 +111,24 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, DeviceCapability.dimmableLamp) && !hasCapability(device, DeviceCapability.ledLamp) && (
                 <DimmerControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
               {hasCapability(device, DeviceCapability.ledLamp) && (
                 <LedControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
               {hasCapability(device, DeviceCapability.actuator) && !hasCapability(device, DeviceCapability.lamp) && (
                 <ActuatorControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
               {hasCapability(device, DeviceCapability.ac) && (
                 <AcControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -145,7 +139,6 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, DeviceCapability.shutter) && currentLevel >= 0 && (
                 <ShutterPositionControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -164,14 +157,12 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, DeviceCapability.speaker) && (
                 <SpeakerControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
               {hasCapability(device, DeviceCapability.scene) && (
                 <SceneControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -182,7 +173,6 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
               {hasCapability(device, 104) && (
                 <BlockAutomaticControls
                   device={device}
-                  onUpdate={() => device.id ? fetchDevice(device.id) : Promise.resolve()}
                 />
               )}
 
@@ -197,7 +187,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
 
             {/* Right column: Device Settings */}
             <div className="lg:col-span-3 lg:sticky lg:top-20 lg:self-start space-y-6">
-              <DeviceSettingsSection device={device} onUpdate={() => device.id && fetchDevice(device.id)} />
+              <DeviceSettingsSection device={device} />
 
               <DeviceInfo
                 device={device}
