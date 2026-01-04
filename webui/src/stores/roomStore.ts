@@ -179,9 +179,10 @@ export function getFloorStats(rooms: Room[], devices: Record<string, Device>): F
       }
       
       // Count shutters that are open (not closed)
+      // Note: 0% = closed, 100% = open - anything > 0 is open
       if (isShutterDevice(device)) {
         const level = getDeviceShutterLevel(device);
-        if (level > 50) shuttersOpen++;
+        if (level > 0) shuttersOpen++;
       }
       
       // Count windows that are open or tilted

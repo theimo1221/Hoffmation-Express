@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useDataStore } from '@/stores';
 import { getFloorStats } from '@/stores/roomStore';
-import { Lightbulb, Wind, Blinds, LockOpen, User } from 'lucide-react';
+import { Lightbulb, Wind, Blinds, LockOpen, PersonStanding } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { HouseCrossSectionProps } from './types';
 
@@ -89,7 +89,7 @@ export function HouseCrossSection({ floors, onSelectFloor }: HouseCrossSectionPr
                         )}
                         {stats.motionActive > 0 && (
                           <div className="flex items-center gap-1 text-orange-500">
-                            <User className="h-3 w-3" />
+                            <PersonStanding className="h-3 w-3" />
                             <span>{stats.motionActive}</span>
                           </div>
                         )}

@@ -6,7 +6,7 @@
 import type { Device } from '@/stores';
 import { isDeviceOn, isAcOn } from '@/stores';
 import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice } from '@/stores/deviceStore';
-import { setLamp, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
+import { setLamp, setDimmer, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
 
 export const REFRESH_DELAY_MS = 300;
 export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
@@ -86,7 +86,16 @@ export async function toggleDevice(
     (id) => {
       // Lamp, Dimmer, LED
       if (isLampDevice(device)) {
-        return setLamp(id, !currentState);
+        const caps = device.deviceCapabilities ?? [];
+        const isDimmer = caps.includes(9) || caps.includes(18); // dimmableLamp or ledLamp
+        
+        if (isDimmer) {
+          // For dimmers, use setDimmer without brightness - backend handles it
+          return setDimmer(id, !currentState);
+        } else {
+          // For simple lamps, use setLamp
+          return setLamp(id, !currentState);
+        }
       }
       // Actuator
       if (isActuatorDevice(device)) {
@@ -94,7 +103,7 @@ export async function toggleDevice(
       }
       // Shutter (toggle between open and closed)
       if (isShutterDevice(device)) {
-        return setShutter(id, currentLevel < 50 ? 100 : 0);
+        return setShutter(id, currentLevel > 0 ? 0 : 100);
       }
       // AC
       if (isAcDevice(device)) {

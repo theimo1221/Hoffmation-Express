@@ -1,5 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import type { Device } from '@/stores';
+import { DeviceCapability } from '@/components/DeviceIcon';
+import { 
+  getDeviceTemperature, 
+  getDeviceDesiredTemp, 
+  getDeviceBrightness, 
+  getDeviceShutterLevel, 
+  isDeviceOn, 
+  getDeviceDetectionsToday, 
+  isMotionDetected,
+  getDeviceBattery
+} from '@/stores/deviceStore';
 import { 
   Info, Lightbulb,
   Square,
@@ -7,8 +19,6 @@ import {
   Wind, Activity, Droplets, Flame, Snowflake,
   Zap, ZapOff, Play, Square as StopIcon
 } from 'lucide-react';
-import type { Device } from '@/stores';
-import { DeviceCapability } from '@/components/DeviceIcon';
 
 export interface RadialMenuItem {
   id: string;
@@ -284,8 +294,8 @@ export function getDeviceStatus(device: Device): DeviceStatus {
   const status: DeviceStatus = {};
   
   // Battery
-  const batteryVal = (device as Record<string, unknown>).battery ?? (device as Record<string, unknown>)._battery;
-  if (typeof batteryVal === 'number') status.battery = Math.round(batteryVal);
+  const batteryVal = getDeviceBattery(device);
+  if (batteryVal !== undefined && batteryVal >= 0) status.battery = Math.round(batteryVal);
   
   // Link Quality (normalize to 0-100)
   let lq = device._linkQuality;
@@ -295,38 +305,36 @@ export function getDeviceStatus(device: Device): DeviceStatus {
   }
   
   // Temperature (check all possible sources - handles with temp sensors use temperatureSensor.temperature)
-  const temp = device.temperatureSensor?.roomTemperature ?? 
-               device.temperatureSensor?.temperature ?? 
-               device._roomTemperature;
+  const temp = getDeviceTemperature(device);
   if (temp !== undefined && temp !== -99) status.temperature = temp;
   
   // Desired temperature (for AC/Heater)
-  const desiredTemp = (device as Record<string, unknown>).desiredTemp ?? (device as Record<string, unknown>)._desiredTemperatur;
+  const desiredTemp = getDeviceDesiredTemp(device);
   if (typeof desiredTemp === 'number' && desiredTemp !== -99) status.desiredTemp = desiredTemp;
   
   // Brightness (for dimmers/LEDs)
-  const brightness = device.brightness ?? device._brightness;
+  const brightness = getDeviceBrightness(device);
   if (brightness !== undefined && (caps.includes(DeviceCapability.dimmableLamp) || caps.includes(DeviceCapability.ledLamp))) {
     status.brightness = Math.round(brightness);
   }
   
   // Shutter level
-  let level = device._currentLevel;
+  let level = getDeviceShutterLevel(device);
   if (level !== undefined && caps.includes(DeviceCapability.shutter)) {
     if (level >= 0 && level <= 1) level = level * 100;
     status.level = Math.round(level);
   }
   
   // Is on state
-  status.isOn = device.lightOn ?? device._lightOn ?? device.on ?? device._on ?? false;
+  status.isOn = isDeviceOn(device);
   
   // Motion detection (for motion sensors)
   if (caps.includes(DeviceCapability.motionSensor)) {
-    const detectionsToday = device._detectionsToday ?? device.detectionsToday;
+    const detectionsToday = getDeviceDetectionsToday(device);
     if (detectionsToday !== undefined && detectionsToday >= 0) {
       status.detectionsToday = detectionsToday;
     }
-    status.movementDetected = device.movementDetected ?? device._movementDetected ?? false;
+    status.movementDetected = isMotionDetected(device);
   }
   
   return status;
@@ -403,9 +411,10 @@ export function getDeviceMenuItems(
   }
   
   // Shutter controls - same Square icon, different fill levels (like SwiftUI rectangle.inset.filled)
-  // Open = outline only, 50% = half filled, Closed = fully filled
+  // Note: 0% = closed, 100% = open
+  // Closed = fully filled, 50% = half filled, Open = outline only
   else if (caps.includes(DeviceCapability.shutter)) {
-    // Closed (100%) - fully filled, green (secure) - at 10 o'clock (left = down/closed)
+    // Closed (0%) - fully filled, green (secure) - at 10 o'clock (left = down/closed)
     items.push({
       id: 'shutter-down',
       icon: <Square className="h-6 w-6 text-green-500 fill-green-500" />,
@@ -430,7 +439,7 @@ export function getDeviceMenuItems(
       clockPosition: 12, // Actions: 10-14h
     });
     
-    // Open (0%) - outline only, gray (insecure) - at 2 o'clock (right = up/open)
+    // Open (100%) - outline only, gray (insecure) - at 2 o'clock (right = up/open)
     items.push({
       id: 'shutter-up',
       icon: <Square className="h-6 w-6 text-gray-400" />,

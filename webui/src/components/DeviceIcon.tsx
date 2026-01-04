@@ -1,4 +1,5 @@
 import { type Device } from '@/stores';
+import { getDeviceShutterLevel } from '@/stores/deviceStore';
 import { 
   Lightbulb, 
   LightbulbOff, 
@@ -86,10 +87,11 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
   }
 
   // Shutter icons - green when closed (level < 10), orange when partially open, gray when open
+  // Note: 0% = closed, 100% = open
   if (primaryCap === DeviceCapability.shutter) {
-    const level = device._currentLevel ?? -1;
+    const level = getDeviceShutterLevel(device);
     if (level >= 0 && level < 10) {
-      // Closed = green (secure)
+      // Closed = green (secure) - 0% means closed
       return <Blinds className={`${sizeClass} text-green-500`} />;
     } else if (level >= 10 && level < 90) {
       // Partially open = orange
