@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings } from '@/stores';
+import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings, useDataStore } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { IconPicker } from './IconPicker';
@@ -15,6 +15,7 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { floors: floorDefinitions, loadFloors } = useSettingsStore();
+  const { fetchRoom } = useDataStore();
   
   const settings = room.settings;
   
@@ -94,7 +95,11 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
     let updatedSettings = { ...changedFields };
     
     if (hasWebuiChanges) {
-      const webuiData: RoomWebUISettings = {};
+      // Load existing WebUI settings to preserve unchanged fields
+      const existingWebuiSettings = getRoomWebUISettings(room) || {};
+      const webuiData: RoomWebUISettings = { ...existingWebuiSettings };
+      
+      // Only update changed fields
       if (selectedFloors.length > 0) webuiData.crossSectionFloors = selectedFloors;
       if (selectedIcon) webuiData.icon = selectedIcon;
       if (selectedColor) webuiData.color = selectedColor;
@@ -113,6 +118,8 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
       await updateRoomSettings(roomName, updatedSettings);
       setIsEditing(false);
       setChangedFields({});
+      // Reload only this room to get fresh data after settings update
+      await fetchRoom(roomName);
       onUpdate();
     } catch (e) {
       console.error('Failed to save room settings:', e);

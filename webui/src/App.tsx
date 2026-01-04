@@ -12,7 +12,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 
 function App() {
   const { darkMode, pollingInterval } = useSettingsStore();
-  const { fetchData } = useDataStore();
+  const { fetchRooms, fetchDevices } = useDataStore();
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -30,11 +30,17 @@ function App() {
     }
   }, [darkMode]);
 
+  // Load rooms once on mount
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, pollingInterval * 1000);
+    fetchRooms();
+  }, [fetchRooms]);
+
+  // Poll devices regularly
+  useEffect(() => {
+    fetchDevices();
+    const interval = setInterval(fetchDevices, pollingInterval * 1000);
     return () => clearInterval(interval);
-  }, [fetchData, pollingInterval]);
+  }, [fetchDevices, pollingInterval]);
 
   return (
     <div className="flex h-screen flex-col bg-background">

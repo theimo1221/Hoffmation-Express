@@ -47,6 +47,21 @@ export async function setActuator(deviceId: string, state: boolean, duration?: n
 export async function updateDeviceSettings(deviceId: string, settings: unknown): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
   await apiPostNoResponse(`/deviceSettings/${encodedId}`, { settings });
+  
+  // Invalidate cache for devices to ensure fresh data on next load
+  if ('caches' in window) {
+    try {
+      const cacheNames = await caches.keys();
+      for (const cacheName of cacheNames) {
+        const cache = await caches.open(cacheName);
+        // Delete devices endpoints from cache
+        await cache.delete('/devices');
+        await cache.delete(`/devices/${encodedId}`);
+      }
+    } catch (error) {
+      console.warn('Failed to invalidate cache:', error);
+    }
+  }
 }
 
 export async function setDevicePosition(deviceId: string, position: { x: number; y: number; z: number }): Promise<void> {

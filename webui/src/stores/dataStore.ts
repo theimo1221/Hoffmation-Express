@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import { getRooms } from '@/api/rooms';
+import { getRooms, getRoom } from '@/api/rooms';
 import { getDevices, getDevice } from '@/api/devices';
 import type { Room, Device, TrilaterationPoint } from './types';
 import { getRoomFloors } from './roomStore';
@@ -29,6 +29,9 @@ interface DataState {
   error: string | null;
   lastUpdated: Date | null;
   fetchData: () => Promise<void>;
+  fetchRooms: () => Promise<void>;
+  fetchRoom: (roomName: string) => Promise<void>;
+  fetchDevices: () => Promise<void>;
   fetchDevice: (deviceId: string) => Promise<void>;
 }
 
@@ -99,6 +102,65 @@ export const useDataStore = create<DataState>((set) => ({
     } catch (error) {
       set({
         isLoading: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  fetchRooms: async () => {
+    try {
+      const rooms = await getRooms();
+      const floors = deriveFloors(rooms);
+      set({
+        rooms,
+        floors,
+        lastUpdated: new Date(),
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  fetchRoom: async (roomName: string) => {
+    try {
+      const updatedRoom = await getRoom(roomName);
+      set((state) => {
+        const updatedRooms = {
+          ...state.rooms,
+          [roomName]: updatedRoom,
+        };
+        const floors = deriveFloors(updatedRooms);
+        return {
+          rooms: updatedRooms,
+          floors,
+          lastUpdated: new Date(),
+        };
+      });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  fetchDevices: async () => {
+    try {
+      const rawDevices = await getDevices();
+      
+      // Add id from dictionary key to each device
+      const devices: Record<string, Device> = {};
+      for (const [id, device] of Object.entries(rawDevices)) {
+        devices[id] = { ...device, id };
+      }
+      
+      set({
+        devices,
+        lastUpdated: new Date(),
+      });
+    } catch (error) {
+      set({
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
