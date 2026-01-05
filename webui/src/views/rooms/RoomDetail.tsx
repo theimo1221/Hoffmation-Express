@@ -1,5 +1,6 @@
-import { ChevronRight, Thermometer, Lightbulb, AirVent, Blinds } from 'lucide-react';
+import { ChevronRight, Thermometer, Lightbulb, Wind, Blinds, LockOpen, PersonStanding } from 'lucide-react';
 import { type Room, type Device, type GroupData, getRoomName, getDeviceRoom, getDeviceName, filterDevicesForExpertMode } from '@/stores';
+import { getRoomStats } from '@/stores/roomStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
@@ -28,6 +29,9 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
     expertMode
   );
   const roomDevices = Object.values(filteredDevicesDict);
+  
+  // Get room statistics
+  const stats = getRoomStats(room, devices);
 
   return (
     <div className="flex h-full flex-col">
@@ -83,7 +87,7 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
                     onClick={() => onSelectGroup(room, '9', room.groupdict!['9'])}
                     className="rounded-xl bg-card px-4 py-2 shadow-soft hover:bg-accent transition-all active:scale-95"
                   >
-                    <AirVent className="inline h-4 w-4 mr-2" />
+                    <Wind className="inline h-4 w-4 mr-2" />
                     Klimaanlage
                   </button>
                 )}
@@ -102,6 +106,67 @@ export function RoomDetail({ room, devices, onBack, onSelectDevice, onSelectGrou
                 <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
                   <div className="text-muted-foreground">
                     <span className="font-medium">Etage:</span> {room.info?.etage ?? 'Unbekannt'}
+                  </div>
+                  
+                  {/* Room Stats */}
+                  <div className="pt-3 border-t border-border">
+                    <div className="flex flex-wrap gap-3">
+                      {/* Temperature */}
+                      {stats.temperature !== undefined && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Thermometer className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium">{stats.temperature.toFixed(1)}°C</span>
+                        </div>
+                      )}
+                      
+                      {/* Lamps */}
+                      {stats.lampsOn > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Lightbulb className="h-4 w-4 text-yellow-500" />
+                          <span className="font-medium">{stats.lampsOn}</span>
+                        </div>
+                      )}
+                      
+                      {/* AC Cooling */}
+                      {stats.acCooling > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Wind className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium">{stats.acCooling}</span>
+                        </div>
+                      )}
+                      
+                      {/* AC Heating */}
+                      {stats.acHeating > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Wind className="h-4 w-4 text-red-500" />
+                          <span className="font-medium">{stats.acHeating}</span>
+                        </div>
+                      )}
+                      
+                      {/* Shutters Open */}
+                      {stats.shuttersOpen > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Blinds className="h-4 w-4 text-orange-500" />
+                          <span className="font-medium">{stats.shuttersOpen}</span>
+                        </div>
+                      )}
+                      
+                      {/* Windows Open */}
+                      {stats.windowsOpen > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <LockOpen className="h-4 w-4 text-orange-500" />
+                          <span className="font-medium">{stats.windowsOpen}</span>
+                        </div>
+                      )}
+                      
+                      {/* Motion Active */}
+                      {stats.motionActive > 0 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <PersonStanding className="h-4 w-4 text-orange-500" />
+                          <span className="font-medium">{stats.motionActive}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Shutter Times */}

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataStore, getRoomName, getDeviceRoom, getDeviceName, isDeviceOn, getFloorsForRoom, type Device } from '@/stores';
 import { DeviceCapability, isToggleableDevice, getDeviceColor, getDeviceBrightness } from '@/stores/deviceStore';
+import { getRoomStats } from '@/stores/roomStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus, Info, ArrowUp, ArrowDown } from 'lucide-react';
+import { Edit3, Save, X, Plus, Info, ArrowUp, ArrowDown, Thermometer, Lightbulb, Wind, Blinds, LockOpen, PersonStanding, Sunrise, Sunset } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -55,6 +56,9 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
   const locallyPlacedDevices = allRoomDevices.filter(d => d.id && locallyPlacedDeviceIds.includes(d.id));
   const roomDevices = editMode ? [...placedDevices, ...locallyPlacedDevices] : placedDevices;
   const hasChanges = locallyPlacedDeviceIds.length > 0;
+  
+  // Get room statistics
+  const stats = getRoomStats(room, devices);
 
   useEffect(() => {
     const updateSize = () => {
@@ -350,7 +354,81 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
     >
       <PageHeader
         title={editMode ? `${roomName} (Bearbeiten)` : roomName}
-        subtitle={`${placedDevices.length} platziert${unplacedDevices.length > 0 && editMode ? ` • ${unplacedDevices.length} unplatziert` : ''}`}
+        subtitle={
+          editMode 
+            ? `${placedDevices.length} platziert${unplacedDevices.length > 0 ? ` • ${unplacedDevices.length} unplatziert` : ''}`
+            : (stats.temperature !== undefined || stats.lampsOn > 0 || stats.acCooling > 0 || stats.acHeating > 0 || stats.shuttersOpen > 0 || stats.windowsOpen > 0 || stats.motionActive > 0 || room.sunriseShutterCallback?.nextToDo || room.sunsetShutterCallback?.nextToDo) ? (
+              <div className="flex items-center gap-3">
+                {/* Temperature - always show */}
+                {stats.temperature !== undefined && (
+                  <span className="flex items-center gap-1.5">
+                    <Thermometer className="h-4 w-4 text-blue-500" />
+                    {stats.temperature.toFixed(1)}°C
+                  </span>
+                )}
+                
+                {/* AC - always show */}
+                {stats.acCooling > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Wind className="h-4 w-4 text-blue-500" />
+                    {stats.acCooling}
+                  </span>
+                )}
+                {stats.acHeating > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Wind className="h-4 w-4 text-red-500" />
+                    {stats.acHeating}
+                  </span>
+                )}
+                
+                {/* Shutter times - always show */}
+                {room.sunriseShutterCallback?.nextToDo && (
+                  <span className="flex items-center gap-1.5">
+                    <Sunrise className="h-4 w-4 text-orange-500" />
+                    {new Date(room.sunriseShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                )}
+                {room.sunsetShutterCallback?.nextToDo && (
+                  <span className="flex items-center gap-1.5">
+                    <Sunset className="h-4 w-4 text-purple-500" />
+                    {new Date(room.sunsetShutterCallback.nextToDo).toLocaleTimeString('de-DE', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                )}
+                
+                {/* Visible in floor plan - hide on mobile */}
+                {stats.lampsOn > 0 && (
+                  <span className="hidden md:flex items-center gap-1.5">
+                    <Lightbulb className="h-4 w-4 text-yellow-500" />
+                    {stats.lampsOn}
+                  </span>
+                )}
+                {stats.shuttersOpen > 0 && (
+                  <span className="hidden md:flex items-center gap-1.5">
+                    <Blinds className="h-4 w-4 text-orange-500" />
+                    {stats.shuttersOpen}
+                  </span>
+                )}
+                {stats.windowsOpen > 0 && (
+                  <span className="hidden md:flex items-center gap-1.5">
+                    <LockOpen className="h-4 w-4 text-orange-500" />
+                    {stats.windowsOpen}
+                  </span>
+                )}
+                {stats.motionActive > 0 && (
+                  <span className="hidden md:flex items-center gap-1.5">
+                    <PersonStanding className="h-4 w-4 text-orange-500" />
+                    {stats.motionActive}
+                  </span>
+                )}
+              </div>
+            ) : undefined
+        }
         onBack={editMode ? () => {
           setEditMode(false);
           setFixedScale(null);

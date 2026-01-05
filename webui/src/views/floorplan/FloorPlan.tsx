@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDataStore, getRoomName, getDeviceRoom, getRoomWebUISettings, type Room, type Device } from '@/stores';
+import { getRoomStats } from '@/stores/roomStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X } from 'lucide-react';
+import { Edit3, Save, X, Thermometer } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
@@ -448,16 +449,32 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                     return null;
                   })()}
                   
-                  {/* Room name and Z-coordinate input - positioned at bottom */}
-                  <div className="absolute bottom-0.5 left-0 right-0 flex flex-col items-center gap-1 pointer-events-none z-10">
-                    <span className={cn(
-                      "text-[10px] sm:text-xs font-medium text-center px-1.5 py-0.5 flex items-center gap-1 leading-tight bg-secondary/90 rounded shadow-sm",
-                      isUnplaced && editMode && "text-orange-700",
-                      isModified && "italic"
-                    )}>
-                      {isModified && <Edit3 className="h-2.5 w-2.5 inline-block" />}
-                      {roomName}
-                    </span>
+                  {/* Room name with temperature and Z-coordinate input - positioned at bottom */}
+                  <div className="absolute bottom-[-3px] left-0 right-0 flex flex-col items-center gap-1 pointer-events-none z-10">
+                    <div className="flex items-center gap-1">
+                      <span className={cn(
+                        "text-[11px] sm:text-[13px] font-medium text-center px-1 py-0.5 flex items-center gap-1 leading-tight rounded tracking-wide",
+                        isUnplaced && editMode && "text-orange-700 bg-secondary/90 shadow-sm",
+                        isModified && "italic"
+                      )}>
+                        {isModified && <Edit3 className="h-2.5 w-2.5 inline-block" />}
+                        {roomName}
+                      </span>
+                      {!editMode && (() => {
+                        const stats = getRoomStats(room, devices);
+                        if (stats.temperature !== undefined) {
+                          return (
+                            <div className="flex items-center gap-0.5 rounded px-1 py-0.5">
+                              <Thermometer className="h-3 w-3 text-blue-500" />
+                              <span className="text-[11px] sm:text-[13px] font-medium tracking-wide">
+                                {stats.temperature.toFixed(1)}°C
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                     {editMode && (
                       <div className="flex items-center gap-1.5 bg-secondary/95 rounded px-1.5 py-0.5 shadow-sm pointer-events-auto">
                         <div className="flex items-center gap-0.5">
@@ -538,9 +555,11 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                       const normY = roomHeight > 0 ? Math.max(0, Math.min(1, pos.y / roomHeight)) : 0.5;
                       
                       // Convert to pixel position within room box (with padding to keep icons inside)
-                      const padding = 4;
-                      const pixelX = padding + normX * (roomW - iconSize - padding * 2);
-                      const pixelY = padding + (1 - normY) * (roomH - iconSize - padding * 2); // Invert Y (0 = bottom)
+                      const paddingTop = 4;
+                      const paddingSide = 4;
+                      const paddingBottom = 12; // Extra padding at bottom to avoid overlap with room name
+                      const pixelX = paddingSide + normX * (roomW - iconSize - paddingSide * 2);
+                      const pixelY = paddingTop + (1 - normY) * (roomH - iconSize - paddingTop - paddingBottom); // Invert Y (0 = bottom)
                       
                       return (
                         <div 

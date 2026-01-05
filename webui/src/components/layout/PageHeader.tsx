@@ -8,7 +8,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: string | ReactNode;
   onBack?: () => void;
   onRefresh?: () => void;
   isLoading?: boolean;

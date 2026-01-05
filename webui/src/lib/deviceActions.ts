@@ -8,8 +8,8 @@ import { isDeviceOn, isAcOn } from '@/stores';
 import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice } from '@/stores/deviceStore';
 import { setLamp, setDimmer, setActuator, setShutter, setAc, startScene, endScene, getDevice } from '@/api/devices';
 
-export const REFRESH_DELAY_MS = 300;
-export const REFRESH_DELAY_AC_MS = 500; // AC/Shutter need longer delay
+export const REFRESH_DELAY_MS = 800; // Increased for Zigbee devices (was 300ms)
+export const REFRESH_DELAY_AC_MS = 1000; // AC/Shutter need longer delay
 
 /**
  * Generic action wrapper that handles:

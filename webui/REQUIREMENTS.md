@@ -1002,6 +1002,8 @@ Groups inherit settings from their devices but can have group-wide controls.
 | Camera live view | ✅ `LiveView` | ✅ | Done (stream links) |
 | Pull-to-refresh | ✅ | ✅ | Done (refresh button in header) |
 | Time selector | ✅ `TimeSelectorView` | ⏳ | Pending (automation rules) |
+| Device Settings | ✅ `DeviceSettingsSection` | ✅ | Done (all device types, 531 lines) |
+| Room Settings | ✅ `RoomSettingsSection` | ✅ | Done (complete, 641 lines) |
 
 ---
 
@@ -1138,19 +1140,21 @@ Groups inherit settings from their devices but can have group-wide controls.
   - New functions: `isDeviceComplex()`, `filterDevicesForExpertMode()`
   - Applied in: RoomsView (RoomDetail), DevicesView
 
-### Pending ⏳
+### Completed Refactoring ✅
 
 **Component Refactoring:**
-- [ ] DeviceDetailView.tsx refactoring (1387 lines → split into components)
-- [ ] RadialMenu.tsx refactoring - Extract Device-specific logic
-  - **Problem:** `RadialMenu.tsx` (626 lines) contains Device-specific logic (`DeviceStatus`, `getDeviceStatus()`, `getDeviceMenuItems()`)
-  - **Goal:** Make RadialMenu generic, move Device logic to `RadialDeviceMenu.tsx`
-  - **Benefits:** Enables future `RadialRoomMenu`, `RadialGroupMenu` without polluting RadialMenu
-  - **Migration:** Move `DeviceStatus`, `getDeviceStatus()`, `getDeviceMenuItems()` to RadialDeviceMenu.tsx
+- ✅ DeviceDetailView.tsx refactoring (1387 lines → 204 lines)
+  - Split into: DeviceInfo, ActuatorControls, ClimateControls, DimmerControls, LampControls, LedControls, ShutterControls, SensorControls, MediaControls, EnergyControls, AutomaticControls
+- ✅ FloorPlanView.tsx refactoring (949 lines → 51 lines)
+  - Split into: HouseCrossSection, FloorPlan, RoomFloorPlanDetail, types.ts
 
-**Feature Additions:**
+### Pending ⏳
+
+**Features:**
+- [ ] Time Selector for Automation Rules
+- [ ] Group settings view
+- [ ] Heat group settings
 - [ ] Floor Editor UI (Settings page for managing floor definitions)
-- [ ] Time selector component for automation rules
 
 **Code Quality:**
 - [ ] Refactor direct device property access to use deviceStore functions

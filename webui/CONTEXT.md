@@ -5,8 +5,11 @@
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
 Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
 
-**Latest Build:** 1,216.87 kB (gzip: 261.09 kB) - Jan 5, 2026
-*Note: Bundle size increased due to PWA features and refactoring improvements*
+**Latest Build Size**
+
+- **Bundle:** 1,221.10 kB (gzip: 261.64 kB)
+- **CSS:** 34.08 kB (gzip: 6.55 kB)
+- **Total:** ~2.88 MB (with PWA assets)
 
 ## Tech Stack
 
@@ -221,96 +224,9 @@ const DeviceCapability = {
 
 ## Next Steps (Pending) ⏳
 
-### 1. Complete Device Settings Views
+### 1. Time Selector for Automation Rules
 
-All settings should be fully implemented based on hoffmation-base types.
-
-**ActuatorSettings:**
-- `dawnOn`, `duskOn`, `nightOn`, `dayOn` (Toggle)
-- `includeInAmbientLight` (Toggle)
-- `isStromStoss`, `resetToAutomaticOnForceOffAfterForceOn` (Toggle)
-- `stromStossResendTime` (Number)
-
-**DimmerSettings** (extends ActuatorSettings):
-- `nightBrightness`, `dawnBrightness`, `duskBrightness`, `dayBrightness` (Slider 0-100)
-- `turnOnThreshhold` (Number)
-
-**LedSettings** (extends DimmerSettings):
-- `defaultColor` (ColorPicker)
-- `dayColor`, `dawnColor`, `duskColor`, `nightColor` (ColorPicker)
-- `dayColorTemp`, `dawnColorTemp`, `duskColorTemp`, `nightColorTemp` (Number)
-
-**ShutterSettings:**
-- `direction` (Slider 0-360°)
-- `heatReductionPosition` (Slider 0-100%)
-- `heatReductionThreshold` (Slider 20-35°C)
-- `heatReductionDirectionThreshold` (Slider 20-35°C)
-- `msTilTop`, `msTilBot` (Number)
-- `triggerPositionUpdateByTime` (Toggle)
-
-**HeaterSettings:**
-- `automaticMode` (Toggle)
-- `useOwnTemperatur` (Toggle)
-- `useOwnTemperatureForRoomTemperature` (Toggle)
-- `controlByPid` (Toggle)
-- `controlByTempDiff` (Toggle)
-- `seasonalTurnOffActive` (Toggle)
-- `seasonTurnOffDay`, `seasonTurnOnDay` (Number)
-- `pidForcedMinimum` (Slider 0-100)
-- `manualDisabled` (Toggle)
-
-**AcSettings:**
-- `minimumHours`, `minimumMinutes` (TimePicker)
-- `maximumHours`, `maximumMinutes` (TimePicker)
-- `heatingAllowed` (Toggle)
-- `useOwnTemperature` (Toggle)
-- `useAutomatic` (Toggle)
-- `noCoolingOnMovement` (Toggle)
-- `manualDisabled` (Toggle)
-- `minOutdoorTempForCooling` (Slider 16-25°C)
-- `overrideCoolingTargetTemp` (Slider -1 to 22°C)
-
-**HandleSettings:**
-- `informOnOpen` (Toggle)
-- `informNotHelping` (Toggle)
-- `informIsHelping` (Toggle)
-
-**CameraSettings:**
-- `alertPersonOnTelegram` (Toggle)
-- `movementDetectionOnPersonOnly` (Toggle)
-- `movementDetectionOnDogsToo` (Toggle)
-
-**MotionSensorSettings:**
-- `seesWindow` (Toggle)
-- `excludeFromNightAlarm` (Toggle)
-
-**SceneSettings:**
-- `defaultTurnOffTimeout` (Number)
-
-**SonosDeviceSettings:**
-- `maxPlayOnAllVolume` (Slider)
-- `defaultDayAnounceVolume` (Slider)
-- `defaultNightAnounceVolume` (Slider)
-
-### 2. Room Settings View
-
-Add to RoomDetail view with all room settings:
-
-**Light Settings:**
-- `ambientLightAfterSunset`, `lichtSonnenAufgangAus`, `lightIfNoWindows`
-- `lampenBeiBewegung`, `roomIsAlwaysDark`
-- `sonnenAufgangLampenDelay`, `sonnenUntergangLampenDelay` (Slider -120 to 120 min)
-- `includeLampsInNormalMovementLightning`
-
-**Shutter Settings:**
-- `rolloHeatReduction`, `sonnenAufgangRollos`, `sonnenUntergangRollos`
-- `sonnenAufgangRolloDelay`, `sonnenUntergangRolloDelay` (Slider -120 to 120 min)
-- `sonnenAufgangRolloMinTime`, `sonnenUntergangRolloMaxTime` (TimePicker)
-- `sonnenUntergangRolloAdditionalOffsetPerCloudiness` (Slider 0-0.5)
-
-**Other:**
-- `movementResetTimer` (Slider 60-3600s)
-- `radioUrl` (Text input)
+Time selector component for creating automation rules (not yet implemented).
 
 ## API Endpoints
 
@@ -393,8 +309,8 @@ Add to RoomDetail view with all room settings:
 - **Device Border Visibility:** 5px clamping to prevent overlap with canvas border
 
 #### Settings & Configuration
-- **Room Settings:** Light, shutter, movement timer, trilateration coordinates (including Z-axis editing)
-- **Device Settings:** Basic settings for actuators, shutters (more pending)
+- **Room Settings:** ✅ Complete implementation (641 lines) - Light, shutter, night time, WebUI (floors/icon/color), movement timer, trilateration coordinates with Z-axis editing
+- **Device Settings:** ✅ Complete implementation (531 lines) - All device types: Actuator, Dimmer, LED (with color picker), Shutter, Heater, AC, Handle, Camera, Motion Sensor, Scene, Speaker, Dachs
 - **Expert Mode:** Filters complex devices (speakers, cameras, energy managers)
 - **Partial Updates:** Only send changed fields to API (delta updates for rooms, full objects for devices)
 - **Z-Coordinate Editing (Dec 30, 2024):** Floor plan edit mode allows editing floor height (Z↓) and ceiling height (Z↑) separately
@@ -526,10 +442,14 @@ Add to RoomDetail view with all room settings:
 - ✅ Bug #11: Temperature display (sensor vs room average)
 - ✅ Bug #8: Command Log (already implemented, was empty due to server restart)
 
+### Recently Completed (Jan 5, 2026)
+- ✅ Bug #14: Device-Refresh Delay erhöht (300ms → 800ms)
+- ✅ Bug #12: isDeviceUnreachable Logik korrigiert (Geräte ohne lastUpdate)
+- ✅ Bug #13: Room Stats in Grundriss-Ansicht (Temperatur, Lampen, AC, Rollos, Griffe, Bewegung)
+- ✅ Bug #4: Rollo-Zeiten im Grundriss-Header (Sunrise/Sunset mit Icons)
+- ✅ Mobile-Optimierung: Stats-Priorisierung (nur wichtige Stats auf Mobile sichtbar)
+
 ### Pending Features
-- [ ] Bug #4: Rollo-Zeiten im Grundriss anzeigen (waiting for backend filter adjustment)
-- [ ] Complete device settings views (Dimmer, LED, Heater, AC, Handle, Camera)
-- [ ] Room settings view (full implementation)
+- [ ] Time Selector for Automation Rules
 - [ ] Group settings view
 - [ ] Heat group settings
-- [ ] Child-Friendly Mode (full floor plan implementation)

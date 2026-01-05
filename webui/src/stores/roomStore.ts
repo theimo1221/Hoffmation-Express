@@ -77,9 +77,11 @@ export interface RoomStats {
   onlineDevices: number;
   offlineDevices: number;
   lampsOn: number;
-  lampsTotal: number;
-  acOn: number;
-  acTotal: number;
+  acCooling: number;
+  acHeating: number;
+  shuttersOpen: number;
+  windowsOpen: number;
+  motionActive: number;
   temperature?: number;
 }
 
@@ -89,9 +91,11 @@ export function getRoomStats(room: Room, devices: Record<string, Device>): RoomS
   let onlineDevices = 0;
   let offlineDevices = 0;
   let lampsOn = 0;
-  let lampsTotal = 0;
-  let acOn = 0;
-  let acTotal = 0;
+  let acCooling = 0;
+  let acHeating = 0;
+  let shuttersOpen = 0;
+  let windowsOpen = 0;
+  let motionActive = 0;
   let roomTemp: number | undefined = undefined;
   
   for (const device of roomDevices) {
@@ -103,16 +107,39 @@ export function getRoomStats(room: Room, devices: Record<string, Device>): RoomS
       onlineDevices++;
     }
     
-    // Count lamps
-    if (isLampDevice(device)) {
-      lampsTotal++;
-      if (isDeviceOn(device)) lampsOn++;
+    // Count lamps that are on
+    if (isLampDevice(device) && isDeviceOn(device)) {
+      lampsOn++;
     }
     
-    // Count AC
-    if (isAcDevice(device)) {
-      acTotal++;
-      if (isDeviceOn(device)) acOn++;
+    // Count AC by mode (cooling vs heating)
+    if (isAcDevice(device) && isDeviceOn(device)) {
+      const mode = getAcMode(device);
+      const currentMonth = new Date().getMonth();
+      const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
+      const isCooling = mode === 1 || (mode === 0 && isSummerSeason);
+      const isHeating = mode === 4 || (mode === 0 && !isSummerSeason);
+      
+      if (isCooling) acCooling++;
+      else if (isHeating) acHeating++;
+    }
+    
+    // Count shutters that are open (not closed)
+    // Note: 0% = closed, 100% = open - anything > 0 is open
+    if (isShutterDevice(device)) {
+      const level = getDeviceShutterLevel(device);
+      if (level > 0) shuttersOpen++;
+    }
+    
+    // Count windows that are open or tilted
+    if (isHandleSensorDevice(device)) {
+      const state = getHandleState(device);
+      if (state === 'open' || state === 'tilted') windowsOpen++;
+    }
+    
+    // Count motion sensors with active detection
+    if (isMotionSensorDevice(device)) {
+      if (isMotionCurrentlyDetected(device)) motionActive++;
     }
     
     // Get room temperature from first temperature sensor
@@ -130,9 +157,11 @@ export function getRoomStats(room: Room, devices: Record<string, Device>): RoomS
     onlineDevices,
     offlineDevices,
     lampsOn,
-    lampsTotal,
-    acOn,
-    acTotal,
+    acCooling,
+    acHeating,
+    shuttersOpen,
+    windowsOpen,
+    motionActive,
     temperature: roomTemp,
   };
 }

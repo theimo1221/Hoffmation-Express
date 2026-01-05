@@ -341,18 +341,25 @@ export function getDeviceStaleThresholdMinutes(device: Device): number {
 }
 
 export function isDeviceUnreachable(device: Device): boolean {
+  // Check explicit available flag first
+  const available = device.available ?? device._available;
+  if (available === false) {
+    return true; // Explicitly marked as unavailable
+  }
+  
+  // If no lastUpdate exists, device is not unreachable (e.g., speakers, scenes)
   const lastUpdateRaw = device.lastUpdate ?? device._lastUpdate;
   if (!lastUpdateRaw) {
-    const available = device.available ?? device._available;
-    return available === false;
+    return false; // No lastUpdate means device doesn't report state regularly
   }
   
+  // Parse lastUpdate timestamp
   const lastUpdateDate = new Date(lastUpdateRaw);
   if (isNaN(lastUpdateDate.getTime()) || lastUpdateDate.getTime() <= 0) {
-    const available = device.available ?? device._available;
-    return available === false;
+    return false; // Invalid timestamp, assume device is reachable
   }
   
+  // Check if lastUpdate is stale based on device type
   const diffMs = Date.now() - lastUpdateDate.getTime();
   const diffMins = diffMs / 60000;
   const thresholdMins = getDeviceStaleThresholdMinutes(device);
