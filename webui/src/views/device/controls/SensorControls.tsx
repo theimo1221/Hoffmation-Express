@@ -6,17 +6,35 @@ interface MotionSensorControlsProps {
   device: Device;
 }
 
-function formatTimeSinceMotion(seconds: number): string {
-  if (seconds === -1) return '--';
-  if (seconds === 0) return 'Aktiv';
-  if (seconds >= 1800) return '>30 min';
-  return `${(seconds / 60).toFixed(1)} min`;
+function formatTimeSinceMotion(seconds: number, movementDetected: boolean): string {
+  if (seconds === -1 || seconds === 0) {
+    // If movement is currently detected, show "Aktiv"
+    // Otherwise, no data available
+    return movementDetected ? 'Aktiv' : '--';
+  }
+  
+  // Format time since last motion
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min`;
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  }
+  
+  // More than 24 hours
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
 }
 
 export function MotionSensorControls({ device }: MotionSensorControlsProps) {
   const movementDetected = isMotionDetected(device);
   const detectionsToday = getDeviceDetectionsToday(device);
-  const timeSinceLastMotion = device._timeSinceLastMotion ?? -1;
+  
+  // Calculate time since last motion from timestamp
+  const motionTimestamp = device._motionDetectedTimestamp ?? 0;
+  const timeSinceLastMotion = motionTimestamp === 0 ? 0 : Math.floor((Date.now() - motionTimestamp) / 1000);
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -40,7 +58,7 @@ export function MotionSensorControls({ device }: MotionSensorControlsProps) {
         )}
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Seit letzter Bewegung</span>
-          <span className="font-medium">{formatTimeSinceMotion(timeSinceLastMotion)}</span>
+          <span className="font-medium">{formatTimeSinceMotion(timeSinceLastMotion, movementDetected)}</span>
         </div>
       </div>
     </section>

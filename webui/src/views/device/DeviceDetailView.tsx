@@ -5,7 +5,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useFavoritesStore } from '@/stores/favoritesStore';
 import { DeviceSettingsSection } from '@/components/DeviceSettingsSection';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Star } from 'lucide-react';
+import { Star, RefreshCw } from 'lucide-react';
+import { getDevice } from '@/api/devices';
 import { DeviceInfo } from './DeviceInfo';
 import {
   LampControls,
@@ -38,6 +39,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
   const { expertMode } = useSettingsStore();
   const { isFavorite: checkIsFavorite, toggleFavorite: toggleFavoriteInStore } = useFavoritesStore();
   const [showRawJson, setShowRawJson] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Get live device from store
   const device = initialDevice.id ? (devices[initialDevice.id] ?? initialDevice) : initialDevice;
@@ -61,6 +63,18 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
     }
   };
 
+  const handleRefresh = async () => {
+    if (!device.id) return;
+    setIsRefreshing(true);
+    try {
+      await getDevice(device.id);
+    } catch (e) {
+      console.error('Device refresh failed:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
 
   return (
     <div className="flex h-full flex-col">
@@ -75,14 +89,24 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
           entityData: device,
         }}
         rightContent={
-          <button
-            onClick={toggleFavorite}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-soft transition-all active:scale-95 ${
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-secondary/50 active:scale-95 disabled:opacity-50"
+              title="Aktualisieren"
+            >
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={toggleFavorite}
+              className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-soft transition-all active:scale-95 ${
               isFavorite ? 'bg-yellow-500 text-white' : 'bg-card hover:bg-accent'
             }`}
           >
             <Star className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
           </button>
+          </div>
         }
       />
 

@@ -134,542 +134,60 @@ interface RoomWebUISettings {
 
 ## Architecture Principles
 
-### Separation of Concerns - Business Logic
+**Separation of Concerns:**
+- Views are "dumb" - presentation only
+- Business logic in services (`/lib/deviceActions.ts`)
+- State management in stores (Zustand)
+- API calls in `/api/` layer
+- Self-contained components with single responsibility
 
-**Wichtig:** Geschäftslogik hat nichts in Views verloren und sollte in wiederverwendbaren Objekten/Services/Stores sein, damit mehrere Views diese nutzen können.
-
-**Prinzipien:**
-- ✅ **Views sind "dumm"** - Nur Präsentation und User Interaction
-- ✅ **Business Logic in Services** - Wiederverwendbar über mehrere Views
-- ✅ **State Management in Stores** - Zustand zentral verwalten (Zustand)
-- ✅ **API Calls in API Layer** - `/api/` Ordner für alle Backend-Kommunikation
-- ✅ **Utilities in `/lib/`** - Helper-Funktionen und gemeinsame Logik
-- ✅ **Tell, Don't Ask** - Komponenten bekommen Objekte, nicht extrahierte Werte
-- ✅ **Self-Contained Components** - Komponenten verwalten ihren eigenen State
-- ✅ **Single Responsibility** - Jede Komponente/Service macht eine Sache
-- ✅ **DRY-Prinzip** - Keine Duplikation von Business Logic (Wrapper verwenden)
-- ✅ **Service Layer** - Komplexe Business Logic in `/lib/deviceActions.ts`
-
-**Beispiel - Refactoring von DeviceDetailView (Dez 2024):**
-- **Vorher:** 12 Handler-Funktionen in View, 16 State-Variablen, 400+ Zeilen
-- **Nachher:** Alle Handler in Control-Komponenten, nur `device` prop, ~250 Zeilen
-- **Ergebnis:** 18 self-contained Control-Komponenten, 70% weniger Props, wiederverwendbar
-
-**Refactoring Session 31.12.2024:**
-- **deviceActions.ts Deduplikation:** Alle 18 Controls verwendeten identisches Boilerplate (234 Zeilen dupliziert)
-  - **Lösung:** `executeDeviceAction` Wrapper - generischer Action Handler mit Delay & Refresh
-  - **Ergebnis:** -400 Zeilen Boilerplate, konsistentes Error-Handling überall
-- **RadialDeviceMenu Wrapper:** Self-contained Komponente statt 13 Props
-  - **Vorher:** 13 Handler-Callbacks als Props (onLampOn, onLampOff, etc.)
-  - **Nachher:** Nur 6 Props (device, onClose, onDetails, position, deviceName, isOpen)
-  - **Ergebnis:** -70 Zeilen in RoomFloorPlanDetail, wiederverwendbare Komponente
-- **toggleDevice Service:** Business Logic aus View in Service verschoben
-  - **Vorher:** 5 spezifische Toggle-Handler in View (60 Zeilen)
-  - **Nachher:** 1 generische `toggleDevice()` Funktion in deviceActions.ts
-  - **Ergebnis:** Architektur-Prinzip "Keine Business Logic in Views" eingehalten
-
-**Refactoring Session 05.01.2026:**
-- **Automatic Device Refresh:** `executeDeviceAction` ruft jetzt automatisch `getDevice()` auf
-  - **Vorher:** Manuelles `fetchDevice()` in 35+ Komponenten, `onUpdate` Callbacks überall
-  - **Nachher:** Automatisches Refresh nach jeder Action, keine `onUpdate` Parameter mehr
-  - **Ergebnis:** -200 Zeilen Code, konsistente Refresh-Logik, einfachere API
-- **Property Access Standardization:** Alle direkten Property-Zugriffe durch Getter ersetzt
-  - **Vorher:** `device._temperature`, `device.lightOn`, `device.brightness` überall verstreut
-  - **Nachher:** `getDeviceTemperature()`, `isDeviceOn()`, `getDeviceBrightness()` zentral
-  - **Ergebnis:** Type-safe, wartbar, konsistent, `getPrimaryCapability()` in deviceStore verschoben
-- **Temperature Logic Fix:** Trennung von Sensor-Temperatur und Raum-Durchschnitt
-  - **Problem:** `getDeviceTemperature()` gab Raum-Durchschnitt statt Sensor-Wert zurück
-  - **Lösung:** Zwei Funktionen - `getDeviceTemperature()` für Sensor, `getRoomTemperature()` für Raum
-  - **Ergebnis:** AC/Heater nutzen Raum-Durchschnitt, Device-Views zeigen Sensor-Temperatur
-
-**Anti-Pattern vermeiden:**
-```typescript
-// ❌ Schlecht: Business Logic in View
-function DeviceView({ deviceId }) {
-  const [brightness, setBrightness] = useState(0);
-  const handleDimmer = async (value) => {
-    await fetch(`/api/dimmer/${deviceId}`, { ... });
-    setBrightness(value);
-  };
-  return <Slider onChange={handleDimmer} />;
-}
-
-// ✅ Gut: Business Logic in Service/Component (mit executeDeviceAction Wrapper)
-function DimmerControls({ device, onUpdate }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [brightness, setBrightness] = useState(getDeviceBrightness(device));
-  
-  const handleDimmer = async (value) => {
-    await executeDeviceAction(
-      device,
-      (id) => setDimmer(id, value),
-      onUpdate,
-      setIsLoading
-    );
-  };
-  
-  return <Slider value={brightness} onChange={handleDimmer} disabled={isLoading} />;
-}
-
-// ✅ Noch besser: Business Logic in Service Layer
-// View ruft nur Service auf:
-if (isToggleableDevice(device)) {
-  toggleDevice(device, onUpdate, setIsLoading);
-}
-```
+**Key Refactorings:**
+- DeviceDetailView: 1387 → 204 lines (18 control components)
+- FloorPlanView: 949 → 51 lines (3 view components)
+- `executeDeviceAction` wrapper: -400 lines boilerplate, automatic refresh
+- Property access standardization: Getter functions instead of direct access
+- Temperature logic: Separate sensor vs room average functions
 
 ---
 
-## TypeScript Configuration
-
-Based on backend `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2018",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "baseUrl": "./src",
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["src"],
-  "exclude": ["node_modules"]
-}
-```
-
----
-
-## Project Structure
-
-```
-webui/
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── tailwind.config.js
-├── postcss.config.js
-├── index.html
-├── public/
-│   └── floorplans/           # SVG floor plans per level
-│       ├── floor-0.svg
-│       ├── floor-1.svg
-│       └── ...
-├── src/
-│   ├── main.tsx              # Entry Point
-│   ├── App.tsx               # Root Component + Router
-│   ├── index.css             # Tailwind imports
-│   │
-│   ├── api/                  # API client for Express backend
-│   │   ├── client.ts         # Fetch wrapper, base URL
-│   │   ├── devices.ts        # GET /devices, /devices/:id
-│   │   ├── rooms.ts          # GET /rooms, /rooms/:id
-│   │   └── types.ts          # API response types
-│   │
-│   ├── stores/               # Zustand stores
-│   │   ├── deviceStore.ts    # Device states
-│   │   ├── roomStore.ts      # Room data
-│   │   └── uiStore.ts        # UI state (selected floor, room, etc.)
-│   │
-│   ├── components/           # Reusable components
-│   │   ├── ui/               # shadcn/ui components
-│   │   ├── DeviceIcon.tsx    # Icon based on device type
-│   │   ├── DeviceCard.tsx    # Device card with status
-│   │   └── StatusBadge.tsx   # Online/Offline badge
-│   │
-│   ├── views/                # Main views (pages)
-│   │   ├── HouseView.tsx     # Floor selection (house cross-section)
-│   │   ├── FloorView.tsx     # Floor plan of a level
-│   │   ├── RoomView.tsx      # 2D view of a room
-│   │   └── DeviceView.tsx    # Detail view of a device
-│   │
-│   ├── canvas/               # Konva-specific components
-│   │   ├── FloorPlanCanvas.tsx   # Interactive floor plan
-│   │   ├── RoomShape.tsx         # Single room as shape
-│   │   ├── RoomLayoutCanvas.tsx  # Device positions in room
-│   │   └── DeviceMarker.tsx      # Device on canvas
-│   │
-│   ├── hooks/                # Custom hooks
-│   │   ├── useDevices.ts     # SWR/Fetch for devices
-│   │   ├── useRooms.ts       # SWR/Fetch for rooms
-│   │   └── useWebSocket.ts   # Optional: live updates
-│   │
-│   └── lib/                  # Utilities
-│       ├── utils.ts          # Helper functions
-│       └── cn.ts             # Tailwind class merge (shadcn)
-```
-
----
-
-## Data Model (based on hoffmation-base)
-
-The frontend models should align with the existing backend structures. Reference files in `Hoffmation-Base/src/`:
-
-### Core Interfaces
-| Concept | Source File |
-|---------|-------------|
-| Room | `interfaces/iRoomBase.ts` |
-| Device | `interfaces/baseDevices/iBaseDevice.ts` |
-| DeviceInfo | `interfaces/iDeviceInfo.ts` |
-| DeviceCluster | `interfaces/iDevicecluster.ts` |
-| RoomInfo | `models/rooms/roomInfo.ts` |
-
-### Enums
-| Enum | Source File |
-|------|-------------|
-| DeviceCapability | `enums/DeviceCapability.ts` |
-| DeviceType | `enums/deviceType.ts` |
-| DeviceClusterType | `enums/device-cluster-type.ts` |
-
-### Capability Interfaces
-All in `interfaces/baseDevices/`:
-- `iLamp.ts`, `iDimmableLamp.ts`, `iLedRgbCct.ts`
-- `iShutter.ts`, `iActuator.ts`, `iHeater.ts`, `iAcDevice.ts`
-- `iTemperatureSensor.ts`, `iHumiditySensor.ts`, `iMotionSensor.ts`
-- `iHandle.ts`, `iCamera.ts`, `iSpeaker.ts`, `iScene.ts`
-- ... (see `interfaces/baseDevices/index.ts` for full list)
-
-### Room Coordinates (TrilaterationPoint)
-Rooms already have 3D bounding boxes via `TrilaterationPoint` in `OwnRooms/`:
-```typescript
-// Example from 0_egbad.ts
-public static startPoint: TrilaterationPoint = new TrilaterationPoint(0, 5.5, 0, 'EGBad');
-public static endPoint: TrilaterationPoint = new TrilaterationPoint(2.5, 6, 2.5, 'EGBad');
-```
-
-**Coordinate system:**
-- `x, y` = horizontal position (floor plan)
-- `z` = height/floor level (0-2.5 = EG, 3-5.5 = 1.OG, 6-8.5 = 2.OG)
-
-**For UI floor plan rendering:**
-- Use `startPoint.x, startPoint.y` and `endPoint.x, endPoint.y` as room rectangle
-- Derive floor from `z` coordinate (or use `etage` from RoomInfo)
-- Some rooms have `undefined` trilateration (outdoor areas, etc.)
-
-### UI-specific Extensions
-```typescript
-// Floor grouping - derived from rooms by z-coordinate or etage
-interface Floor {
-  level: number;           // Derived from z or etage
-  name: string;            // Display name (configured)
-  rooms: string[];         // Room IDs on this floor
-}
-
-// Device position data for room layout rendering (not yet in backend)
-interface DevicePosition {
-  deviceId: string;
-  position: { x: number; y: number };
-}
-```
-
-**Note:** Room coordinates already exist via TrilaterationPoint. Device positions within rooms are not yet defined.
-
----
-
-## API Endpoints (already available)
-
-The Express backend already provides:
-
-### General
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/isAlive` | GET | Health check |
-| `/log` | GET | Server logs |
-
-### Devices & Rooms
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/devices` | GET | All devices |
-| `/devices/:deviceId` | GET | Single device |
-| `/rooms` | GET | All rooms |
-| `/rooms/:roomId` | GET | Single room |
-| `/groups/:groupId` | GET | Single group |
-
-### Lamps & Lighting
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/lamps/:deviceId/:state/:duration?` | GET | Toggle lamp (state: true/false) |
-| `/dimmer/:deviceId/:state/:brightness?/:forceDuration?` | GET | Control dimmer |
-| `/led/:deviceId/:state/:brightness/:color/:forceDuration?` | GET | Control LED (RGB) |
-
-### Actuators & Shutters
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/actuator/:deviceId/:state/:duration?` | GET | Toggle actuator |
-| `/actuator/:deviceId/restart` | GET/POST | Restart actuator (off → wait 5s → on) |
-| `/shutter/:deviceId/:level` | GET | Set shutter level (0-100) |
-| `/garageDoor/:deviceId/:state` | GET | Toggle garage door |
-
-### Climate Control
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/ac/power/:state` | GET | Toggle all ACs |
-| `/ac/:acId/power/:state` | GET | Toggle single AC |
-| `/ac/:acId/power/:mode/:temp` | GET | Set AC mode and temperature |
-| `/temperature/:deviceId/history/:startDate?/:endDate?` | GET | Temperature history |
-
-### Cameras
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/camera/:deviceId/image` | GET | Last camera image |
-| `/camera/:cameraId/lastMotionImage` | GET | Last motion-triggered image |
-| `/camera/:deviceId/personDetected` | GET | Inform person detected |
-
-### Scenes
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/scene/:deviceId/start/:timeout` | GET | Start scene |
-| `/scene/:deviceId/end` | GET | End scene |
-
-### Speaker
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/speak/:deviceId` | POST | Speak message (body: {message, volume}) |
-
-### Automation Control
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/device/:deviceId/blockAutomatic/:timeout` | GET | Block automatic for duration (ms) |
-| `/device/:deviceId/liftAutomaticBlock` | GET | Lift automatic block |
-
-### Settings
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/deviceSettings/:deviceId` | POST | Update device settings |
-| `/roomSettings/:roomName` | POST | Update room settings |
-| `/groupSettings/:groupId` | POST | Update group settings |
-| `/deviceSettings/persist` | GET | Persist all settings to DB |
-| `/deviceSettings/restore` | GET | Restore settings from DB |
-
-**Available after hoffmation-base patch:**
-- ✅ Room coordinates → `startPoint`/`endPoint` now public in room JSON
-- ✅ Device positions → Available in device settings
-
-**Still needed:**
-- Floor names mapping (etage → display name) – could be config or derived
-
----
 
 ## Navigation Structure
 
-**3 Main Tabs (Bottom Navigation):**
+**5 Tabs:** Floor Plan (3-level drill-down: House → Floor → Room), Favorites, Rooms, Devices, Settings
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                                                         │
-│                    [Content Area]                       │
-│                                                         │
-├─────────────────────────────────────────────────────────┤
-│  🏠 Floor Plan    │    🚪 Rooms    │    📱 Devices     │
-└─────────────────────────────────────────────────────────┘
-```
+**Floor Plan:**
+1. House cross-section (tap floor)
+2. Floor plan with rooms (tap room)
+3. Room with devices (tap/hold device)
 
-### Tab 1: Floor Plan (Grundriss) – 3-Level Drill-Down
-
-**Level 1: House Cross-Section (Haus-Querschnitt)**
-```
-┌─────────────────────────────────────────────────────────┐
-│  ┌─────────────────────────────────────────────────┐   │
-│  │           House Cross-Section (SVG/Canvas)      │   │
-│  │  ┌─────────────────────────────────────────┐    │   │
-│  │  │  3. OG  [Dachboden]                     │ ←──┼── Tap
-│  │  ├─────────────────────────────────────────┤    │   │
-│  │  │  2. OG  [Schlafzimmer, Kinderzimmer]    │ ←──┼── Tap
-│  │  ├─────────────────────────────────────────┤    │   │
-│  │  │  1. OG  [Wohnzimmer, Küche, ...]        │ ←──┼── Tap
-│  │  ├─────────────────────────────────────────┤    │   │
-│  │  │  EG     [Büro, Bad, ...]                │ ←──┼── Tap
-│  │  ├─────────────────────────────────────────┤    │   │
-│  │  │  UG     [Keller, Bar, ...]              │ ←──┼── Tap
-│  │  └─────────────────────────────────────────┘    │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Level 2: Floor Plan (Grundriss Etage)**
-```
-┌─────────────────────────────────────────────────────────┐
-│  ← Back to House                           [1. OG]      │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │           Floor Plan (Canvas)                   │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐      │   │
-│  │  │Wohnzimmer│  │  Küche   │  │   Flur   │      │   │
-│  │  │  💡 22°  │  │  💡 🔌   │  │   💡     │      │   │
-│  │  └──────────┘  └──────────┘  └──────────┘      │   │
-│  │                                                 │   │
-│  │  Tap room → drill down to room view            │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-**Level 3: Room View (Raum mit Geräten in 2D)**
-```
-┌─────────────────────────────────────────────────────────┐
-│  ← Back to Floor                      [Wohnzimmer]      │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │           Room Layout 2D (Canvas)               │   │
-│  │                                                 │   │
-│  │     💡 Deckenlampe        🌡️ Thermostat        │   │
-│  │                                                 │   │
-│  │  🪟 Rollo                 📺 TV-Steckdose      │   │
-│  │                                                 │   │
-│  │  Tap device → device detail/settings           │   │
-│  │  Long-press device → radial quick actions      │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                         │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │  Quick Actions: [Alles aus] [Szene: Abend]     │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Tab 2: Rooms (Räume)
-```
-┌─────────────────────────────────────────────────────────┐
-│  Room List                              [Floor Filter]  │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ 🛋️ Living Room          22°C  💡3/5  🪟 Open   │   │
-│  │ 🍳 Kitchen               21°C  💡1/2           │   │
-│  │ 🛏️ Bedroom              20°C  💡0/2  🪟 Closed │   │
-│  │ ...                                             │   │
-│  └─────────────────────────────────────────────────┘   │
-│                         │                               │
-│                         ▼ Tap                           │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ Room Detail: Living Room                        │   │
-│  │                                                 │   │
-│  │ Groups:                                         │   │
-│  │  [💡 Light Group] [🌡️ Heat Group] [🪟 Windows] │   │
-│  │                                                 │   │
-│  │ Devices:                                        │   │
-│  │  💡 Ceiling Light    [On ] ████████░░ 80%      │   │
-│  │  💡 Floor Lamp       [Off]                      │   │
-│  │  🌡️ Thermostat       22°C → 21°C               │   │
-│  │  🪟 Shutter          [Open] 100%                │   │
-│  └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Tab 3: Devices (Geräte)
-```
-┌─────────────────────────────────────────────────────────┐
-│  🔍 Search devices...                                   │
-│  [Filter: All ▼] [💡Lights] [🪟Shutters] [🌡️Climate]  │
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ 💡 Living Room - Ceiling Light     [On ] 80%   │   │
-│  │ 💡 Living Room - Floor Lamp        [Off]       │   │
-│  │ 💡 Kitchen - Main Light            [On ] 100%  │   │
-│  │ 🪟 Bedroom - Shutter               [Open]      │   │
-│  │ 🌡️ Bathroom - Thermostat           22°C       │   │
-│  │ ...                                             │   │
-│  └─────────────────────────────────────────────────┘   │
-│                                                         │
-│  Long-press device → radial quick actions              │
-│  Tap device → device detail/settings                   │
-└─────────────────────────────────────────────────────────┘
-```
+**Interactions:**
+- Tap device → Quick toggle
+- Hold device (≥400ms) → Radial menu
+- Tap room/floor → Navigate deeper
 
 ---
 
-## Open Questions / Decisions
+## UI Patterns ✅
 
-1. **Floor plan data:** ✅ Resolved
-   - Room bounding boxes from `TrilaterationPoint` (startPoint/endPoint)
-   - Available via `/rooms` API endpoint
+**Radial Menu (GTA-style):**
+- Tap device → Quick toggle
+- Hold (≥400ms) → Radial menu with actions
+- 150px radius, clock positions, hover sectors
+- Child-friendly icons with color coding
 
-2. **Device positions:** ✅ Resolved
-   - Available in device settings
-   - Can be set/updated via `/deviceSettings/:deviceId` POST
-   - Position is within room in meters (x,y and z)
-   - Position should be changed using drag&drop or numeric input
+**Floor Plan Features:**
+- Device icons at actual positions
+- Responsive icon sizing (xs/sm/md/lg)
+- Adjacent room navigation (auto-detection)
+- Z-coordinate editing in edit mode
+- Battery/offline indicators
+- Touch support for iOS
 
-3. **Live updates:** ✅ Decided
-   - [x] Polling (every X seconds) – simplest, works now
-   - [ ] WebSocket – future enhancement if needed
-
-4. **Target device:** ✅ Decided
-   - [x] Tablet-first (touch-optimized, larger touch targets)
-   - Responsive down to mobile, up to desktop
-
-### Quick Actions UI Pattern ✅ IMPLEMENTED
-**Radial Menu** for device quick actions in Floor Plan view:
-- **Tap** on device → Quick toggle (Lamp on/off, Shutter open/close, AC on/off)
-- **Hold** (≥400ms) on device → Radial menu appears with:
-  - Info button (always) → Opens device detail view
-  - Device-specific quick actions (consistent positions)
-
-**Child-Friendly Icons** (same icon, different fill/color):
-- Lamp: Lightbulb - yellow filled (on), gray outline (off)
-- Shutter: Blinds - green (closed < 10%), orange (10-90%), gray (open)
-- AC: Wind/Snowflake - gray (off), blue (cooling), red (heating), green (auto)
-- Handle: Lock - green (closed), orange (tilted), red (open)
-
-**iOS Mobile Support** ✅ IMPLEMENTED (Dec 30, 2024):
-- Touch events for device drag&drop (`onTouchStart`, `touchmove`, `touchend`)
-- Radial menu screen-edge clamping (stays within viewport)
-- Auto-scaling without scrollbars (`maxWidth/maxHeight: 100%`)
-- Larger device icons in room view (`lg` size)
-- Device icon sizing responsive to room pixel dimensions (xs/sm/md/lg)
-- Device border visibility with 5px clamping (prevents overlap with canvas border)
-
-**Floor Plan Device Display** ✅ IMPLEMENTED (Dec 30, 2024):
-- Device icons shown at actual positions within room boxes
-- Responsive icon size based on room pixel dimensions
-- Room name positioned at bottom to avoid icon overlap
-- Adjacent room navigation with automatic detection (TOLERANCE 1.0m)
-- Navigation arrows positioned at canvas border with absolute pixel coordinates
-- Dynamic margins: only reserve space where adjacent rooms exist (80px left/right, 40px top/bottom)
-- Wrapper architecture: fixed dimensions = canvas + arrow space, canvas absolutely positioned
-- **Z-Coordinate Editing:** Floor height (Z↓) and ceiling height (Z↑) editable in room edit mode
-- **Settings Delta Updates:** Room settings only send changed fields, device settings removed fallback defaults
-- **Battery Level Display (Dec 31, 2024):** Battery percentage shown in device status badges with color coding (red <20%, orange <50%, green ≥50%)
-- **Unreachable Device Indicators (Dec 31, 2024):** Bright red background (bg-red-500) and "OFFLINE" badge for devices with available=false or lastUpdate >1 hour
-- **iOS Room Display Fix (Dec 31, 2024):** Changed overflow-visible to overflow-hidden, added maxWidth/maxHeight constraints to prevent scrolling/clipping
-- **Scene Toggle (Dec 31, 2024):** Scenes can be started/stopped via tap in floor plan view, matching Swift app behavior (timeout=0 for no auto-end)
-
-**Center displays:**
-- Device icon
-- Device name
-- Status badges (battery, link quality, temperature, brightness, level)
-
-**Implementation:** `src/components/RadialMenu.tsx`, integrated in `RoomFloorPlanDetail.tsx`
-
-5. **Polling interval:** ✅ Decided
-   - [x] Configurable, default 30 seconds
-
-6. **Authentication:** Later
-   - [ ] Implement in future iteration
-
-7. **Dark mode:** ✅ Decided
-   - [x] System preference / toggle
-
-8. **Language:** ✅ Decided
-   - [x] i18n (German + English)
-
-9. **House cross-section graphic:** ✅ Decided
-   - [x] Auto-generated from floor/room data (z-coordinates)
-
-10. **Settings storage:** ✅ Decided
-    - [x] LocalStorage (polling interval, language, dark mode, API URL)
-    - No dedicated settings page needed initially (can use simple toggles/menu)
-
-11. **Offline handling:** ✅ Decided
-    - [x] No offline support (requires network connection)
+**Settings:**
+- Polling: 30s default (configurable)
+- Dark mode: System preference
+- Language: i18n (DE/EN)
+- Storage: LocalStorage
 
 ---
 
@@ -998,38 +516,26 @@ Groups inherit settings from their devices but can have group-wide controls.
 
 | Feature | SwiftUI | WebUI | Status |
 |---------|---------|-------|--------|
-| Temperature history chart | ✅ `TemperatureHistoryView` | ✅ | Done (24h SVG chart) |
-| Camera live view | ✅ `LiveView` | ✅ | Done (stream links) |
-| Pull-to-refresh | ✅ | ✅ | Done (refresh button in header) |
-| Time selector | ✅ `TimeSelectorView` | ⏳ | Pending (automation rules) |
-| Device Settings | ✅ `DeviceSettingsSection` | ✅ | Done (all device types, 531 lines) |
-| Room Settings | ✅ `RoomSettingsSection` | ✅ | Done (complete, 641 lines) |
+| Temperature history | ✅ | ✅ | 24h SVG chart |
+| Camera live view | ✅ | ✅ | Stream links |
+| Pull-to-refresh | ✅ | ✅ | Header button |
+| Device Settings | ✅ | ✅ | All types (531 lines) |
+| Room Settings | ✅ | ✅ | Complete (641 lines) |
+| Time selector | ✅ | ⏳ | Pending |
 
 ---
 
-## Implementation Progress
+## Implementation Status
 
-### Completed ✅
-- [x] Project setup (Vite, React, TypeScript, TailwindCSS)
-- [x] 5-tab navigation (Floor Plan, Favorites, Rooms, Devices, Settings)
-- [x] Room list with floor filter (respects excluded levels)
-- [x] Room detail with groups and device list
-- [x] Device list with search and capability filter
-- [x] Device detail view with full controls for all device types
-- [x] Device icons based on capability and status (like SwiftUI DeviceShortInfoView)
-- [x] Favorite devices (localStorage based)
-- [x] API client for rooms, devices, and all control endpoints
-- [x] Single-device refresh after control actions (like Swift fetchUpdate)
-- [x] Polling for live updates (configurable interval)
-- [x] Dark mode (light/dark/system)
-- [x] i18n setup (German + English)
-- [x] Settings view (Server URL, polling interval, dark mode, language, expert mode, exclude levels)
-- [x] Dimmable lamp controls (brightness slider, force duration)
-- [x] LED RGB controls (color picker, brightness slider)
-- [x] AC controls (on/off, mode display, temperature display)
-- [x] Heater controls (valve level, room temp, desired temp display)
-- [x] Actuator controls (on/off with force duration)
-- [x] Scene controls (start/stop with timeout)
+### Complete ✅
+- 5-tab navigation, floor plan (3-level drill-down)
+- Device/Room controls, settings, and editing
+- PWA (offline, install, push notifications)
+- Expert mode, drag&drop positioning
+- Multi-floor support, icon/color pickers
+- Temperature history, camera live view
+- Automatic refresh, property standardization
+- Component refactoring (DeviceDetailView, FloorPlanView)
 - [x] Speaker controls (speak message)
 - [x] Block automatic controls (block/lift block)
 - [x] Camera view (current image display)
@@ -1111,188 +617,45 @@ Groups inherit settings from their devices but can have group-wide controls.
   - Save via `POST /deviceSettings/:deviceId` with `trilaterationRoomPosition`
   - Default position {0,0,0} treated as "not placed"
 
-### Recently Completed ✅ (2025-12-29)
-- [x] **DeviceStatusBadges Component** - Detailed device status in lists
-  - Motion sensor: Count today + active motion ("Motion!" green)
-  - Heater: Current/target temperature + valve level
-  - Dimmer/LED: Brightness % + color (LED)
-  - Shutter: Position % (normalized to 0-100)
-  - Window handle: Status with color coding (open=red, tilted=orange, closed=green)
-  - Lamp: On/Off status
-- [x] **DeviceIcon Extensions**
-  - Speaker icon
-  - CO2 Sensor icon (CloudFog)
-  - Motion sensor green when movement actively detected
-- [x] **LED/Dimmer Status Fix**
-  - `lightOn ?? _lightOn ?? on ?? _on` fallback chain (like DeviceIcon)
-  - Brightness alone doesn't mean "on" (stored value for next turn-on)
-- [x] **Layout Improvements**
-  - RoomDetail Header with max-w-6xl constraint
-  - DeviceDetailView Header with max-w-6xl constraint
-  - MenuButton component (inline variant for headers)
-- [x] **Device Repositioning Fix**
-  - Bug: New devices were placed with absolute instead of relative coordinates
-  - Fix: `roomWidth / 2` instead of `(startPoint.x + endPoint.x) / 2`
-- [x] **Expert Mode Device Filtering** (like SwiftUI)
-  - Complex devices only visible in expert mode
-  - Based on `isCapabilityComplex` from SwiftUI
-  - Complex capabilities: vibrationSensor, speaker, tv, smokeSensor, loadMetering, buttonSwitch, energyManager, excessEnergyConsumer, bluetoothDetector, trackableDevice, camera
-  - New functions: `isDeviceComplex()`, `filterDevicesForExpertMode()`
-  - Applied in: RoomsView (RoomDetail), DevicesView
+### Recently Completed ✅
+- DeviceStatusBadges with detailed status per device type
+- DeviceIcon extensions (Speaker, CO2, Motion)
+- LED/Dimmer status fix with fallback chain
+- Layout improvements (max-w-6xl constraints)
+- Device repositioning fix (relative coordinates)
+- Expert mode filtering for complex devices
 
 ### Completed Refactoring ✅
 
-**Component Refactoring:**
-- ✅ DeviceDetailView.tsx refactoring (1387 lines → 204 lines)
-  - Split into: DeviceInfo, ActuatorControls, ClimateControls, DimmerControls, LampControls, LedControls, ShutterControls, SensorControls, MediaControls, EnergyControls, AutomaticControls
-- ✅ FloorPlanView.tsx refactoring (949 lines → 51 lines)
-  - Split into: HouseCrossSection, FloorPlan, RoomFloorPlanDetail, types.ts
+- ✅ DeviceDetailView.tsx (1387 → 204 lines) - Split into 11 control components
+- ✅ FloorPlanView.tsx (949 → 51 lines) - Split into HouseCrossSection, FloorPlan, RoomFloorPlanDetail
+- ✅ Property access standardization - All device properties use getter functions
+- ✅ Automatic device refresh - executeDeviceAction handles refresh automatically
 
 ### Pending ⏳
 
-**Features:**
 - [ ] Time Selector for Automation Rules
 - [ ] Group settings view
-- [ ] Heat group settings
-- [ ] Floor Editor UI (Settings page for managing floor definitions)
-
-**Code Quality:**
-- [ ] Refactor direct device property access to use deviceStore functions
-  - Many files still access `device.lightOn`, `device.brightness`, etc. directly
-  - Should use `isDeviceOn()`, `getDeviceBrightness()`, etc. from deviceStore
-  - Ensures consistent fallback logic (`lightOn ?? _lightOn ?? on ?? _on`)
-  - Affected: DeviceCard, DeviceStatusBadges, various Control components
+- [ ] Heat group settings  
+- [ ] Floor Editor UI
 
 ---
 
-## PWA (Progressive Web App) Features
+## PWA (Progressive Web App) ✅
 
-### ✅ Implemented (Jan 1, 2026)
+**Implemented (Jan 1, 2026):**
+- ✅ Service Worker with hybrid caching (CacheFirst/NetworkFirst/StaleWhileRevalidate)
+- ✅ Install prompt with `useInstallPrompt` hook
+- ✅ Offline detection and banner
+- ✅ Push notifications (VAPID keys, backend endpoints, frontend UI)
+- ✅ iOS support (splash screens, meta tags)
+- ✅ App shortcuts (Grundriss, Favoriten, Räume)
 
-#### Basic PWA Setup
-- [x] **Web App Manifest** (`public/manifest.json`)
-  - Name, short name, description
-  - Start URL (`/ui/`)
-  - Display mode: `standalone`
-  - Theme color: `#3B82F6`
-  - Background color: `#000000`
-  - Icons: 192px, 512px (from Swift app)
-  
-- [x] **HTML Meta Tags** (`index.html`)
-  - Viewport (mobile-optimized, `user-scalable=no`, `viewport-fit=cover`)
-  - Apple Mobile Web App Capable: `yes`
-  - Apple Mobile Web App Status Bar Style: `black-translucent`
-  - Theme Color (light/dark media queries)
-  - Manifest link
-  
-- [x] **App Icons**
-  - Favicon: `/icon.png`
-  - Apple Touch Icon: `/icon.png`
-  - PWA Icons: `/icon-192.png`, `/icon-512.png`
-  - Source: Copied from Swift app (`Hoffmation/Shared/Assets.xcassets/AppIcon.appiconset/`)
-
-### ✅ PWA Features (IMPLEMENTED - 01.01.2026)
-
-#### 1. Service Worker & Offline Support ✅
-- ✅ Vite PWA Plugin installed
-- ✅ Service Worker configured (`vite.config.ts`)
-  - Auto-update strategy (`registerType: 'autoUpdate'`)
-  - Hybrid caching strategy:
-    - **CacheFirst** for static assets (30 days)
-    - **NetworkFirst** for API calls (30s cache, 5s timeout)
-    - **StaleWhileRevalidate** for settings (24h)
-    - **NetworkOnly** for camera images
-- ✅ Offline detection (`useOnlineStatus` hook)
-- ✅ Offline banner (orange warning when offline)
-
-#### 2. Install Prompt ✅
-- ✅ `useInstallPrompt` hook created
-  - Listens for `beforeinstallprompt` event
-  - Provides `promptInstall()` function
-  - Detects if already installed
-- ✅ Install button in Settings
-  - Shows only when prompt available
-  - "Als App installieren" button
-  - Shows "App ist installiert" status when installed
-
-#### 3. Manifest Enhancements ✅
-- ✅ Extended manifest properties
-  - `scope: "/ui/"`
-  - `orientation: "portrait-primary"`
-  - `categories: ["lifestyle", "utilities"]`
-- ✅ App shortcuts implemented
-  - Grundriss: `/ui/floor/0`
-  - Favoriten: `/ui/favorites`
-  - Räume: `/ui/rooms`
-
-#### 4. iOS Support ✅
-- ✅ Splash screens generated (5 sizes)
-  - iPhone X/XS/11 Pro: 1125x2436
-  - iPhone XR/11: 828x1792
-  - iPhone XS Max/11 Pro Max: 1242x2688
-  - iPhone 12/13/14: 1170x2532
-  - iPad Pro 12.9": 2048x2732
-- ✅ iOS meta tags
-  - `apple-mobile-web-app-title`
-  - Dark mode theme color
-  - `<link rel="apple-touch-startup-image">` tags
-
-#### 5. Push Notifications ✅
-- ✅ VAPID keys generated and secured
-  - Public key in `webui-settings.json` (API-accessible)
-  - Private key in `vapid-keys.json` (NOT API-accessible)
-- ✅ Backend endpoints
-  - `POST /webui/push/subscribe` - Save subscription
-  - `POST /webui/push/unsubscribe` - Remove subscription
-  - `GET /webui/push/vapid-public-key` - Get public key
-- ✅ Frontend implementation
-  - `usePushNotifications` hook
-  - Subscribe/Unsubscribe UI in Settings
-  - Permission handling
-- ✅ Service Worker push handler (`sw-push.js`)
-  - Receives push notifications
-  - Shows notifications
-  - Handles notification clicks
-- ✅ `PushNotificationService` (Backend)
-  - `sendToAll(title, body, url)` - Send to all subscriptions
-  - `sendToSubscription(sub, title, body, url)` - Send to specific subscription
-  - Automatic cleanup of invalid subscriptions
-
-### 📊 Caching Strategy Details
-
-**Static Assets (CacheFirst - 30 days):**
-- Icons, CSS, JS bundles
-- Instant load, no network needed
-- Auto-update on new app version
-
-**API Data (NetworkFirst - 5 min):**
-- `/rooms`, `/devices` endpoints
-- Always fresh when online
-- Fallback to cache when offline/slow
-- 3s network timeout
-
-**Settings (StaleWhileRevalidate - 24h):**
-- `/webui/settings`, floor definitions
-- Instant response from cache
-- Background update for next request
-
-**Camera Images (NetworkFirst - 1 min):**
-- `/camera/*` endpoints
-- Short cache (images change frequently)
-- 2s network timeout
-
-### 🎯 Priority Order
-
-1. **🔴 HIGH:** Service Worker (offline support, caching)
-2. **🟡 MEDIUM:** Install Prompt (better UX)
-3. **🟢 LOW:** Manifest enhancements, more icons, iOS splash screens
-
-### 📝 Implementation Notes
-
-- Service Worker managed by Vite PWA Plugin (no manual SW code)
-- Cache automatically cleared on app updates
-- Offline mode shows last known device states (read-only)
-- Install prompt only shows on HTTPS (or localhost)
+**Caching Strategy:**
+- Static assets: CacheFirst (30 days)
+- API data: NetworkFirst (5 min cache, 3s timeout)
+- Settings: StaleWhileRevalidate (24h)
+- Camera images: NetworkFirst (1 min)
 
 ### Implementation Notes 📝
 
@@ -1305,32 +668,10 @@ Groups inherit settings from their devices but can have group-wide controls.
 
 ---
 
-## Future Features / Backlog
+## Future Features
 
-### 📊 Grafana Integration (Planned)
-
-**Goal:** Embed existing Grafana dashboards/panels directly into the WebUI to visualize historical device data.
-
-**Approach:**
-- **iframe-Embedding** of Grafana panels with kiosk mode
-- **Dynamic Parameters:** Pass device ID and time range via URL parameters
-- **No Data Duplication:** Leverage existing Grafana infrastructure instead of rebuilding charts
-- **Responsive Design:** Collapsible sections to avoid clutter
-
-**Use Cases:**
-- Historical temperature/humidity trends per room
-- Energy consumption graphs per device
-- System-wide statistics and analytics
-
-**Integration Points (TBD):**
-- Room detail view (per-room graphs)
-- Device detail view (per-device graphs)
-- Dedicated "Analytics" page (system-wide overview)
-
-**Technical Considerations:**
-- Grafana URL structure: `https://grafana.local/d-solo/dashboard-id/panel-id?orgId=1&theme=dark&kiosk&var-device_id=XXX&from=now-24h&to=now`
-- Authentication: Token-based or public dashboards
-- CORS: May require Grafana configuration
-- Responsive: iframe height/width management
-
-**Status:** 🟡 Interest confirmed, implementation details pending
+- Grafana integration (iframe embedding for historical data)
+- Time selector for automation rules
+- Group settings view
+- Heat group settings
+- Floor editor UI

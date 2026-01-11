@@ -356,7 +356,7 @@ export interface Device {
   _movementDetected?: boolean;
   _detectionsToday?: number;
   detectionsToday?: number;
-  _timeSinceLastMotion?: number;
+  _motionDetectedTimestamp?: number;
   // Battery
   battery?: Battery;
   batteryLevel?: number;

@@ -15,8 +15,8 @@ export function ActuatorControls({ device }: ActuatorControlsProps) {
   
   const isOn = isDeviceOn(device);
   
-  const handleActuator = async (state: boolean) => {
-    const durationMs = calculateDuration(forceDuration);
+  const handleActuator = async (state: boolean, withForce: boolean = false) => {
+    const durationMs = withForce ? calculateDuration(forceDuration) : undefined;
     await executeDeviceAction(
       device,
       (id) => setActuator(id, state, durationMs),
@@ -38,7 +38,27 @@ export function ActuatorControls({ device }: ActuatorControlsProps) {
             {isOn ? 'An' : 'Aus'}
           </span>
         </div>
-        <div>
+        
+        {/* Normal On/Off buttons without force */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => handleActuator(true, false)}
+            disabled={isLoading}
+            className="rounded-xl bg-primary/20 text-primary py-3 font-medium transition-all hover:bg-primary/30 active:scale-95 disabled:opacity-50"
+          >
+            An schalten
+          </button>
+          <button
+            onClick={() => handleActuator(false, false)}
+            disabled={isLoading}
+            className="rounded-xl bg-secondary/20 text-secondary-foreground py-3 font-medium transition-all hover:bg-secondary/30 active:scale-95 disabled:opacity-50"
+          >
+            Aus schalten
+          </button>
+        </div>
+
+        {/* Force controls with duration slider */}
+        <div className="pt-2 border-t border-border">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-muted-foreground">Force-Dauer</span>
             <span className="font-medium">{forceDuration === 0 ? 'Kein Timeout' : `${forceDuration} min`}</span>
@@ -50,24 +70,24 @@ export function ActuatorControls({ device }: ActuatorControlsProps) {
             step="5"
             value={forceDuration}
             onChange={(e) => setForceDuration(Number(e.target.value))}
-            className="w-full accent-primary"
+            className="w-full accent-primary mb-3"
           />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => handleActuator(true)}
-            disabled={isLoading}
-            className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
-          >
-            Force An
-          </button>
-          <button
-            onClick={() => handleActuator(false)}
-            disabled={isLoading}
-            className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
-          >
-            Force Aus
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleActuator(true, true)}
+              disabled={isLoading}
+              className="rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
+            >
+              Force An
+            </button>
+            <button
+              onClick={() => handleActuator(false, true)}
+              disabled={isLoading}
+              className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
+            >
+              Force Aus
+            </button>
+          </div>
         </div>
       </div>
     </section>

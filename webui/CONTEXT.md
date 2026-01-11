@@ -18,74 +18,26 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 - **API Proxy:** Target `http://hoffmation.hoffmation.com:3000`
 - **Backend Types:** `hoffmation-base` npm package
 
-## Store Architecture Refactoring (01.01.2026)
+## Store Architecture (01.01.2026)
 
-### Problem
-- Alle Store-Funktionen waren in `dataStore.ts` (1000+ Zeilen)
-- Keine klare Trennung zwischen Device-, Room- und State-Management
-- Re-Exports führten zu Verwirrung bei Imports
+**Modular structure:** `index.ts`, `types.ts`, `deviceStore.ts`, `roomStore.ts`, `dataStore.ts`
+**Key fixes:** Circular dependencies, ESM imports, battery.level, etageToFloorId mapping
 
-### Lösung: Modulare Store-Struktur
-```
-stores/
-├── index.ts (140 Zeilen)      # Zentraler Export-Punkt
-├── types.ts (375 Zeilen)      # Alle Interfaces (Device, Room, Settings)
-├── deviceStore.ts (400 Zeilen) # Device-Funktionen & Type-Checker
-├── roomStore.ts (190 Zeilen)   # Room-Funktionen & Etagen-Mapping
-└── dataStore.ts (140 Zeilen)   # Zustand-Management (Zustand) + API-Calls
-```
+## Key Refactorings
 
-### Fixes
-- **Zirkuläre Abhängigkeit:** `getRoomEtage` inline in `dataStore.ts`
-- **Backend API:** `/webui/settings` gibt jetzt `{ floors: [] }` zurück
-- **ESM/CommonJS:** `require()` durch `import` ersetzt
-- **Room Namen:** `getRoomName` prüft `info.roomName`
-- **Etagen-Mapping:** `etageToFloorId()` konvertiert Zahlen zu IDs (`1` → `"og1"`)
-- **Batteriestand:** `battery.level` statt `battery` als Number
+**31.12.2024:**
+- `executeDeviceAction` wrapper (-400 lines boilerplate)
+- `RadialDeviceMenu` self-contained component (-70 lines)
+- `toggleDevice` service (business logic out of views)
+- Multi-floor support (FloorDefinition, crossSectionFloors)
+- IconPicker & ColorPicker for child-friendly identification
 
-### Ergebnis
-- ✅ Klare Verantwortlichkeiten (SRP)
-- ✅ Keine zirkulären Dependencies
-- ✅ Konsistente Imports über `@/stores`
-- ✅ Alle Runtime-Fehler behoben
-
-## Recent Refactoring (31.12.2024)
-
-### deviceActions.ts Deduplikation
-- **Problem:** Alle 18 Control-Komponenten hatten identisches Boilerplate (234 Zeilen dupliziert)
-- **Lösung:** `executeDeviceAction` Wrapper - generischer Action Handler
-- **Ergebnis:** -400 Zeilen Code, konsistentes Error-Handling, 46% weniger Code pro Handler
-
-### RadialDeviceMenu Wrapper
-- **Problem:** RoomFloorPlanDetail hatte 70 Zeilen Handler-Logik + 13 Props für RadialMenu
-- **Lösung:** Self-contained `RadialDeviceMenu` Komponente mit internen Handlers
-- **Ergebnis:** Nur 6 Props nötig, -70 Zeilen in View, wiederverwendbar
-
-### toggleDevice Service
-- **Problem:** 5 spezifische Toggle-Handler in View (Verstoß gegen "Keine Business Logic in Views")
-- **Lösung:** Generische `toggleDevice()` Funktion in deviceActions.ts
-- **Ergebnis:** -60 Zeilen in View, Business Logic im Service Layer
-
-### Multi-Floor Support & Child-Friendly Icons (31.12.2024)
-- **Problem:** Räume über mehrere Etagen (Treppenhaus), Garten/Keller-Vermischung bei etage 99
-- **Lösung:** 
-  - Global: `FloorDefinition` mit ID, Name, Level, SortOrder, Icon, Color
-  - Pro Raum: `customSettingsJson.webui.crossSectionFloors` für Multi-Floor
-  - IconPicker & ColorPicker Komponenten für visuelle Identifikation
-- **Ergebnis:** 
-  - Räume können mehreren Etagen zugeordnet werden
-  - "Draußen" als separate Etage (level 99)
-  - Kindgerecht: "Dein Raum ist der gelbe mit dem Baby-Icon"
-  - Backend-persistiert in `webui-settings.json`
-
-### Architektur-Verbesserungen
-- ✅ DRY-Prinzip: Keine Duplikation mehr durch Wrapper
-- ✅ Service Layer: Business Logic in `/lib/deviceActions.ts`
-- ✅ Self-Contained: RadialDeviceMenu verwaltet eigene Actions
-- ✅ Wiederverwendbar: Alle Komponenten können überall verwendet werden
-- ✅ Multi-Floor: Flexible Raum-Etagen-Zuordnung mit Fallback
-- ✅ Child-Friendly: Icons & Farben für visuelle Orientierung
-- ✅ Bundle: 1,181.29 kB (gzip: 252.06 kB)
+**05.01.2026:**
+- Automatic device refresh in executeDeviceAction (-200 lines)
+- Property access standardization (getter functions)
+- Temperature logic fix (sensor vs room average)
+- Shutter logic fix (0%=closed, 100%=open)
+- Dimmer toggle fix (setDimmer without brightness)
 
 ## Key Files
 
@@ -115,140 +67,41 @@ stores/
 
 ## Multi-Floor Architecture
 
-### Data Flow
-1. **Backend:** `config/private/webui-settings.json` stores global floor definitions (excluded from git)
-2. **Backend:** `GET /api/webui/settings` returns JSON or `{ "version": "0.0" }` fallback
-3. **Backend:** `room.settings.customSettingsJson` stores per-room WebUI settings (JSON string)
-4. **Frontend:** `settingsStore.loadFloors()` fetches from backend, uses DEFAULT_FLOORS if version is "0.0"
-5. **Frontend:** `getFloorsForRoom(room, floors)` determines which floors a room belongs to
-6. **Frontend:** `getRoomWebUISettings(room)` parses customSettingsJson for icon/color
-7. **Frontend:** Room updates via `POST /api/roomSettings/:roomName` with `JSON.stringify()`
+**Backend:** `config/private/webui-settings.json` (FloorDefinition[]), `GET /api/webui/settings`
+**Frontend:** `settingsStore.loadFloors()`, `getFloorsForRoom()`, `getRoomWebUISettings()`
+**Room settings:** `customSettingsJson.webui.crossSectionFloors`, icon, color
+**Note:** Floor definitions readonly (manual JSON editing)
 
-### Key Interfaces
-```typescript
-interface FloorDefinition {
-  id: string;          // "eg", "og1", "draussen"
-  name: string;        // "EG", "1. OG", "Draußen"
-  level: number;       // 0, 1, 99
-  sortOrder: number;   // Display order
-  icon?: string;       // Lucide icon name
-  color?: string;      // Hex color
-}
+## Device Capabilities
 
-interface RoomWebUISettings {
-  crossSectionFloors?: string[];  // ["keller", "eg", "og1"]
-  icon?: string;                  // "Baby"
-  color?: string;                 // "#FBBF24"
-}
-```
-
-### Backend Implementation
-- ✅ `config/private/webui-settings.json` - Created with default floor definitions
-- ✅ `GET /api/webui/settings` - Implemented in `rest-service.ts`
-  - Returns JSON from file if exists
-  - Returns `{ "version": "0.0" }` if file doesn't exist
-  - Error handling with logging and 500 status
-- ✅ `POST /api/roomSettings/:roomName` - Update room's `customSettingsJson` (existing endpoint)
-  - Used to set `customSettingsJson.webui.crossSectionFloors`, `icon`, `color`
-  - Requires `JSON.stringify()` for customSettingsJson field
-- ❌ `POST /api/webui/settings` - Not implemented (readonly, manual JSON editing)
-
-**Important:** 
-- File location: `config/private/webui-settings.json` (excluded from git)
-- Floor definitions are readonly - edit JSON file manually
-- Room settings updated via existing `/api/roomSettings/:roomName` endpoint
-
-### Frontend Implementation Status
-- ✅ FloorDefinition & RoomWebUISettings interfaces
-- ✅ Helper functions: `getFloorsForRoom()`, `getRoomWebUISettings()`, `isMultiFloorRoom()`
-- ✅ API Client: `src/api/settings.ts`
-- ✅ settingsStore: `floors`, `loadFloors()`, `saveFloors()`
-- ✅ IconPicker & ColorPicker components
-- ✅ FloorPlanView: Dynamic room-to-floor assignment
-- ✅ HouseCrossSection: Icons & colors with colored left border (4px)
-- ✅ FloorPlan: Room icons (top center) & colors (20% opacity background)
-- ❌ SettingsView: Floor-Editor UI (not needed - manual JSON editing)
-
-## Device Capabilities (from hoffmation-base)
-
-```typescript
-const DeviceCapability = {
-  ac: 0,
-  actuator: 1,
-  energyManager: 3,
-  heater: 5,
-  humiditySensor: 6,
-  lamp: 8,
-  dimmableLamp: 9,
-  motionSensor: 10,
-  shutter: 11,
-  temperatureSensor: 12,
-  speaker: 14,
-  handleSensor: 15,
-  batteryDriven: 16,
-  ledLamp: 18,
-  scene: 103,
-  blockAutomatic: 104,
-  camera: 105,
-};
-```
+**Source:** `hoffmation-base` npm package
+**Key capabilities:** lamp(8), dimmer(9), led(18), shutter(11), ac(0), heater(5), temp(12), motion(10), handle(15), speaker(14), camera(105), scene(103)
 
 ## Completed Features ✅
 
-- All device type controls (Lamp, Dimmer, LED, Shutter, Actuator, AC, Heater, Scene, Speaker, Camera, etc.)
-- Device settings (basic: Actuator on/off per time, Shutter direction/heat reduction)
-- Quick device controls in Favorites
-- Group detail view with filtered devices
-- Temperature history chart (24h SVG)
-- Camera live stream links
-- Block Automatic with date picker and extend functionality
-- Expert mode and Exclude levels
-- Refresh buttons in all views
-- Dark mode, i18n (DE/EN)
-- **Floor Plan Room Editing** - Drag&Drop room positioning with coordinates
-- **Device Position Editing** - Place devices in rooms via trilaterationRoomPosition
-- **Comfort Favorites** - Unreachable devices, low battery devices
-- **Group Settings** - Heater group automatic mode, temperatures
-- **FloorPlanView Refactoring** - Split into 4 components (949→51 lines)
-- **DeviceDetailView Refactoring** - Split into views/device/ with control components
-- **RoomsView Refactoring** - Split into views/rooms/ with sub-components
-- **Badge-Text Fix** - Capability priority for LED/Lamp/Dimmer badges
-- **Radial Menu** - Tap=Toggle, Hold=Radial with child-friendly icons
-- **Device Logs** - Last commands display in expert mode (Dec 30, 2024)
-- **Z-Coordinate Editing** - Floor and ceiling height editing in floor plan edit mode (Dec 30, 2024)
-- **Settings Delta Updates** - Room settings only send changed fields, device settings send full objects with backend values (Dec 30, 2024)
-- **Battery Level Display** - Battery percentage in status badges with color coding (Dec 31, 2024)
-- **Unreachable Device Indicators** - Bright red background and OFFLINE badge (Dec 31, 2024)
-- **iOS Room Display Fix** - Overflow and max-size constraints to prevent scrolling/clipping (Dec 31, 2024)
-- **Scene Toggle** - Tap to start/stop scenes in floor plan, matching Swift app behavior (Dec 31, 2024)
+- All device controls & settings (Lamp, Dimmer, LED, Shutter, AC, Heater, Scene, Speaker, Camera)
+- Floor plan (3-level drill-down, room/device editing, adjacent room navigation)
+- Radial menu (tap=toggle, hold=menu, child-friendly icons)
+- PWA (offline, install, push notifications, iOS support)
+- Expert mode, dark mode, i18n (DE/EN)
+- Component refactoring (DeviceDetailView, FloorPlanView, RoomsView)
+- Multi-floor support (icons, colors, crossSectionFloors)
+- Device logs, battery indicators, unreachable detection
+- Temperature history, camera streams, block automatic
 
-## Next Steps (Pending) ⏳
+## Pending ⏳
 
-### 1. Time Selector for Automation Rules
+- Time Selector for Automation Rules
+- Group settings view
+- Heat group settings
+- Floor Editor UI
 
-Time selector component for creating automation rules (not yet implemented).
+## API Endpoinst
 
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/devices` | GET | Get all devices |
-| `/devices/:id` | GET | Get single device |
-| `/rooms` | GET | Get all rooms |
-| `/lamps/:id/:state/:duration?` | GET | Control lamp |
-| `/dimmer/:id/:state/:brightness?/:duration?` | GET | Control dimmer |
-| `/led/:id/:state/:brightness/:color/:duration?` | GET | Control LED |
-| `/shutter/:id/:level` | GET | Control shutter |
-| `/actuator/:id/:state/:duration?` | GET | Control actuator |
-| `/ac/:id/power/:mode/:temp` | GET | Control AC |
-| `/scene/:id/start/:timeout` | GET | Start scene |
-| `/scene/:id/end` | GET | End scene |
-| `/speak/:id` | POST | Speak on device |
-| `/device/:id/blockAutomatic/:timeout` | GET | Block automatic |
-| `/device/:id/liftAutomaticBlock` | GET | Lift block |
-| `/deviceSettings/:id` | POST | Update device settings (partial) |
-| `/roomSettings/:roomName` | POST | Update room settings (partial) |
-| `/groupSettings/:groupId` | POST | Update group settings (partial) |
+**Data:** `/devices`, `/devices/:id`, `/rooms`
+**Controls:** `/lamps/:id/:state`, `/dimmer/:id/:state/:brightness?`, `/led/:id/:state/:brightness/:color`, `/shutter/:id/:level`, `/actuator/:id/:state`, `/ac/:id/power/:mode/:temp`
+**Actions:** `/scene/:id/start/:timeout`, `/speak/:id` (POST), `/device/:id/blockAutomatic/:timeout`
+**Settings:** `/deviceSettings/:id` (POST), `/roomSettings/:roomName` (POST), `/groupSettings/:groupId` (POST)
 
 ## Important Notes
 
@@ -266,190 +119,37 @@ Time selector component for creating automation rules (not yet implemented).
 - API client uses dynamic base URL (reads from localStorage each request)
 - `automaticBlockedUntil` parsing handles Date/string/number formats
 
-## Implementation History
+## Key Technical Decisions
 
-### Core Features Implemented
+- No scale transforms during drag&drop (alignment issues)
+- Swift-compatible property fallback chains
+- Room comparison by name (IDs not unique)
+- Adjacent room detection: Overlap ≥ -TOLERANCE
+- Partial settings updates (only changed fields)
+- Picker components for time selection
+- Child-friendly: 60x60px touch targets, color coding
 
-#### Floor Plan & Navigation
-- **3-Level Drill-Down:** House cross-section → Floor plan → Room detail
-- **Device Position Editing:** Drag&drop placement with trilaterationRoomPosition
-- **Room Editing:** Visual room boundary adjustment
-- **Adjacent Room Navigation:** Automatic detection with arrows and room names
-- **Device Icons in Floor Plan:** Shows placed devices at actual positions
+## PWA & Mobile (01-02.01.2026)
 
-#### Radial Menu (GTA-Style)
-- **Tap-to-Toggle:** Quick actions for Lamps, Actuators, Shutters, AC, LEDs
-- **Hold-for-Menu (≥400ms):** Opens radial menu with device-specific actions
-- **150px Radius:** Large, easy-to-hit targets
-- **Clock Positions:** Consistent placement (9h=target temp, 10-14h=actions, 16-20h=status, 18h=info)
-- **Hover Sectors:** 36° colored sectors for visual feedback
-- **Mode-Specific Icons:** Flame/Snowflake for heating/cooling modes
+**PWA:** Service Worker, offline support, install prompt, push notifications, iOS splash screens
+**Filters:** Icon-only buttons, separate states (room/floor), responsive menu (mobile popup)
+**iOS Fixes:** Portal rendering, z-index hierarchy, safe-area handling, 20px padding
 
-#### Device Controls & Status
-- **Central Helper Functions:** Swift-compatible property fallback chains
-- **Color Coding:** Green=secure/on, Orange=partial, Gray=off/insecure, Red=open
-- **Child-Friendly Icons:** Same icon per type, only fill/color changes
-- **LED Brightness Rays:** 8 rays in upper semicircle (12.5% per ray, min 1 when on)
-- **Status Badges:** Detailed device status (temperature, brightness, position, battery, etc.)
-- **Device Logs (Dec 30, 2024):** Last commands display in expert mode with timestamp and log message
+## Recent Bug Fixes
 
-#### Refactoring & Architecture
-- **FloorPlanView:** Split into 4 components (HouseCrossSection, FloorPlan, RoomFloorPlanDetail, types)
-- **DeviceDetailView:** Split into 15 files (controls/, DeviceHeader, DeviceInfo, etc.)
-- **RoomsView:** Split into 7 files (RoomDetail, GroupDetailView, DeviceStatusBadges, etc.)
+**05.01.2026:**
+- Bug #14: Refresh delay 300ms → 800ms (Zigbee devices)
+- Bug #12: isDeviceUnreachable logic (devices without lastUpdate)
+- Bug #13: Room stats in floor overview (temp, lamps, AC, shutters, handles, motion)
+- Bug #11: Temperature logic (sensor vs room average)
+- Bug #10: Dimmer toggle (setDimmer without brightness)
+- Bug #9: Shutter values (0%=closed, 100%=open)
+- Bug #4: Shutter times in header (sunrise/sunset icons)
+- Mobile optimization: Stats prioritization (hide visually apparent stats)
 
-#### Mobile & Touch Support (Dec 30, 2024)
-- **iOS Touch Events:** Full drag&drop support with touch
-- **Screen-Edge Clamping:** Radial menu stays within viewport
-- **Auto-Scaling:** No scrollbars, responsive sizing
-- **Large Touch Targets:** 60x60px minimum for child-friendly use
-- **Device Icon Sizing:** Responsive based on room pixel size (xs/sm/md/lg)
-- **Adjacent Room Arrows:** Positioned at canvas border with absolute pixel coordinates
-- **Dynamic Margins:** Only reserve space where adjacent rooms exist (80px left/right, 40px top/bottom)
-- **Device Border Visibility:** 5px clamping to prevent overlap with canvas border
+**07.01.2026:**
+- Bug #1: Actuator missing "An schalten"/"Aus schalten" buttons (only Force buttons existed)
+- Bug #2: Motion sensor "Seit letzter Bewegung" always showed "Aktiv" (now shows proper time format)
 
-#### Settings & Configuration
-- **Room Settings:** ✅ Complete implementation (641 lines) - Light, shutter, night time, WebUI (floors/icon/color), movement timer, trilateration coordinates with Z-axis editing
-- **Device Settings:** ✅ Complete implementation (531 lines) - All device types: Actuator, Dimmer, LED (with color picker), Shutter, Heater, AC, Handle, Camera, Motion Sensor, Scene, Speaker, Dachs
-- **Expert Mode:** Filters complex devices (speakers, cameras, energy managers)
-- **Partial Updates:** Only send changed fields to API (delta updates for rooms, full objects for devices)
-- **Z-Coordinate Editing (Dec 30, 2024):** Floor plan edit mode allows editing floor height (Z↓) and ceiling height (Z↑) separately
-
-### Key Technical Decisions
-- **No scale transforms during drag&drop** - Prevents alignment issues
-- **fixedScale state** - Set when entering edit mode
-- **Swift-compatible property order** - Matches iOS app behavior
-- **Room comparison by name** - IDs not always unique
-- **Point-touching detection** - Overlap ≥ -TOLERANCE for adjacent rooms
-- **Adjacent Room Architecture (Dec 30, 2024):**
-  - Wrapper has fixed dimensions = Canvas size + arrow space
-  - Canvas positioned absolutely within wrapper
-  - Arrows use absolute pixel positions relative to wrapper
-  - Transform -100% to move arrows outside canvas edge
-
-### Important Notes
-- User prefers Picker components for time selection
-- Settings can be applied partially (only send changed fields)
-- Settings data is included in device/room API responses
-- Backend issue: Some devices (temperature sensors, smoke detectors) have `settings: null`
-
-## PWA Features (01.01.2026)
-
-### Implemented
-- ✅ **Service Worker** (Vite PWA Plugin)
-  - Auto-update strategy
-  - Hybrid caching (CacheFirst for assets, NetworkFirst for API)
-- ✅ **Offline Support**
-  - 30-day cache for static assets (JS, CSS, icons)
-  - 30-second cache for API data (rooms, devices)
-  - Offline banner with warning
-- ✅ **Install Prompt**
-  - `useInstallPrompt` hook
-  - Install button in Settings
-  - Detects if already installed
-- ✅ **Web Manifest**
-  - App shortcuts (Grundriss, Favoriten, Räume)
-  - Portrait orientation, categories
-- ✅ **iOS Support**
-  - Splash screens (5 sizes: iPhone X-14, iPad Pro)
-  - Apple meta tags
-- ✅ **Push Notifications**
-  - VAPID keys (secure: private key in `vapid-keys.json`, public in `webui-settings.json`)
-  - Subscribe/Unsubscribe UI in Settings
-  - Service Worker push handler
-  - `PushNotificationService` backend service
-  - Subscriptions stored in `webui-settings.json`
-
-### Floor Plan Filters (01.01.2026)
-- ✅ **Icon-only filter buttons** in PageHeader
-  - Color-coded when active (yellow=lamps, brown=sensors, etc.)
-  - Gray when inactive
-- ✅ **Separate filter states**
-  - Room view: `hoffmation-floorplan-filters` (localStorage)
-  - Floor view: `hoffmation-floorview-filters` (localStorage)
-- ✅ **Filter categories**
-  - Lamps (Lamp=8, Dimmer=9, LED=18)
-  - Door/Window/Motion Sensors (WindowSensor=2, DoorSensor=3, Lock=4, MotionSensor=10)
-  - Speakers (Speaker=14)
-  - Climate (AC=0)
-  - Shutters (Shutter=11)
-  - Temperatures (TemperatureSensor=12)
-  - Heaters (Heater=15, Thermostat=16)
-- ✅ **Bug Fix:** Motion sensors now correctly included in doorSensors category
-- ✅ **Responsive Filter Menu (02.01.2026)**
-  - Mobile: Single filter icon with badge showing active count
-  - Desktop: Four individual filter buttons (Schaltbar, Sicherheit, Klima, Sonstiges)
-  - Mobile popup with text labels on click
-  - Auto-close after selection or backdrop click
-
-### iOS PWA Fixes (02.01.2026)
-- ✅ **Bug Report Dialog**
-  - Portal rendering (outside PageHeader) to prevent safe-area conflicts
-  - Proper safe-area-inset handling without being pushed off-screen
-- ✅ **Room Floor Plan Detail**
-  - z-index hierarchy: Devices (z-20) > Multi-Floor Buttons (z-10)
-  - Multi-floor navigation buttons consolidated into main canvas
-  - Removed redundant canvas wrapper with pointer-events
-  - Room scaling: 20px padding to prevent border touching edges
-
-## Major Refactoring (05.01.2026)
-
-### Device Action Refactoring
-- **Problem:** Manual `fetchDevice()` calls scattered across 35+ components
-- **Solution:** Automatic device refresh in `executeDeviceAction()`
-- **Changes:**
-  - `executeDeviceAction()` now calls `getDevice()` automatically after every action
-  - Removed `onUpdate` parameter from all Control components
-  - Removed `fetchDevice` imports from Views
-  - Simplified all device action handlers
-- **Result:** -200 lines code, consistent refresh logic, no manual refresh needed
-
-### Property Access Standardization
-- **Problem:** Direct property access (`device._temperature`, `device.lightOn`) scattered everywhere
-- **Solution:** Centralized getter functions in `deviceStore.ts`
-- **Changes:**
-  - All views now use getter functions (`getDeviceTemperature()`, `isDeviceOn()`, etc.)
-  - Added missing getters: `getDeviceLastUpdate()`, `getHandlePosition()`, `getRoomTemperature()`
-  - Moved `getPrimaryCapability()` from DeviceIcon to deviceStore
-- **Result:** Consistent property access, easier to maintain, type-safe
-
-### Temperature Logic Fix (Bug #11)
-- **Problem:** Confused device temperature vs room temperature
-  - `getDeviceTemperature()` returned room average instead of sensor value
-  - AC/Heater showed wrong temperature (sensor instead of room average)
-- **Solution:** Split into two functions
-  - `getDeviceTemperature()` → Returns sensor's own temperature (for device views)
-  - `getRoomTemperature()` → Returns room average from backend (for room stats & climate control)
-- **Result:** Correct temperatures everywhere, AC/Heater use room average
-
-### Shutter Logic Fix (Bug #9)
-- **Problem:** Inverted shutter values (0% shown as open, 100% as closed)
-- **Solution:** Corrected interpretation across all components
-  - 0% = closed (green icon)
-  - 100% = open (gray icon)
-  - Updated DeviceIcon, roomStore, RadialDeviceMenu, RadialMenu
-- **Result:** Consistent shutter display matching backend logic
-
-### Dimmer Toggle Fix (Bug #10)
-- **Problem:** Dimmers could be turned off but not on
-- **Solution:** Use `setDimmer()` without brightness parameter (like Swift app)
-  - Backend handles default brightness automatically
-  - Removed brightness parameter from toggle calls
-- **Result:** Dimmer toggle works in both directions
-
-### Bugs Fixed (05.01.2026)
-- ✅ Bug #1-10: Various UI/logic fixes
-- ✅ Bug #11: Temperature display (sensor vs room average)
-- ✅ Bug #8: Command Log (already implemented, was empty due to server restart)
-
-### Recently Completed (Jan 5, 2026)
-- ✅ Bug #14: Device-Refresh Delay erhöht (300ms → 800ms)
-- ✅ Bug #12: isDeviceUnreachable Logik korrigiert (Geräte ohne lastUpdate)
-- ✅ Bug #13: Room Stats in Grundriss-Ansicht (Temperatur, Lampen, AC, Rollos, Griffe, Bewegung)
-- ✅ Bug #4: Rollo-Zeiten im Grundriss-Header (Sunrise/Sunset mit Icons)
-- ✅ Mobile-Optimierung: Stats-Priorisierung (nur wichtige Stats auf Mobile sichtbar)
-
-### Pending Features
-- [ ] Time Selector for Automation Rules
-- [ ] Group settings view
-- [ ] Heat group settings
+**11.01.2026:**
+- Bug #3: Device refresh button added to DeviceDetailView header (for all devices)
