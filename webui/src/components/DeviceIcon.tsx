@@ -5,8 +5,7 @@ import {
   getDeviceTemperature, 
   getAcMode, 
   isMotionDetected, 
-  isDeviceAvailable, 
-  getDeviceLastUpdate,
+  isDeviceUnreachable,
   getPrimaryCapability,
   getHandlePosition
 } from '@/stores/deviceStore';
@@ -183,17 +182,8 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
 }
 
 export function getDeviceStatusColor(device: Device): string {
-  // Check if device is unreachable - return bright red
-  const isUnreachable = !isDeviceAvailable(device);
-  const lastUpdateRaw = getDeviceLastUpdate(device);
-  let isStale = false;
-  if (lastUpdateRaw) {
-    const lastUpdateDate = new Date(lastUpdateRaw);
-    const hoursSinceUpdate = (Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60);
-    isStale = hoursSinceUpdate > 1;
-  }
-  
-  if (isUnreachable || isStale) {
+  // Use centralized unreachability detection
+  if (isDeviceUnreachable(device)) {
     return 'bg-red-500';
   }
   

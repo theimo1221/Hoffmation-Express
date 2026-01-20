@@ -80,18 +80,10 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
   const speakerSettings = hasSpeakerProps ? flatSettings as unknown as SpeakerSettings : (device.settings?.speakerSettings ?? deviceAny.speakerSettings as SpeakerSettings | undefined);
   const dachsSettings = hasDachsProps ? flatSettings as unknown as DachsSettings : (device.settings?.dachsSettings ?? deviceAny.dachsSettings as DachsSettings | undefined);
   
-  // Local state for all settings - only use backend values, no fallback defaults
-  const [localActuator, setLocalActuator] = useState<ActuatorSettings | undefined>(
-    actuatorSettings ?? dimmerSettings ?? ledSettings
-  );
-  
-  const [localDimmer, setLocalDimmer] = useState<DimmerSettings | undefined>(
-    dimmerSettings ?? ledSettings
-  );
-  
-  const [localLed, setLocalLed] = useState<LedSettings | undefined>(
-    ledSettings
-  );
+  // Local state for lamp settings - use single settings object based on inheritance
+  // LED extends Dimmer extends Actuator - only use the most specific one
+  const lampSettings = ledSettings ?? dimmerSettings ?? actuatorSettings;
+  const [localLampSettings, setLocalLampSettings] = useState<LedSettings | DimmerSettings | ActuatorSettings | undefined>(lampSettings);
   
   const [localShutter, setLocalShutter] = useState<ShutterSettings | undefined>(
     shutterSettings
@@ -131,9 +123,9 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
   
   // Determine which settings to show based on capability AND backend data
   // Only show settings if they exist from backend (no fallback defaults)
-  const showActuator = isLampOrActuator && !hasDachsProps && localActuator;
-  const showDimmer = (isDimmable || isLed) && localDimmer;
-  const showLed = isLed && localLed;
+  const showLampSettings = isLampOrActuator && !hasDachsProps && localLampSettings;
+  const showDimmerControls = (isDimmable || isLed) && localLampSettings;
+  const showLedControls = isLed && localLampSettings;
   const showShutter = isShutter && localShutter;
   const showHeater = isHeater && localHeater;
   const showAc = isAc && localAc;
@@ -144,7 +136,7 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
   const showSpeaker = isSpeaker && localSpeaker;
   const showDachs = hasDachsProps && localDachs;
 
-  const hasAnySettings = showActuator || showDimmer || showLed || showShutter || 
+  const hasAnySettings = showLampSettings || showShutter || 
     showHeater || showAc || showHandle || showCamera || showMotionSensor || showScene || showSpeaker || showDachs;
 
   if (!hasAnySettings) {
@@ -157,12 +149,15 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
     try {
       const settings: Record<string, unknown> = {};
       
-      if (showLed) {
-        settings.ledSettings = localLed;
-      } else if (showDimmer) {
-        settings.dimmerSettings = localDimmer;
-      } else if (showActuator) {
-        settings.actuatorSettings = localActuator;
+      if (showLampSettings) {
+        // Save to the correct settings key based on what we received from backend
+        if (ledSettings) {
+          settings.ledSettings = localLampSettings;
+        } else if (dimmerSettings) {
+          settings.dimmerSettings = localLampSettings;
+        } else if (actuatorSettings) {
+          settings.actuatorSettings = localLampSettings;
+        }
       }
       if (showShutter) settings.shutterSettings = localShutter;
       if (showHeater) settings.heaterSettings = localHeater;
@@ -198,46 +193,46 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
         />
 
         {/* Actuator/Lamp Settings */}
-        {showActuator && (
+        {showLampSettings && (
           <SettingsGroup title="Lampen-Einstellungen" disabled={!isEditing}>
-            <SettingToggle label="Tagsüber an" checked={localActuator.dayOn ?? false}
-              onChange={(v) => { setLocalActuator(s => ({ ...s, dayOn: v })); setLocalDimmer(s => ({ ...s, dayOn: v })); setLocalLed(s => ({ ...s, dayOn: v })); }} disabled={!isEditing} />
-            <SettingToggle label="Morgens an" checked={localActuator.dawnOn ?? false}
-              onChange={(v) => { setLocalActuator(s => ({ ...s, dawnOn: v })); setLocalDimmer(s => ({ ...s, dawnOn: v })); setLocalLed(s => ({ ...s, dawnOn: v })); }} disabled={!isEditing} />
-            <SettingToggle label="Abends an" checked={localActuator.duskOn ?? false}
-              onChange={(v) => { setLocalActuator(s => ({ ...s, duskOn: v })); setLocalDimmer(s => ({ ...s, duskOn: v })); setLocalLed(s => ({ ...s, duskOn: v })); }} disabled={!isEditing} />
-            <SettingToggle label="Nachts an" checked={localActuator.nightOn ?? false}
-              onChange={(v) => { setLocalActuator(s => ({ ...s, nightOn: v })); setLocalDimmer(s => ({ ...s, nightOn: v })); setLocalLed(s => ({ ...s, nightOn: v })); }} disabled={!isEditing} />
-            <SettingToggle label="In Ambientelicht einbeziehen" checked={localActuator.includeInAmbientLight ?? false}
-              onChange={(v) => { setLocalActuator(s => ({ ...s, includeInAmbientLight: v })); setLocalDimmer(s => ({ ...s, includeInAmbientLight: v })); setLocalLed(s => ({ ...s, includeInAmbientLight: v })); }} disabled={!isEditing} />
+            <SettingToggle label="Tagsüber an" checked={localLampSettings?.dayOn ?? false}
+              onChange={(v) => setLocalLampSettings(s => s ? { ...s, dayOn: v } : { dayOn: v })} disabled={!isEditing} />
+            <SettingToggle label="Morgens an" checked={localLampSettings?.dawnOn ?? false}
+              onChange={(v) => setLocalLampSettings(s => s ? { ...s, dawnOn: v } : { dawnOn: v })} disabled={!isEditing} />
+            <SettingToggle label="Abends an" checked={localLampSettings?.duskOn ?? false}
+              onChange={(v) => setLocalLampSettings(s => s ? { ...s, duskOn: v } : { duskOn: v })} disabled={!isEditing} />
+            <SettingToggle label="Nachts an" checked={localLampSettings?.nightOn ?? false}
+              onChange={(v) => setLocalLampSettings(s => s ? { ...s, nightOn: v } : { nightOn: v })} disabled={!isEditing} />
+            <SettingToggle label="In Ambientelicht einbeziehen" checked={localLampSettings?.includeInAmbientLight ?? false}
+              onChange={(v) => setLocalLampSettings(s => s ? { ...s, includeInAmbientLight: v } : { includeInAmbientLight: v })} disabled={!isEditing} />
           </SettingsGroup>
         )}
 
         {/* Dimmer Brightness Settings */}
-        {showDimmer && (
+        {showDimmerControls && (
           <SettingsGroup title="Helligkeit" disabled={!isEditing}>
-            <SettingSlider label="Helligkeit tagsüber" value={localDimmer.dayBrightness ?? 100} min={0} max={100} unit="%"
-              onChange={(v) => { setLocalDimmer(s => ({ ...s, dayBrightness: v })); setLocalLed(s => ({ ...s, dayBrightness: v })); }} disabled={!isEditing} />
-            <SettingSlider label="Helligkeit morgens" value={localDimmer.dawnBrightness ?? 75} min={0} max={100} unit="%"
-              onChange={(v) => { setLocalDimmer(s => ({ ...s, dawnBrightness: v })); setLocalLed(s => ({ ...s, dawnBrightness: v })); }} disabled={!isEditing} />
-            <SettingSlider label="Helligkeit abends" value={localDimmer.duskBrightness ?? 75} min={0} max={100} unit="%"
-              onChange={(v) => { setLocalDimmer(s => ({ ...s, duskBrightness: v })); setLocalLed(s => ({ ...s, duskBrightness: v })); }} disabled={!isEditing} />
-            <SettingSlider label="Helligkeit nachts" value={localDimmer.nightBrightness ?? 50} min={0} max={100} unit="%"
-              onChange={(v) => { setLocalDimmer(s => ({ ...s, nightBrightness: v })); setLocalLed(s => ({ ...s, nightBrightness: v })); }} disabled={!isEditing} />
+            <SettingSlider label="Helligkeit tagsüber" value={(localLampSettings as DimmerSettings)?.dayBrightness ?? 100} min={0} max={100} unit="%"
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, dayBrightness: v }))} disabled={!isEditing} />
+            <SettingSlider label="Helligkeit morgens" value={(localLampSettings as DimmerSettings)?.dawnBrightness ?? 75} min={0} max={100} unit="%"
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, dawnBrightness: v }))} disabled={!isEditing} />
+            <SettingSlider label="Helligkeit abends" value={(localLampSettings as DimmerSettings)?.duskBrightness ?? 75} min={0} max={100} unit="%"
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, duskBrightness: v }))} disabled={!isEditing} />
+            <SettingSlider label="Helligkeit nachts" value={(localLampSettings as DimmerSettings)?.nightBrightness ?? 50} min={0} max={100} unit="%"
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, nightBrightness: v }))} disabled={!isEditing} />
           </SettingsGroup>
         )}
 
         {/* LED Color Settings */}
-        {showLed && (
+        {showLedControls && (
           <SettingsGroup title="Farben" disabled={!isEditing}>
-            <SettingColor label="Farbe tagsüber" value={localLed.dayColor ?? '#FFFFFF'}
-              onChange={(v) => setLocalLed(s => ({ ...s, dayColor: v }))} disabled={!isEditing} />
-            <SettingColor label="Farbe morgens" value={localLed.dawnColor ?? '#FBBC32'}
-              onChange={(v) => setLocalLed(s => ({ ...s, dawnColor: v }))} disabled={!isEditing} />
-            <SettingColor label="Farbe abends" value={localLed.duskColor ?? '#FBBC32'}
-              onChange={(v) => setLocalLed(s => ({ ...s, duskColor: v }))} disabled={!isEditing} />
-            <SettingColor label="Farbe nachts" value={localLed.nightColor ?? '#FF6B35'}
-              onChange={(v) => setLocalLed(s => ({ ...s, nightColor: v }))} disabled={!isEditing} />
+            <SettingColor label="Farbe tagsüber" value={(localLampSettings as LedSettings)?.dayColor ?? '#FFFFFF'}
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, dayColor: v }))} disabled={!isEditing} />
+            <SettingColor label="Farbe morgens" value={(localLampSettings as LedSettings)?.dawnColor ?? '#FBBC32'}
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, dawnColor: v }))} disabled={!isEditing} />
+            <SettingColor label="Farbe abends" value={(localLampSettings as LedSettings)?.duskColor ?? '#FBBC32'}
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, duskColor: v }))} disabled={!isEditing} />
+            <SettingColor label="Farbe nachts" value={(localLampSettings as LedSettings)?.nightColor ?? '#FF6B35'}
+              onChange={(v) => setLocalLampSettings(s => ({ ...s, nightColor: v }))} disabled={!isEditing} />
           </SettingsGroup>
         )}
 

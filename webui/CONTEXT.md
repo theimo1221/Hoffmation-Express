@@ -153,3 +153,7 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 
 **11.01.2026:**
 - Bug #3: Device refresh button added to DeviceDetailView header (for all devices)
+
+**20.01.2026:**
+- Bug #4: Sonos devices incorrectly marked as offline (red background) - fixed isDeviceUnreachable logic
+- Bug #5: "Nachts an" setting couldn't be disabled - refactored settings inheritance (LED > Dimmer > Actuator)
