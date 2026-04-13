@@ -49,7 +49,7 @@ export class RestService {
 
   public static initialize(app: Express, config: iRestSettings): void {
     this._app = app;
-    
+
     // Initialize push notification service
     PushNotificationService.initialize();
 
@@ -139,7 +139,7 @@ export class RestService {
       return res.send(camera.lastImage);
     });
 
-    this._app.get('/lamps/:deviceId/:state/:duration?', (req, res) => {
+    this._app.get('/lamps/:deviceId/:state/:duration', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.duration);
       return res.send(
         API.lampSetLight(
@@ -154,13 +154,22 @@ export class RestService {
       );
     });
 
+    this._app.get('/lamps/:deviceId/:state', (req, res) => {
+      return res.send(
+        API.lampSetLight(
+          req.params.deviceId,
+          new LampSetLightCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req)),
+        ),
+      );
+    });
+
     this._app.get('/actuator/:deviceId/restart', (req, res) => {
       const deviceId: string = req.params.deviceId;
       const clientInfo: string = this.getClientInfo(req);
       return res.send(this.restartDevice(deviceId, clientInfo));
     });
 
-    this._app.get('/actuator/:deviceId/:state/:duration?', (req, res) => {
+    this._app.get('/actuator/:deviceId/:state/:duration', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.duration);
       return res.send(
         API.actuatorSetState(
@@ -175,7 +184,16 @@ export class RestService {
       );
     });
 
-    this._app.get('/dimmer/:deviceId/:state/:brightness?/:forceDuration?', (req, res) => {
+    this._app.get('/actuator/:deviceId/:state', (req, res) => {
+      return res.send(
+        API.actuatorSetState(
+          req.params.deviceId,
+          new ActuatorSetStateCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req)),
+        ),
+      );
+    });
+
+    this._app.get('/dimmer/:deviceId/:state/:brightness/:forceDuration', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.forceDuration);
       const brightness: number | undefined = this.getIntParameter(req.params.brightness, false);
       return res.send(
@@ -192,7 +210,32 @@ export class RestService {
       );
     });
 
-    this._app.get('/led/:deviceId/:state/:brightness/:color/:forceDuration?', (req, res) => {
+    this._app.get('/dimmer/:deviceId/:state/:brightness', (req, res) => {
+      const brightness: number | undefined = this.getIntParameter(req.params.brightness, false);
+      return res.send(
+        API.dimmerSetLight(
+          req.params.deviceId,
+          new DimmerSetLightCommand(
+            CommandSource.API,
+            req.params.state === 'true',
+            this.getClientInfo(req),
+            undefined,
+            brightness,
+          ),
+        ),
+      );
+    });
+
+    this._app.get('/dimmer/:deviceId/:state', (req, res) => {
+      return res.send(
+        API.dimmerSetLight(
+          req.params.deviceId,
+          new DimmerSetLightCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req)),
+        ),
+      );
+    });
+
+    this._app.get('/led/:deviceId/:state/:brightness/:color/:forceDuration', (req, res) => {
       const blockCommand: BlockAutomaticCommand | undefined | null = this.getBlockComand(req.params.forceDuration);
       return res.send(
         API.ledSetLight(
@@ -202,6 +245,24 @@ export class RestService {
             req.params.state === 'true',
             this.getClientInfo(req),
             blockCommand,
+            parseFloat(req.params.brightness),
+            undefined,
+            req.params.color,
+            undefined,
+          ),
+        ),
+      );
+    });
+
+    this._app.get('/led/:deviceId/:state/:brightness/:color', (req, res) => {
+      return res.send(
+        API.ledSetLight(
+          req.params.deviceId,
+          new LedSetLightCommand(
+            CommandSource.API,
+            req.params.state === 'true',
+            this.getClientInfo(req),
+            undefined,
             parseFloat(req.params.brightness),
             undefined,
             req.params.color,
@@ -290,7 +351,7 @@ export class RestService {
       return res.send();
     });
 
-    this._app.get('/temperature/:deviceId/history/:startDate?/:endDate?', async (req, res) => {
+    this._app.get('/temperature/:deviceId/history/:startDate/:endDate', async (req, res) => {
       const temperatureDevice: iTemperatureCollector | undefined = API.getDevice(req.params.deviceId) as
         | iTemperatureCollector
         | undefined;
@@ -303,6 +364,17 @@ export class RestService {
         : undefined;
       const endDate: Date | undefined = req.params.endDate ? new Date(parseInt(req.params.endDate, 10)) : undefined;
       return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(startDate, endDate));
+    });
+
+    this._app.get('/temperature/:deviceId/history', async (req, res) => {
+      const temperatureDevice: iTemperatureCollector | undefined = API.getDevice(req.params.deviceId) as
+        | iTemperatureCollector
+        | undefined;
+      if (temperatureDevice === undefined) {
+        res.status(404);
+        return res.send();
+      }
+      return res.send(await temperatureDevice.temperatureSensor.getTemperatureHistory(undefined, undefined));
     });
 
     // WebUI Settings endpoint (readonly)
@@ -329,24 +401,24 @@ export class RestService {
     this._app.post('/webui/push/subscribe', (req, res) => {
       const subscription = req.body;
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
-      
+
       try {
         let settings: any = { version: '0.0' };
         if (fs.existsSync(settingsPath)) {
           const settingsData = fs.readFileSync(settingsPath, 'utf-8');
           settings = JSON.parse(settingsData);
         }
-        
+
         // Initialize pushSubscriptions array if not exists
         if (!settings.pushSubscriptions) {
           settings.pushSubscriptions = [];
         }
-        
+
         // Check if subscription already exists (by endpoint)
         const existingIndex = settings.pushSubscriptions.findIndex(
-          (sub: any) => sub.endpoint === subscription.endpoint
+          (sub: any) => sub.endpoint === subscription.endpoint,
         );
-        
+
         if (existingIndex >= 0) {
           // Update existing subscription
           settings.pushSubscriptions[existingIndex] = subscription;
@@ -354,11 +426,14 @@ export class RestService {
           // Add new subscription
           settings.pushSubscriptions.push(subscription);
         }
-        
+
         // Write back to file
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-        ServerLogService.writeLog(LogLevel.Info, `Push subscription saved (${settings.pushSubscriptions.length} total)`);
-        
+        ServerLogService.writeLog(
+          LogLevel.Info,
+          `Push subscription saved (${settings.pushSubscriptions.length} total)`,
+        );
+
         return res.json({ success: true });
       } catch (error: unknown) {
         const err = error as { message?: string };
@@ -372,24 +447,22 @@ export class RestService {
     this._app.post('/webui/push/unsubscribe', (req, res) => {
       const { endpoint } = req.body;
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
-      
+
       try {
         if (!fs.existsSync(settingsPath)) {
           return res.json({ success: true });
         }
-        
+
         const settingsData = fs.readFileSync(settingsPath, 'utf-8');
         const settings = JSON.parse(settingsData);
-        
+
         if (settings.pushSubscriptions) {
-          settings.pushSubscriptions = settings.pushSubscriptions.filter(
-            (sub: any) => sub.endpoint !== endpoint
-          );
-          
+          settings.pushSubscriptions = settings.pushSubscriptions.filter((sub: any) => sub.endpoint !== endpoint);
+
           fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
           ServerLogService.writeLog(LogLevel.Info, `Push subscription removed`);
         }
-        
+
         return res.json({ success: true });
       } catch (error: unknown) {
         const err = error as { message?: string };
@@ -407,12 +480,12 @@ export class RestService {
         if (fs.existsSync(settingsPath)) {
           const settingsData = fs.readFileSync(settingsPath, 'utf-8');
           const settings = JSON.parse(settingsData);
-          
+
           if (settings.vapidPublicKey) {
             return res.json({ publicKey: settings.vapidPublicKey });
           }
         }
-        
+
         res.status(404);
         return res.json({ error: 'VAPID public key not configured' });
       } catch (error: unknown) {
@@ -430,7 +503,7 @@ export class RestService {
 
     // Bug report endpoints
     const reportsPath = path.join(__dirname, '..', 'config', 'private', 'bug-reports.json');
-    
+
     // Helper function to load bug reports
     const loadBugReports = (): any[] => {
       if (fs.existsSync(reportsPath)) {
@@ -444,30 +517,30 @@ export class RestService {
       }
       return [];
     };
-    
+
     // Helper function to save bug reports
     const saveBugReports = (reports: any[]): void => {
       fs.writeFileSync(reportsPath, JSON.stringify(reports, null, 2), 'utf-8');
     };
-    
+
     // POST /webui/bug-report - Create new bug report
     this._app.post('/webui/bug-report', (req, res) => {
       try {
         const bugReport = req.body;
         const timestamp = new Date().toISOString();
-        const reportWithTimestamp = { 
-          ...bugReport, 
-          createdAt: timestamp, 
+        const reportWithTimestamp = {
+          ...bugReport,
+          createdAt: timestamp,
           id: Date.now().toString(),
-          done: false 
+          done: false,
         };
-        
+
         const reports = loadBugReports();
         reports.push(reportWithTimestamp);
         saveBugReports(reports);
-        
+
         ServerLogService.writeLog(LogLevel.Info, `Bug report saved: ${bugReport.description?.substring(0, 50)}...`);
-        
+
         return res.json({ success: true, id: reportWithTimestamp.id });
       } catch (error: unknown) {
         const err = error as { message?: string };
@@ -475,7 +548,7 @@ export class RestService {
         return res.status(500).json({ success: false, error: err.message });
       }
     });
-    
+
     // GET /webui/bug-reports - Get all bug reports
     this._app.get('/webui/bug-reports', (_req, res) => {
       try {
@@ -487,23 +560,23 @@ export class RestService {
         return res.status(500).json({ success: false, error: err.message });
       }
     });
-    
+
     // PATCH /webui/bug-report/:id - Update bug report
     this._app.patch('/webui/bug-report/:id', (req, res) => {
       try {
         const { id } = req.params;
         const updates = req.body;
-        
+
         const reports = loadBugReports();
         const reportIndex = reports.findIndex((r: any) => r.id === id);
-        
+
         if (reportIndex === -1) {
           return res.status(404).json({ success: false, error: 'Bug report not found' });
         }
-        
+
         // Update report
         const updatedReport = { ...reports[reportIndex], ...updates };
-        
+
         // If marking as done, add doneAt timestamp
         if (updates.done === true && !reports[reportIndex].done) {
           updatedReport.doneAt = new Date().toISOString();
@@ -512,12 +585,12 @@ export class RestService {
         if (updates.done === false && reports[reportIndex].done) {
           delete updatedReport.doneAt;
         }
-        
+
         reports[reportIndex] = updatedReport;
         saveBugReports(reports);
-        
+
         ServerLogService.writeLog(LogLevel.Info, `Bug report ${id} updated`);
-        
+
         return res.json({ success: true, report: updatedReport });
       } catch (error: unknown) {
         const err = error as { message?: string };
