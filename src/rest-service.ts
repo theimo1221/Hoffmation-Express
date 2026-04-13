@@ -690,7 +690,7 @@ export class RestService {
 
     // SPA fallback - serve index.html for all /ui/* routes (only if WebUI enabled)
     if (config.webUi) {
-      this._app.get('/ui/:path(*)', (_req, res) => {
+      this._app.get('/ui/{*path}', (_req, res) => {
         try {
           res.sendFile(path.join(__dirname, '..', 'webui', 'dist', 'index.html'));
         } catch (e) {
