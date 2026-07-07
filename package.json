@@ -31,9 +31,23 @@
     "pg-test": "tsc && node lib/src/tests/pg-test.js",
     "config-test": "tsx src/tests/config-test.ts --no-cache",
     "create-rooms": "ts-node RoomCreation/createRooms.ts && npm run lint-fix-rooms && npm run build",
-    "check-package-upgrades": "npx npm-check-updates -i"
+    "check-package-upgrades": "npx npm-check-updates -i",
+    "test": "vitest run && playwright test",
+    "test:backend": "vitest run",
+    "test:backend:watch": "vitest run --watch",
+    "dev:mock": "tsx test/dev-server.ts --no-cache",
+    "dev:mock:watch": "concurrently -k -n api,ui -c blue,magenta \"tsx watch test/dev-server.ts\" \"cd webui && npx vite build --watch\"",
+    "dev:proxy": "cd webui && npx vite",
+    "dev:proxy:watch": "concurrently -k -n api,ui -c blue,magenta \"tsx watch test/dev-server.ts\" \"cd webui && HOFFMATION_API_PROXY_TARGET=http://localhost:3000 npx vite\"",
+    "test:ui": "playwright test",
+    "test:ui:headed": "playwright test --headed",
+    "coverage:backend": "vitest run --coverage",
+    "coverage:ui": "npm run test:ui",
+    "coverage": "npm run coverage:backend && npm run coverage:ui && lcov-result-merger \"coverage/*/lcov.info\" coverage/lcov.info"
   },
   "dependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "express": "5.2.1",
     "hoffmation-base": "3.4.7",
@@ -57,6 +71,14 @@
     "postcss-load-config": "^6.0.1",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
+    "concurrently": "^9.1.0",
+    "supertest": "^7.0.0",
+    "@types/supertest": "^6.0.0",
+    "vitest": "^2.1.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "@playwright/test": "^1.48.0",
+    "monocart-coverage-reports": "^2.11.0",
+    "lcov-result-merger": "^5.0.1",
     "typescript": "^5.9.3"
   }
 }

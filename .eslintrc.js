@@ -16,6 +16,7 @@ module.exports = {
     '@typescript-eslint/no-inferrable-types': [0],
     '@typescript-eslint/adjacent-overload-signatures': [0],
     "unused-imports/no-unused-imports": "error",
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
   },
   overrides: [
     {

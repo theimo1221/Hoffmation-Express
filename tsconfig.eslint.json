@@ -3,6 +3,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/**/*.ts",
+    "test/**/*.ts",
     "RoomCreation/*.ts",
     ".eslintrc.js",
   ]
