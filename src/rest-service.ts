@@ -1,5 +1,7 @@
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { Express, json, Request, Response, NextFunction, static as expressStatic } from 'express';
+import { AuthService, type Principal } from './auth-service';
 import * as path from 'path';
 import * as fs from 'fs';
 import { exec } from 'child_process';
@@ -47,7 +49,7 @@ export class RestService {
   private static _initialized: boolean = false;
   private static _queuedCustomHandler: CustomHandler[] = new Array<CustomHandler>();
 
-  public static initialize(app: Express, config: iRestSettings): void {
+  public static async initialize(app: Express, config: iRestSettings): Promise<void> {
     this._app = app;
 
     // Initialize push notification service
@@ -61,9 +63,167 @@ export class RestService {
 
     this.app.use(json());
 
-    this._app.listen(config.port, () => {
-      ServerLogService.writeLog(LogLevel.Info, `REST service listening at http://localhost:${config.port}`);
+    this._app.use(cookieParser());
+    await AuthService.init();
+
+    const OPEN = [/^\/isAlive/, /^\/auth\/(login|logout)$/, /^\/$/, /^\/ui(\/|$)/, /^\/favicon/];
+
+    const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+      if (!AuthService.enabled) return next();
+      const p = req.principal;
+      if (!p || p.role !== 'admin') {
+        ServerLogService.writeLog(LogLevel.Warn, `AUTH-ADMIN-DENY: ip=${req.ip} path=${req.path}`);
+        return res.status(p ? 403 : 401).json({ error: p ? 'forbidden' : 'unauthorized' });
+      }
+      return next();
+    };
+
+    this._app.use((req, res, next) => {
+      if (!AuthService.enabled) return next();
+      if (OPEN.some((re) => re.test(req.path))) return next();
+
+      let principal: Principal | null = null;
+      if (req.headers.authorization?.startsWith('Bearer ')) {
+        principal = AuthService.resolveToken(req.headers.authorization.slice(7));
+      } else if (req.cookies?.hf_sid) {
+        principal = AuthService.resolveSession(req.cookies.hf_sid);
+      } else if (typeof req.query.code === 'string') {
+        const queryPrincipal = AuthService.resolveToken(req.query.code);
+        if (queryPrincipal && queryPrincipal.role === 'webhook') {
+          principal = { ...queryPrincipal, via: 'query' };
+        }
+      }
+      req.principal = principal || undefined;
+
+      const enforced = AuthService.mode === 'enforced';
+
+      if (!principal) {
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          `AUTH-${enforced ? 'BLOCK' : 'WOULD-BLOCK'}: ip=${req.ip} ua="${req.headers['user-agent']}" path=${req.path}`,
+        );
+        return enforced ? res.status(401).json({ error: 'unauthorized' }) : next();
+      }
+      if (!AuthService.roleAllows(principal.role, req.path)) {
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          `AUTH-FORBIDDEN role=${principal.role} principal=${principal.name} path=${req.path}`,
+        );
+        if (enforced) return res.status(403).json({ error: 'forbidden' });
+      }
+      const seg = req.path.split('/').filter(Boolean);
+      const endpointPrefix = seg[0];
+      const deviceId = seg[1];
+      if (endpointPrefix && deviceId && !AuthService.mayControlEndpoint(principal, endpointPrefix, deviceId)) {
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          `AUTHZ-${enforced ? 'DENY' : 'WOULD-DENY'}: principal=${principal.name} endpoint=${endpointPrefix} device=${deviceId}`,
+        );
+        if (enforced) return res.status(403).json({ error: 'forbidden-room-or-class' });
+      }
+      return next();
     });
+
+    this._app.post('/auth/login', (req, res) => {
+      const result = AuthService.login(req.body.username, req.body.password, req.ip);
+      if (!result) {
+        ServerLogService.writeLog(LogLevel.Warn, `AUTH-LOGIN-FAIL user=${req.body.username} ip=${req.ip}`);
+        return res.status(401).json({ error: 'invalid credentials' });
+      }
+      // secure:true if behind TLS (X-Forwarded-Proto: https) or HF_SECURE_COOKIES=true
+      const secureCookies = process.env.HF_SECURE_COOKIES === 'true' || req.headers['x-forwarded-proto'] === 'https';
+      res.cookie('hf_sid', result.sid, { httpOnly: true, sameSite: 'strict', secure: secureCookies });
+      res.cookie('hf_role', result.role, { httpOnly: false, sameSite: 'strict', secure: secureCookies });
+      return res.json({ success: true, role: result.role });
+    });
+    this._app.post('/auth/logout', (req, res) => {
+      if (req.cookies?.hf_sid) AuthService.logout(req.cookies.hf_sid);
+      res.clearCookie('hf_sid');
+      res.clearCookie('hf_role');
+      return res.json({ success: true });
+    });
+
+    this._app.get('/auth/mode', requireAdmin, (_req, res) => res.json({ mode: AuthService.mode }));
+
+    this._app.get('/auth/users', requireAdmin, (_req, res) => res.json(AuthService.listUsers()));
+    this._app.post('/auth/users', requireAdmin, async (req, res) => {
+      const { username, password, role, deny } = req.body;
+      if (!username || typeof username !== 'string' || username.trim().length === 0) {
+        return res.status(400).json({ error: 'invalid username' });
+      }
+      if (!password || typeof password !== 'string' || password.length < 4) {
+        return res.status(400).json({ error: 'invalid password (min 4 chars)' });
+      }
+      if (!['admin', 'control', 'webhook'].includes(role)) {
+        return res.status(400).json({ error: 'invalid role' });
+      }
+      await AuthService.upsertUser({
+        username: username.trim(),
+        role,
+        pwHash: AuthService.hashPw(password),
+        deny: deny ?? {},
+        disabled: false,
+      });
+      return res.json({ success: true });
+    });
+    this._app.patch('/auth/users/:name', requireAdmin, async (req, res) => {
+      const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+      const cur = AuthService.getUserForPatch(name);
+      if (!cur) return res.status(404).json({ error: 'not found' });
+      const body = req.body;
+      if (body.role && !['admin', 'control', 'webhook'].includes(body.role)) {
+        return res.status(400).json({ error: 'invalid role' });
+      }
+      if (body.password && (typeof body.password !== 'string' || body.password.length < 4)) {
+        return res.status(400).json({ error: 'invalid password (min 4 chars)' });
+      }
+      await AuthService.upsertUser({
+        username: name,
+        role: body.role ?? cur.role,
+        deny: body.deny ?? cur.deny ?? {},
+        disabled: body.disabled ?? cur.disabled ?? false,
+        pwHash: body.password ? AuthService.hashPw(body.password) : cur.pwHash,
+      });
+      return res.json({ success: true });
+    });
+    this._app.delete('/auth/users/:name', requireAdmin, async (req, res) => {
+      const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+      await AuthService.deleteUser(name);
+      return res.json({ success: true });
+    });
+
+    this._app.get('/auth/tokens', requireAdmin, (_req, res) => res.json(AuthService.listTokens()));
+    this._app.post('/auth/tokens', requireAdmin, async (req, res) => {
+      const { label, role, deny, scope } = req.body;
+      if (!label || typeof label !== 'string' || label.trim().length === 0) {
+        return res.status(400).json({ error: 'invalid label' });
+      }
+      if (!['admin', 'control', 'webhook'].includes(role)) {
+        return res.status(400).json({ error: 'invalid role' });
+      }
+      const token = await AuthService.mintToken(label.trim(), role, deny, scope);
+      return res.json({ label: label.trim(), token, note: 'jetzt sichern, wird nur einmal angezeigt' });
+    });
+    this._app.delete('/auth/tokens/:label', requireAdmin, async (req, res) => {
+      const label = Array.isArray(req.params.label) ? req.params.label[0] : req.params.label;
+      await AuthService.revokeToken(label);
+      return res.json({ success: true });
+    });
+
+    this._app.post('/auth/mode', requireAdmin, async (req, res) => {
+      const { mode } = req.body;
+      if (!['optional', 'enforced'].includes(mode)) {
+        return res.status(400).json({ error: 'invalid mode (must be optional or enforced)' });
+      }
+      await AuthService.setMode(mode);
+      return res.json({ mode });
+    });
+
+    if (!process.env.HOFFMATION_TESTMODE) {
+      this._app.listen(config.port, () => {
+        ServerLogService.writeLog(LogLevel.Info, `REST service listening at http://localhost:${config.port}`);
+      });
+    }
 
     // Serve WebUI static files under /ui (only if enabled in config)
     if (config.webUi) {
@@ -115,7 +275,7 @@ export class RestService {
       return res.send(API.getGroup(req.params.groupId));
     });
 
-    this._app.get('/ac/power/:state', (req, res) => {
+    this._app.get('/ac/power/:state', requireAdmin, (req, res) => {
       API.setAllAc(req.params.state === 'true');
       res.status(200);
       return res.send();
@@ -310,13 +470,13 @@ export class RestService {
       return res.send(API.setGroupSettings(req.params.groupId, req.body.settings));
     });
 
-    this._app.get('/deviceSettings/persist', (_req, res) => {
+    this._app.get('/deviceSettings/persist', requireAdmin, (_req, res) => {
       API.persistAllDeviceSettings();
       res.status(200);
       return res.send();
     });
 
-    this._app.get('/deviceSettings/restore', (_req, res) => {
+    this._app.get('/deviceSettings/restore', requireAdmin, (_req, res) => {
       API.loadAllDeviceSettingsFromDb();
       res.status(200);
       return res.send();
@@ -403,10 +563,11 @@ export class RestService {
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
 
       try {
-        let settings: any = { version: '0.0' };
+        type PushSettings = { version: string; pushSubscriptions?: { endpoint: string }[]; vapidPublicKey?: string };
+        let settings: PushSettings = { version: '0.0' };
         if (fs.existsSync(settingsPath)) {
           const settingsData = fs.readFileSync(settingsPath, 'utf-8');
-          settings = JSON.parse(settingsData);
+          settings = JSON.parse(settingsData) as PushSettings;
         }
 
         // Initialize pushSubscriptions array if not exists
@@ -415,9 +576,7 @@ export class RestService {
         }
 
         // Check if subscription already exists (by endpoint)
-        const existingIndex = settings.pushSubscriptions.findIndex(
-          (sub: any) => sub.endpoint === subscription.endpoint,
-        );
+        const existingIndex = settings.pushSubscriptions.findIndex((sub) => sub.endpoint === subscription.endpoint);
 
         if (existingIndex >= 0) {
           // Update existing subscription
@@ -457,7 +616,7 @@ export class RestService {
         const settings = JSON.parse(settingsData);
 
         if (settings.pushSubscriptions) {
-          settings.pushSubscriptions = settings.pushSubscriptions.filter((sub: any) => sub.endpoint !== endpoint);
+          settings.pushSubscriptions = settings.pushSubscriptions.filter((sub) => sub.endpoint !== endpoint);
 
           fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
           ServerLogService.writeLog(LogLevel.Info, `Push subscription removed`);
@@ -505,7 +664,8 @@ export class RestService {
     const reportsPath = path.join(__dirname, '..', 'config', 'private', 'bug-reports.json');
 
     // Helper function to load bug reports
-    const loadBugReports = (): any[] => {
+    type BugReport = Record<string, unknown>;
+    const loadBugReports = (): BugReport[] => {
       if (fs.existsSync(reportsPath)) {
         try {
           const data = fs.readFileSync(reportsPath, 'utf-8');
@@ -519,7 +679,7 @@ export class RestService {
     };
 
     // Helper function to save bug reports
-    const saveBugReports = (reports: any[]): void => {
+    const saveBugReports = (reports: BugReport[]): void => {
       fs.writeFileSync(reportsPath, JSON.stringify(reports, null, 2), 'utf-8');
     };
 
@@ -568,7 +728,7 @@ export class RestService {
         const updates = req.body;
 
         const reports = loadBugReports();
-        const reportIndex = reports.findIndex((r: any) => r.id === id);
+        const reportIndex = reports.findIndex((r) => r['id'] === id);
 
         if (reportIndex === -1) {
           return res.status(404).json({ success: false, error: 'Bug report not found' });
@@ -601,7 +761,7 @@ export class RestService {
 
     // Hoffmation service restart endpoint
     // Use process.exit to let systemd handle the restart automatically
-    this._app.post('/hoffmation/restart', async (_req, res) => {
+    this._app.post('/hoffmation/restart', requireAdmin, async (_req, res) => {
       try {
         ServerLogService.writeLog(LogLevel.Info, 'Hoffmation restart requested');
 
@@ -625,7 +785,7 @@ export class RestService {
     });
 
     // WebUI update endpoint - git pull, npm ci, build
-    this._app.post('/webui/update', async (_req, res) => {
+    this._app.post('/webui/update', requireAdmin, async (_req, res) => {
       const execAsync = promisify(exec);
       const webuiDir = path.join(__dirname, '..', 'webui');
       const steps: { step: string; success: boolean; output?: string; error?: string }[] = [];
@@ -726,7 +886,8 @@ export class RestService {
   }
 
   private static getClientInfo(req: Request): string {
-    return `Client (user-agent: "${req.headers['user-agent']}", ip: ${req.ip}, endpoint: ${req.path})`;
+    const p = req.principal;
+    return `Client (user: ${p ? `${p.name} [${p.role}]` : 'anon'}, ua: "${req.headers['user-agent']}", ip: ${req.ip}, endpoint: ${req.path})`;
   }
 
   private static getBlockComand(timeoutParameter: string | undefined): BlockAutomaticCommand | undefined | null {

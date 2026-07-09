@@ -35,7 +35,7 @@ export class Hoffmation {
     HoffmationBase.initializePostIoBroker(defaultMuellSonos);
 
     if (SettingsService.settings.restServer?.active) {
-      RestService.initialize(this.app, SettingsService.settings.restServer);
+      await RestService.initialize(this.app, SettingsService.settings.restServer);
     }
 
     /*** Place your custom post initialization logic here ***/

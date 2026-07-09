@@ -5,14 +5,18 @@ import { FavoritesView } from '@/views/FavoritesView';
 import { RoomsView } from '@/views/RoomsView';
 import { DevicesView } from '@/views/DevicesView';
 import { SettingsView } from '@/views/SettingsView';
+import { LoginView } from '@/views/LoginView';
+import { AdminView } from '@/views/AdminView';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useDataStore } from '@/stores';
+import { useAuthStore } from '@/stores/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { OfflineBanner } from '@/components/OfflineBanner';
 
 function App() {
   const { darkMode, pollingInterval } = useSettingsStore();
   const { fetchRooms, fetchDevices } = useDataStore();
+  const { checkAuthStatus } = useAuthStore();
   const isOnline = useOnlineStatus();
 
   useEffect(() => {
@@ -35,6 +39,11 @@ function App() {
     fetchRooms();
   }, [fetchRooms]);
 
+  // Check auth status on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
   // Poll devices regularly
   useEffect(() => {
     fetchDevices();
@@ -47,6 +56,8 @@ function App() {
       <OfflineBanner isOnline={isOnline} />
       <main className="flex-1 overflow-hidden">
         <Routes>
+          <Route path="/login" element={<LoginView />} />
+          <Route path="/admin" element={<AdminView />} />
           <Route path="/" element={<FloorPlanView />} />
           <Route path="/floor/:floorLevel" element={<FloorPlanView />} />
           <Route path="/floor/:floorLevel/:roomId" element={<FloorPlanView />} />
