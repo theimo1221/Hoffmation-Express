@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff, Bug } from 'lucide-react';
+import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff, Bug, Shield } from 'lucide-react';
 import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
@@ -376,6 +377,31 @@ export function SettingsView() {
               </p>
             </div>
           </section>
+
+          {/* Admin Panel */}
+          {expertMode && (
+            <section>
+              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Administration
+              </h2>
+              <Link
+                to="/admin"
+                className="block rounded-2xl bg-card p-4 shadow-soft hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <div className="font-medium">Admin-Panel</div>
+                      <div className="text-sm text-muted-foreground">Benutzer- und Token-Verwaltung</div>
+                    </div>
+                  </div>
+                  <span className="text-muted-foreground">→</span>
+                </div>
+              </Link>
+            </section>
+          )}
 
           {/* Exclude Levels */}
           <section>

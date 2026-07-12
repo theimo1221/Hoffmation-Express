@@ -3,7 +3,7 @@
 ## Project Overview
 
 React + TypeScript + TailwindCSS WebUI for Hoffmation Smart Home System.
-Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Github/Hoffmation`.
+Goal: Full feature parity with the existing SwiftUI companion app.
 
 **Latest Build Size**
 
@@ -15,7 +15,7 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 
 - **Frontend:** React 18, TypeScript, TailwindCSS, Zustand (state), i18next (i18n)
 - **Build:** Vite
-- **API Proxy:** Target `http://hoffmation.hoffmation.com:3000`
+- **API Proxy:** Target configurable via `HOFFMATION_API_PROXY_TARGET` (defaults to `http://localhost:3000`)
 - **Backend Types:** `hoffmation-base` npm package
 
 ## Store Architecture (01.01.2026)
@@ -109,7 +109,7 @@ Goal: Full feature parity with existing SwiftUI app at `/Users/thiemo/0_dev/Gith
 2. **Settings in response:** Device/Room settings come with the GET response
 3. **Use Pickers:** Prefer picker/dropdown over simple inputs for time selection
 4. **Capability check:** Always check device capabilities before showing settings
-5. **SwiftUI reference:** `/Users/thiemo/0_dev/Github/Hoffmation/Shared/Views/Devices/Settings/`
+5. **SwiftUI reference:** the SwiftUI companion app's `Shared/Views/Devices/Settings/`
 
 ## Bug Fixes Applied
 

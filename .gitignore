@@ -25,6 +25,12 @@ lib-cov
 coverage
 *.lcov
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # nyc test coverage
 .nyc_output
 
@@ -74,6 +80,8 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+.env.local
+.env.*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -111,6 +119,9 @@ dist
 # Personal Config Files
 /config/private/*
 /upload_to_dtrack.sh
+
+# Generated SBOM (contains absolute local build paths) — regenerated per scan
+/bom.json
 
 # Personal Room Configuration
 /src/OwnRooms/*

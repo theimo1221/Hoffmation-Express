@@ -1,10 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug } from 'lucide-react';
+import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { BugReportDialog } from '@/components/BugReportDialog';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useAuthStore } from '@/stores/authStore';
 
 interface PageHeaderProps {
   title: string;
@@ -39,6 +40,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   const { t } = useTranslation();
   const expertMode = useSettingsStore((state) => state.expertMode);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
@@ -48,6 +50,7 @@ export function PageHeader({
     { to: '/rooms', icon: DoorOpen, label: t('tabs.rooms') },
     { to: '/devices', icon: Smartphone, label: t('tabs.devices') },
     { to: '/settings', icon: Settings, label: t('tabs.settings') },
+    ...(isAdmin ? [{ to: '/admin', icon: Shield, label: 'Admin-Panel' }] : []),
   ];
 
   return (
@@ -136,7 +139,7 @@ export function PageHeader({
         </div>
       </div>
       {children && <div className="mx-auto max-w-3xl mt-3">{children}</div>}
-      
+
       <BugReportDialog
         isOpen={bugDialogOpen}
         onClose={() => setBugDialogOpen(false)}

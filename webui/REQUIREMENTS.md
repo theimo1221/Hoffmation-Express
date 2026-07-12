@@ -663,7 +663,7 @@ Groups inherit settings from their devices but can have group-wide controls.
 2. **Settings in response:** Device/Room settings are included in GET responses (no separate fetch needed)
 3. **Use Pickers:** Prefer picker/dropdown components for time selection (hours/minutes)
 4. **Capability check:** Always verify device capabilities before showing settings section
-5. **SwiftUI reference:** See `/Users/thiemo/0_dev/Github/Hoffmation/Shared/Views/Devices/Settings/`
+5. **SwiftUI reference:** See the SwiftUI companion app's `Shared/Views/Devices/Settings/`
 6. **Context file:** See `CONTEXT.md` for detailed implementation notes and session continuity
 
 ---

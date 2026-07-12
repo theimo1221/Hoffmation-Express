@@ -29,11 +29,11 @@ export class PushNotificationService {
 
     try {
       const vapidKeysPath = path.join(__dirname, '..', 'config', 'private', 'vapid-keys.json');
-      
+
       if (!fs.existsSync(vapidKeysPath)) {
         ServerLogService.writeLog(
           LogLevel.Warn,
-          'VAPID keys not found. Push notifications will not work. Run: npx web-push generate-vapid-keys'
+          'VAPID keys not found. Push notifications will not work. Run: npx web-push generate-vapid-keys',
         );
         return;
       }
@@ -42,11 +42,7 @@ export class PushNotificationService {
       this.vapidKeys = JSON.parse(keysData);
 
       if (this.vapidKeys) {
-        webpush.setVapidDetails(
-          this.vapidKeys.email,
-          this.vapidKeys.publicKey,
-          this.vapidKeys.privateKey
-        );
+        webpush.setVapidDetails(this.vapidKeys.email, this.vapidKeys.publicKey, this.vapidKeys.privateKey);
       }
 
       this.initialized = true;
@@ -66,7 +62,7 @@ export class PushNotificationService {
     body: string,
     url?: string,
     icon?: string,
-    priority: 'normal' | 'critical' = 'normal'
+    priority: 'normal' | 'critical' = 'normal',
   ): Promise<void> {
     if (!this.initialized || !this.vapidKeys) {
       ServerLogService.writeLog(LogLevel.Warn, 'Push notifications not initialized');
@@ -75,7 +71,7 @@ export class PushNotificationService {
 
     try {
       const subscriptions = this.loadSubscriptions();
-      
+
       if (subscriptions.length === 0) {
         ServerLogService.writeLog(LogLevel.Debug, 'No push subscriptions found');
         return;
@@ -93,21 +89,16 @@ export class PushNotificationService {
         silent: false,
       });
 
-      const results = await Promise.allSettled(
-        subscriptions.map((sub) => webpush.sendNotification(sub, payload))
-      );
+      const results = await Promise.allSettled(subscriptions.map((sub) => webpush.sendNotification(sub, payload)));
 
       const successCount = results.filter((r) => r.status === 'fulfilled').length;
       const failCount = results.filter((r) => r.status === 'rejected').length;
 
-      ServerLogService.writeLog(
-        LogLevel.Info,
-        `Push notifications sent: ${successCount} success, ${failCount} failed`
-      );
+      ServerLogService.writeLog(LogLevel.Info, `Push notifications sent: ${successCount} success, ${failCount} failed`);
 
       // Remove failed subscriptions
       if (failCount > 0) {
-        this.cleanupFailedSubscriptions(subscriptions, results as PromiseSettledResult<any>[]);
+        this.cleanupFailedSubscriptions(subscriptions, results as PromiseSettledResult<void>[]);
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -125,7 +116,7 @@ export class PushNotificationService {
     body: string,
     url?: string,
     icon?: string,
-    priority: 'normal' | 'critical' = 'normal'
+    priority: 'normal' | 'critical' = 'normal',
   ): Promise<boolean> {
     if (!this.initialized || !this.vapidKeys) {
       return false;
@@ -158,14 +149,14 @@ export class PushNotificationService {
   private static loadSubscriptions(): PushSubscription[] {
     try {
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
-      
+
       if (!fs.existsSync(settingsPath)) {
         return [];
       }
 
       const settingsData = fs.readFileSync(settingsPath, 'utf-8');
       const settings = JSON.parse(settingsData);
-      
+
       return settings.pushSubscriptions || [];
     } catch (error) {
       ServerLogService.writeLog(LogLevel.Error, `Failed to load push subscriptions: ${error}`);
@@ -178,19 +169,19 @@ export class PushNotificationService {
    */
   private static cleanupFailedSubscriptions(
     subscriptions: PushSubscription[],
-    results: PromiseSettledResult<void>[]
+    results: PromiseSettledResult<void>[],
   ): void {
     try {
       const validSubscriptions = subscriptions.filter((_, index) => results[index].status === 'fulfilled');
-      
+
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
       const settingsData = fs.readFileSync(settingsPath, 'utf-8');
       const settings = JSON.parse(settingsData);
-      
+
       settings.pushSubscriptions = validSubscriptions;
-      
+
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-      
+
       const removedCount = subscriptions.length - validSubscriptions.length;
       ServerLogService.writeLog(LogLevel.Info, `Removed ${removedCount} invalid push subscriptions`);
     } catch (error) {
