@@ -75,14 +75,59 @@ beforeAll(async () => {
   deviceRoom = anyDev?.[1]?._info?.room;
 });
 
-describe('no store -> auth disabled (backward compatible, everything open)', () => {
-  it('unauth read -> 200', async () => {
+describe('GET /auth/status (open endpoint)', () => {
+  it('bootstrap state: needsBootstrap=true, mode=optional', async () => {
+    const { app } = await bootMock(null);
+    const res = await request(app).get('/auth/status').expect(200);
+    expect(res.body.needsBootstrap).toBe(true);
+    expect(res.body.mode).toBe('optional');
+  });
+  it('after admin created: needsBootstrap=false', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const res = await request(app).get('/auth/status').expect(200);
+    expect(res.body.needsBootstrap).toBe(false);
+    expect(res.body.mode).toBe('enforced');
+  });
+  it('optional mode with admin: needsBootstrap=false, mode=optional', async () => {
+    const { app } = await bootMock(storeWith('optional'));
+    const res = await request(app).get('/auth/status').expect(200);
+    expect(res.body.needsBootstrap).toBe(false);
+    expect(res.body.mode).toBe('optional');
+  });
+  it('/auth/status requires no credentials, even in enforced mode', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app).get('/auth/status').expect(200);
+  });
+});
+
+describe('no store -> bootstrapped (mode=optional, no admins yet)', () => {
+  it('unauth device read -> 200 (optional mode, device middleware passthrough)', async () => {
     const { app } = await bootMock(null);
     await request(app).get('/rooms').expect(200);
   });
-  it('unauth /deviceSettings/persist -> 200 (no lockout without a store)', async () => {
+  it('unauth /deviceSettings/persist -> 401 (admin gate always closed regardless of enabled)', async () => {
     const { app } = await bootMock(null);
-    await request(app).get('/deviceSettings/persist').expect(200);
+    await request(app).get('/deviceSettings/persist').expect(401);
+  });
+  it('POST /auth/users {role:admin} -> 200 in the bootstrap window (first-admin onboarding)', async () => {
+    const { app } = await bootMock(null);
+    await request(app)
+      .post('/auth/users')
+      .send({ username: 'firstadmin', password: 'somepassword', role: 'admin' })
+      .expect(200);
+  });
+  it('second POST /auth/users after admin exists -> 401 (window closes once admin is created)', async () => {
+    const { app } = await bootMock(null);
+    // Create the first admin (allowed)
+    await request(app)
+      .post('/auth/users')
+      .send({ username: 'firstadmin', password: 'somepassword', role: 'admin' })
+      .expect(200);
+    // A second unauthenticated admin-create is now refused
+    await request(app)
+      .post('/auth/users')
+      .send({ username: 'attacker', password: 'hacked', role: 'admin' })
+      .expect(401);
   });
 });
 
@@ -202,6 +247,46 @@ describe('admin management (users / tokens / mode)', () => {
       .post('/auth/mode')
       .set('Authorization', `Bearer ${CONTROL}`)
       .send({ mode: 'optional' })
+      .expect(403);
+  });
+});
+
+describe('self-service password change (POST /auth/me/password)', () => {
+  it('correct currentPassword -> 200 and new password works', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const agent = request.agent(app);
+    await agent.post('/auth/login').send({ username: 'admin', password: adminPw }).expect(200);
+    await agent.post('/auth/me/password').send({ currentPassword: adminPw, newPassword: 'newpass123' }).expect(200);
+    // old password no longer works
+    await request(app).post('/auth/login').send({ username: 'admin', password: adminPw }).expect(401);
+    // new password works
+    await request(app).post('/auth/login').send({ username: 'admin', password: 'newpass123' }).expect(200);
+  });
+  it('wrong currentPassword -> 401', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const agent = request.agent(app);
+    await agent.post('/auth/login').send({ username: 'admin', password: adminPw }).expect(200);
+    await agent.post('/auth/me/password').send({ currentPassword: 'wrong', newPassword: 'newpass123' }).expect(401);
+  });
+  it('newPassword too short -> 400', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const agent = request.agent(app);
+    await agent.post('/auth/login').send({ username: 'admin', password: adminPw }).expect(200);
+    await agent.post('/auth/me/password').send({ currentPassword: adminPw, newPassword: 'x' }).expect(400);
+  });
+  it('unauthenticated -> 401', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app)
+      .post('/auth/me/password')
+      .send({ currentPassword: adminPw, newPassword: 'newpass123' })
+      .expect(401);
+  });
+  it('webhook token -> 403 (no user record)', async () => {
+    const { app } = await bootMock(storeWith('enforced', { tokens: [tokenRec('wh', WEBHOOK, 'webhook')] }));
+    await request(app)
+      .post('/auth/me/password')
+      .set('Authorization', `Bearer ${WEBHOOK}`)
+      .send({ currentPassword: 'x', newPassword: 'newpass123' })
       .expect(403);
   });
 });

@@ -32,6 +32,9 @@ interface CustomHandler {
   handler: RequestHandler[];
 }
 
+const PROCESS_START = Date.now();
+const BOOTSTRAP_WINDOW_MS = 15 * 60_000;
+
 export class RestService {
   public static addCustomEndpoint(path: string, ...handler: RequestHandler[]) {
     if (this._initialized) {
@@ -66,10 +69,24 @@ export class RestService {
     this._app.use(cookieParser());
     await AuthService.init();
 
-    const OPEN = [/^\/isAlive/, /^\/auth\/(login|logout)$/, /^\/$/, /^\/ui(\/|$)/, /^\/favicon/];
+    const OPEN = [/^\/isAlive/, /^\/auth\/(login|logout|status)$/, /^\/$/, /^\/ui(\/|$)/, /^\/favicon/];
 
     const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-      if (!AuthService.enabled) return next();
+      // Onboarding window: allow the very first admin to be created without credentials.
+      // Conditions: no active admin exists yet, within 15min of process start, POST /auth/users with role=admin only.
+      if (
+        AuthService.needsBootstrap &&
+        Date.now() - PROCESS_START < BOOTSTRAP_WINDOW_MS &&
+        req.method === 'POST' &&
+        req.path === '/auth/users' &&
+        req.body?.role === 'admin'
+      ) {
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          `AUTH-BOOTSTRAP: first admin '${req.body?.username}' created from ${req.ip}`,
+        );
+        return next();
+      }
       const p = req.principal;
       if (!p || p.role !== 'admin') {
         ServerLogService.writeLog(LogLevel.Warn, `AUTH-ADMIN-DENY: ip=${req.ip} path=${req.path}`);
@@ -140,6 +157,33 @@ export class RestService {
       if (req.cookies?.hf_sid) AuthService.logout(req.cookies.hf_sid);
       res.clearCookie('hf_sid');
       res.clearCookie('hf_role');
+      return res.json({ success: true });
+    });
+
+    // Open endpoint — tells the UI whether it needs to show the onboarding form or a guest button.
+    this._app.get('/auth/status', (_req, res) => {
+      return res.json({ needsBootstrap: AuthService.needsBootstrap, mode: AuthService.mode });
+    });
+
+    // Self-service password change: any authenticated non-webhook user, currentPassword required.
+    this._app.post('/auth/me/password', async (req, res) => {
+      const p = req.principal;
+      if (!p) return res.status(401).json({ error: 'unauthorized' });
+      if (p.role === 'webhook') return res.status(403).json({ error: 'forbidden' });
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || typeof currentPassword !== 'string') {
+        return res.status(400).json({ error: 'currentPassword required' });
+      }
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+        return res.status(400).json({ error: 'invalid newPassword (min 4 chars)' });
+      }
+      if (!AuthService.verifyPassword(p.name, currentPassword)) {
+        return res.status(401).json({ error: 'wrong current password' });
+      }
+      const cur = AuthService.getUserForPatch(p.name);
+      if (!cur) return res.status(404).json({ error: 'user not found' });
+      await AuthService.upsertUser({ ...cur, pwHash: AuthService.hashPw(newPassword) });
+      ServerLogService.writeLog(LogLevel.Info, `AUTH: user '${p.name}' changed own password from ${req.ip}`);
       return res.json({ success: true });
     });
 

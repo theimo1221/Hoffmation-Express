@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { API, ServerLogService, LogLevel } from 'hoffmation-base';
+import { API, ServerLogService, LogLevel, Utils } from 'hoffmation-base';
 import type { Role, AuthMode, DenyPolicy, Principal, UserRec, TokenRec, AuthStore } from './types';
 
 const STORE_ID = 'express-auth-store';
@@ -16,40 +16,51 @@ export class AuthService {
     try {
       const raw = await API.loadConfig(STORE_ID);
       if (!raw) {
-        this.store = null;
-        ServerLogService.writeLog(LogLevel.Info, 'AUTH: no store -> auth disabled');
-        return;
-      }
-      this.store = JSON.parse(raw);
+        // First boot: bootstrap an empty store so enabled=true → requireAdmin is closed immediately.
+        // No default credentials — operator must POST /auth/users within the onboarding window.
+        this.store = { version: 2, mode: 'optional', users: [], tokens: [] };
+        await this.persist();
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          'AUTH: bootstrapped empty store (mode=optional). Onboarding window open for 15min — ' +
+            'POST /auth/users {role:"admin"} to create first admin. Missed the window? Restart the service.',
+        );
+      } else {
+        this.store = JSON.parse(raw);
 
-      // Migration: add createdAt to existing users/tokens without it
-      let needsPersist = false;
-      const now = new Date().toISOString();
-      for (const u of this.store.users) {
-        if (!u.createdAt) {
-          u.createdAt = now;
-          needsPersist = true;
+        // Migration: add createdAt to existing users/tokens without it
+        let needsPersist = false;
+        const now = new Date().toISOString();
+        for (const u of Utils.guard(this.store).users) {
+          if (!u.createdAt) {
+            u.createdAt = now;
+            needsPersist = true;
+          }
         }
-      }
-      for (const t of this.store.tokens) {
-        if (!t.createdAt) {
-          t.createdAt = now;
-          needsPersist = true;
+        for (const t of Utils.guard(this.store).tokens) {
+          if (!t.createdAt) {
+            t.createdAt = now;
+            needsPersist = true;
+          }
         }
-      }
-      if (needsPersist) await this.persist();
+        if (needsPersist) await this.persist();
 
-      ServerLogService.writeLog(LogLevel.Info, `AUTH: store loaded, mode=${this.store!.mode}`);
+        ServerLogService.writeLog(LogLevel.Info, `AUTH: store loaded, mode=${this.store!.mode}`);
+      }
       const pruneTimer = setInterval(() => this.pruneExpiredSessions(), 600000);
       pruneTimer.unref?.();
     } catch (e) {
-      this.store = null;
-      ServerLogService.writeLog(LogLevel.Error, `AUTH: init failed (${e}) -> auth disabled (fail-open)`);
+      this.store = null; // Admin fail-closed (requireAdmin has no enabled-bypass); devices remain fail-open.
+      ServerLogService.writeLog(LogLevel.Error, `AUTH: init failed (${e}) -> store unavailable`);
     }
   }
 
   public static get enabled(): boolean {
     return this.store !== null;
+  }
+  /** true while no active admin exists (bootstrap window should be open in rest-service). */
+  public static get needsBootstrap(): boolean {
+    return !!this.store && !this.store.users.some((u) => u.role === 'admin' && !u.disabled);
   }
   public static get mode(): AuthMode {
     return this.store?.mode ?? 'optional';
@@ -230,7 +241,9 @@ export class AuthService {
   }
 
   public static async upsertUser(u: UserRec): Promise<void> {
-    if (!this.store) return;
+    if (!this.store) {
+      throw new Error('AUTH: store not initialized');
+    }
     const existing = this.store.users.find((x) => x.username === u.username);
     // Preserve createdAt on update, set it on creation
     if (!u.createdAt) {
@@ -246,7 +259,9 @@ export class AuthService {
     await this.persist();
   }
   public static async setMode(mode: AuthMode): Promise<void> {
-    if (!this.store) return;
+    if (!this.store) {
+      throw new Error('AUTH: store not initialized');
+    }
     this.store.mode = mode;
     await this.persist();
   }
@@ -286,5 +301,10 @@ export class AuthService {
 
   public static getUserForPatch(name: string): UserRec | undefined {
     return this.getUser(name);
+  }
+
+  public static verifyPassword(username: string, pw: string): boolean {
+    const u = this.store?.users.find((x) => x.username === username && !x.disabled);
+    return !!u && this.verifyPw(pw, u.pwHash);
   }
 }

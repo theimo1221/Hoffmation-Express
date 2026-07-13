@@ -15,6 +15,7 @@ vi.mock('hoffmation-base', () => ({
   API: { loadConfig, saveConfig, getDevice },
   ServerLogService: { writeLog },
   LogLevel: { Info: 0, Warn: 1, Error: 2, Debug: 3 },
+  Utils: { guard: <T>(x: T): NonNullable<T> => x as NonNullable<T> },
 }));
 
 import { AuthService } from '../src/auth-service';
@@ -32,12 +33,14 @@ beforeEach(() => {
   getDevice.mockReturnValue(undefined);
 });
 
-describe('init / enabled / mode', () => {
-  it('no store -> disabled', async () => {
+describe('init / enabled / mode / bootstrap', () => {
+  it('no store -> bootstrapped (enabled, mode=optional, needsBootstrap=true)', async () => {
     await initWith(null);
-    expect(AuthService.enabled).toBe(false);
+    expect(AuthService.enabled).toBe(true);
+    expect(AuthService.mode).toBe('optional');
+    expect(AuthService.needsBootstrap).toBe(true);
   });
-  it('broken store -> disabled (fail-open)', async () => {
+  it('broken store -> disabled (fail-closed for admin)', async () => {
     loadConfig.mockResolvedValueOnce('{not json');
     await AuthService.init();
     expect(AuthService.enabled).toBe(false);
@@ -46,6 +49,16 @@ describe('init / enabled / mode', () => {
     await initWith({ ...baseStore(), mode: 'optional' });
     expect(AuthService.enabled).toBe(true);
     expect(AuthService.mode).toBe('optional');
+  });
+  it('needsBootstrap=false once an active admin exists', async () => {
+    await initWith(null);
+    expect(AuthService.needsBootstrap).toBe(true);
+    await AuthService.upsertUser({ username: 'a', role: 'admin', pwHash: 'h', deny: {} });
+    expect(AuthService.needsBootstrap).toBe(false);
+  });
+  it('needsBootstrap=false when store has an admin from the start', async () => {
+    await initWith({ ...baseStore(), users: [{ username: 'a', role: 'admin', pwHash: 'h', deny: {} }] });
+    expect(AuthService.needsBootstrap).toBe(false);
   });
 });
 
@@ -224,10 +237,12 @@ describe('admin management (store mutations)', () => {
     expect(AuthService.mode).toBe('optional');
     expect(saveConfig).toHaveBeenCalled();
   });
-  it('mutations without a store are no-ops (mintToken throws)', async () => {
-    await initWith(null);
-    await AuthService.upsertUser({ username: 'x', role: 'control', pwHash: 'h', deny: {} });
-    expect(AuthService.listUsers()).toEqual([]);
+  it('mutations with unavailable store (broken JSON) throw instead of silently succeeding', async () => {
+    // Broken store → store stays null → all mutations must throw (not silently no-op)
+    loadConfig.mockResolvedValueOnce('{not json');
+    await AuthService.init();
+    expect(AuthService.enabled).toBe(false);
+    await expect(AuthService.upsertUser({ username: 'x', role: 'control', pwHash: 'h', deny: {} })).rejects.toThrow();
     await expect(AuthService.mintToken('x', 'control')).rejects.toThrow();
   });
 });
