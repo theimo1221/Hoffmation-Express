@@ -11,6 +11,8 @@ export class AuthService {
   private static sessions = new Map<string, { name: string; role: Role; deny?: DenyPolicy; exp: number }>();
   private static loginAttempts = new Map<string, { count: number; firstAttempt: number }>(); // key: ip:username
   private static tokenLastPersist = new Map<string, number>(); // label -> timestamp of last persist
+  // One-time registration tokens: hash → {rawBearerToken, exp}. Cleared on redemption.
+  private static registrationTokens = new Map<string, { rawBearerToken: string; exp: number }>();
 
   public static async init(): Promise<void> {
     try {
@@ -65,6 +67,9 @@ export class AuthService {
   public static get mode(): AuthMode {
     return this.store?.mode ?? 'optional';
   }
+  public static get sessionTtlMs(): number {
+    return (this.store?.sessionTtlMinutes ?? 720) * 60000;
+  }
   private static async persist(): Promise<void> {
     if (!this.store) return;
     try {
@@ -93,6 +98,20 @@ export class AuthService {
     const a = Buffer.from(this.hashToken(t));
     const b = Buffer.from(stored);
     return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  /** Exchange a raw bearer token for a short-lived session (used by mobile-session endpoint). */
+  public static tokenToSession(rawToken: string): { sid: string; role: Role } | null {
+    const p = this.resolveToken(rawToken);
+    if (!p || !this.store) return null;
+    const sid = crypto.randomBytes(32).toString('base64url');
+    this.sessions.set(sid, {
+      name: p.name,
+      role: p.role,
+      deny: p.deny,
+      exp: Date.now() + (this.store.sessionTtlMinutes ?? 720) * 60000,
+    });
+    return { sid, role: p.role };
   }
 
   public static resolveToken(token: string): Principal | null {
@@ -290,6 +309,38 @@ export class AuthService {
     await this.persist();
     return t;
   }
+  /**
+   * Mint a bearer token and wrap it in a one-time registration token (15 min TTL).
+   * The registration token travels via QR/URL; the raw bearer token is only revealed on redemption.
+   */
+  public static async createRegistrationToken(
+    label: string,
+    role: Role,
+    deny?: DenyPolicy,
+    scope?: string[],
+  ): Promise<{ rawRegToken: string; rawBearerToken: string }> {
+    const rawBearerToken = await this.mintToken(label, role, deny, scope);
+    const rawRegToken = crypto.randomBytes(24).toString('base64url');
+    this.registrationTokens.set(this.hashToken(rawRegToken), {
+      rawBearerToken,
+      exp: Date.now() + 15 * 60_000,
+    });
+    return { rawRegToken, rawBearerToken };
+  }
+
+  /** Exchange a one-time registration token for the raw bearer token. Deletes the entry on success. */
+  public static redeemRegistrationToken(rawRegToken: string): string | null {
+    const key = this.hashToken(rawRegToken);
+    const entry = this.registrationTokens.get(key);
+    if (!entry) return null;
+    if (entry.exp < Date.now()) {
+      this.registrationTokens.delete(key);
+      return null;
+    }
+    this.registrationTokens.delete(key);
+    return entry.rawBearerToken;
+  }
+
   public static async revokeToken(label: string): Promise<void> {
     if (!this.store) return;
     this.store.tokens = this.store.tokens.filter((x) => x.label !== label);

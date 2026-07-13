@@ -69,7 +69,13 @@ export class RestService {
     this._app.use(cookieParser());
     await AuthService.init();
 
-    const OPEN = [/^\/isAlive/, /^\/auth\/(login|logout|status)$/, /^\/$/, /^\/ui(\/|$)/, /^\/favicon/];
+    const OPEN = [
+      /^\/isAlive/,
+      /^\/auth\/(login|logout|status|mobile-session|redeem)$/,
+      /^\/$/,
+      /^\/ui(\/|$)/,
+      /^\/favicon/,
+    ];
 
     const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
       // Onboarding window: allow the very first admin to be created without credentials.
@@ -149,8 +155,9 @@ export class RestService {
       }
       // secure:true if behind TLS (X-Forwarded-Proto: https) or HF_SECURE_COOKIES=true
       const secureCookies = process.env.HF_SECURE_COOKIES === 'true' || req.headers['x-forwarded-proto'] === 'https';
-      res.cookie('hf_sid', result.sid, { httpOnly: true, sameSite: 'strict', secure: secureCookies });
-      res.cookie('hf_role', result.role, { httpOnly: false, sameSite: 'strict', secure: secureCookies });
+      const maxAge = AuthService.sessionTtlMs;
+      res.cookie('hf_sid', result.sid, { httpOnly: true, sameSite: 'strict', secure: secureCookies, maxAge });
+      res.cookie('hf_role', result.role, { httpOnly: false, sameSite: 'strict', secure: secureCookies, maxAge });
       return res.json({ success: true, role: result.role });
     });
     this._app.post('/auth/logout', (req, res) => {
@@ -158,6 +165,33 @@ export class RestService {
       res.clearCookie('hf_sid');
       res.clearCookie('hf_role');
       return res.json({ success: true });
+    });
+
+    // One-time registration token redemption: QR code → raw bearer token for the device.
+    this._app.post('/auth/redeem', async (req, res) => {
+      const { registrationToken } = req.body as { registrationToken?: unknown };
+      if (!registrationToken || typeof registrationToken !== 'string') {
+        return res.status(400).json({ error: 'registrationToken required' });
+      }
+      const rawBearerToken = AuthService.redeemRegistrationToken(registrationToken);
+      if (!rawBearerToken) return res.status(401).json({ error: 'invalid or expired registration token' });
+      ServerLogService.writeLog(LogLevel.Info, `AUTH-REDEEM: registration token redeemed from ${req.ip}`);
+      return res.json({ token: rawBearerToken });
+    });
+
+    // Exchange a named bearer token (e.g. "Thiemo-iPhone") for a session cookie.
+    // The token is created in the admin panel and transferred to the device once.
+    this._app.post('/auth/mobile-session', (req, res) => {
+      const { token } = req.body as { token?: unknown };
+      if (!token || typeof token !== 'string') return res.status(400).json({ error: 'token required' });
+      const result = AuthService.tokenToSession(token);
+      if (!result) return res.status(401).json({ error: 'invalid or expired token' });
+      const secureCookies = process.env.HF_SECURE_COOKIES === 'true' || req.headers['x-forwarded-proto'] === 'https';
+      const maxAge = AuthService.sessionTtlMs;
+      res.cookie('hf_sid', result.sid, { httpOnly: true, sameSite: 'strict', secure: secureCookies, maxAge });
+      res.cookie('hf_role', result.role, { httpOnly: false, sameSite: 'strict', secure: secureCookies, maxAge });
+      ServerLogService.writeLog(LogLevel.Info, `AUTH-MOBILE-SESSION: token exchange from ${req.ip}`);
+      return res.json({ success: true, role: result.role });
     });
 
     // Open endpoint — tells the UI whether it needs to show the onboarding form or a guest button.
@@ -245,8 +279,18 @@ export class RestService {
       if (!['admin', 'control', 'webhook'].includes(role)) {
         return res.status(400).json({ error: 'invalid role' });
       }
-      const token = await AuthService.mintToken(label.trim(), role, deny, scope);
-      return res.json({ label: label.trim(), token, note: 'jetzt sichern, wird nur einmal angezeigt' });
+      const { rawRegToken, rawBearerToken } = await AuthService.createRegistrationToken(
+        label.trim(),
+        role,
+        deny,
+        scope,
+      );
+      return res.json({
+        label: label.trim(),
+        token: rawBearerToken,
+        registrationToken: rawRegToken,
+        note: 'QR-Code einmalig einlösbar (15 min), Token nur einmal sichtbar',
+      });
     });
     this._app.delete('/auth/tokens/:label', requireAdmin, async (req, res) => {
       const label = Array.isArray(req.params.label) ? req.params.label[0] : req.params.label;

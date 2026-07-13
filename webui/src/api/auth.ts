@@ -41,6 +41,7 @@ export interface Token {
 export interface MintTokenResponse {
   label: string;
   token: string;
+  registrationToken: string;
   note: string;
 }
 

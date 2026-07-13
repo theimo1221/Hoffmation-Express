@@ -291,6 +291,111 @@ describe('self-service password change (POST /auth/me/password)', () => {
   });
 });
 
+describe('POST /auth/tokens → registrationToken + POST /auth/redeem', () => {
+  it('minting a token returns registrationToken alongside the bearer token', async () => {
+    const { agent } = await adminAgent('enforced');
+    const res = await agent.post('/auth/tokens').send({ label: 'my-phone', role: 'control' }).expect(200);
+    expect(typeof res.body.token).toBe('string');
+    expect(typeof res.body.registrationToken).toBe('string');
+    expect(res.body.registrationToken.length).toBeGreaterThan(0);
+    expect(res.body.token).not.toBe(res.body.registrationToken);
+  });
+
+  it('valid registrationToken redeems to bearer token', async () => {
+    const { agent, app } = await adminAgent('enforced');
+    const mint = await agent.post('/auth/tokens').send({ label: 'phone2', role: 'control' }).expect(200);
+    const { registrationToken, token: expectedBearer } = mint.body as { registrationToken: string; token: string };
+    const res = await request(app).post('/auth/redeem').send({ registrationToken }).expect(200);
+    expect(res.body.token).toBe(expectedBearer);
+  });
+
+  it('registration token is one-time: second redeem fails with 401', async () => {
+    const { agent, app } = await adminAgent('enforced');
+    const mint = await agent.post('/auth/tokens').send({ label: 'phone3', role: 'control' }).expect(200);
+    const { registrationToken } = mint.body as { registrationToken: string };
+    await request(app).post('/auth/redeem').send({ registrationToken }).expect(200);
+    await request(app).post('/auth/redeem').send({ registrationToken }).expect(401);
+  });
+
+  it('invalid registrationToken -> 401', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app).post('/auth/redeem').send({ registrationToken: 'fake-token' }).expect(401);
+  });
+
+  it('missing registrationToken -> 400', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app).post('/auth/redeem').send({}).expect(400);
+  });
+
+  it('/auth/redeem is open (no session needed)', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const res = await request(app).post('/auth/redeem').send({ registrationToken: 'x' });
+    expect(res.body.error).toBe('invalid or expired registration token'); // endpoint reached, not auth-blocked
+  });
+
+  it('redeemed bearer token can exchange for a session via mobile-session', async () => {
+    const { agent, app } = await adminAgent('enforced');
+    const mint = await agent.post('/auth/tokens').send({ label: 'phone4', role: 'control' }).expect(200);
+    const { registrationToken } = mint.body as { registrationToken: string };
+    const redeemed = await request(app).post('/auth/redeem').send({ registrationToken }).expect(200);
+    const sessionAgent = request.agent(app);
+    await sessionAgent
+      .post('/auth/mobile-session')
+      .send({ token: redeemed.body.token as string })
+      .expect(200);
+    await sessionAgent.get('/rooms').expect(200);
+  });
+});
+
+describe('POST /auth/mobile-session (token → session cookie exchange)', () => {
+  it('valid named token exchanges to session cookies', async () => {
+    const { app } = await bootMock(storeWith('enforced', { tokens: [tokenRec('my-phone', CONTROL, 'control')] }));
+    const res = await request(app).post('/auth/mobile-session').send({ token: CONTROL }).expect(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.role).toBe('control');
+    const cookies: string[] = res.headers['set-cookie'] as string[];
+    expect(cookies.some((c) => c.startsWith('hf_sid='))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('hf_role='))).toBe(true);
+  });
+
+  it('session obtained via mobile-session grants API access', async () => {
+    const { app } = await bootMock(storeWith('enforced', { tokens: [tokenRec('my-phone', CONTROL, 'control')] }));
+    const agent = request.agent(app);
+    await agent.post('/auth/mobile-session').send({ token: CONTROL }).expect(200);
+    await agent.get('/rooms').expect(200);
+  });
+
+  it('invalid token -> 401', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app).post('/auth/mobile-session').send({ token: 'not-a-real-token' }).expect(401);
+  });
+
+  it('missing token body -> 400', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    await request(app).post('/auth/mobile-session').send({}).expect(400);
+  });
+
+  it('disabled token -> 401', async () => {
+    const disabled = { ...tokenRec('my-phone', CONTROL, 'control'), disabled: true };
+    const { app } = await bootMock(storeWith('enforced', { tokens: [disabled] }));
+    await request(app).post('/auth/mobile-session').send({ token: CONTROL }).expect(401);
+  });
+
+  it('expired token -> 401', async () => {
+    const expired = { ...tokenRec('my-phone', CONTROL, 'control'), validUntil: '2000-01-01T00:00:00.000Z' };
+    const { app } = await bootMock(storeWith('enforced', { tokens: [expired] }));
+    await request(app).post('/auth/mobile-session').send({ token: CONTROL }).expect(401);
+  });
+
+  it('/auth/mobile-session is open: bad token returns endpoint 401, not auth-middleware 401', async () => {
+    const { app } = await bootMock(storeWith('enforced'));
+    const res = await request(app).post('/auth/mobile-session').send({ token: 'invalid' });
+    // Auth middleware blocks with {error:'unauthorized'}; endpoint blocks with {error:'invalid or expired token'}
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('invalid or expired token');
+  });
+});
+
 describe('authorization — setState round-trip + room deny (discovered device ids)', () => {
   it('control switches a zigbee lamp: setState fires (via ioBrokerMain.iOConnection)', async () => {
     expect(lampId, 'no zigbee lamp discovered in config').toBeTruthy();

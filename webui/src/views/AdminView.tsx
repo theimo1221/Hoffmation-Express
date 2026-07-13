@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, Key, Plus, Trash2, Edit, Copy, Check } from 'lucide-react';
+import { Users, Key, Plus, Trash2, Edit, Copy, Check, X } from 'lucide-react';
+import QRCode from 'qrcode';
 import {
   getUsers,
   getTokens,
@@ -28,6 +29,7 @@ export function AdminView() {
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [mintedToken, setMintedToken] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState(false);
 
   useEffect(() => {
@@ -70,6 +72,13 @@ export function AdminView() {
   const handleMintToken = async (data: { label: string; role: string; deny?: any; scope?: string[] }) => {
     const result = await mintToken(data.label, data.role, data.deny, data.scope);
     setMintedToken(result.token);
+    const redeemUrl = `${window.location.origin}/ui/login?registration-token=${encodeURIComponent(result.registrationToken)}`;
+    try {
+      const dataUrl = await QRCode.toDataURL(redeemUrl, { width: 280, margin: 2 });
+      setQrDataUrl(dataUrl);
+    } catch {
+      setQrDataUrl(null);
+    }
     await loadData();
   };
 
@@ -222,28 +231,42 @@ export function AdminView() {
 
             {mintedToken && (
               <div className="mb-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+                <div className="flex items-start justify-between gap-4">
+                  {/* QR code — only present right after creation */}
+                  {qrDataUrl && (
+                    <div className="flex-shrink-0">
+                      <img src={qrDataUrl} alt="Einlöse-QR" className="rounded-lg" width={140} height={140} />
+                      <p className="mt-1 text-center text-xs text-green-700 dark:text-green-300">15 min gültig</p>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                      Token erstellt - jetzt sichern!
+                      Token erstellt — QR scannen oder Token sichern
                     </p>
-                    <code className="block rounded bg-white dark:bg-gray-900 p-2 text-sm break-all">
-                      {mintedToken}
-                    </code>
+                    <p className="text-xs text-green-700 dark:text-green-400 mb-2">
+                      QR-Code öffnet die Login-Seite und löst den Token automatisch ein (einmalig).
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 rounded bg-white dark:bg-gray-900 p-2 text-xs break-all min-w-0">
+                        {mintedToken}
+                      </code>
+                      <button
+                        onClick={handleCopyToken}
+                        className="flex-shrink-0 rounded-lg p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
+                        title="Token kopieren"
+                      >
+                        {copiedToken ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
                   <button
-                    onClick={handleCopyToken}
-                    className="ml-4 rounded-lg p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
+                    onClick={() => { setMintedToken(null); setQrDataUrl(null); }}
+                    className="flex-shrink-0 rounded-lg p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
+                    title="Schließen"
                   >
-                    {copiedToken ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-                <button
-                  onClick={() => setMintedToken(null)}
-                  className="mt-2 text-sm text-green-600 hover:underline"
-                >
-                  Schließen
-                </button>
               </div>
             )}
 

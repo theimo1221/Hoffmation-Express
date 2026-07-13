@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { Lock, User, UserPlus } from 'lucide-react';
+import { Key, Lock, User, UserPlus } from 'lucide-react';
 
 export function LoginView() {
   const [username, setUsername] = useState('');
@@ -9,8 +9,36 @@ export function LoginView() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [onboardError, setOnboardError] = useState<string | null>(null);
   const [onboardLoading, setOnboardLoading] = useState(false);
-  const { login, isLoading, error, clearError, needsBootstrap, serverMode, checkAuthStatus } = useAuthStore();
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [showTokenForm, setShowTokenForm] = useState(false);
+  const [redeemStatus, setRedeemStatus] = useState<'idle' | 'redeeming' | 'error'>('idle');
+  const { login, loginWithToken, isLoading, error, clearError, needsBootstrap, serverMode, checkAuthStatus } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Auto-redeem one-time registration token from QR link
+  useEffect(() => {
+    const regToken = searchParams.get('registration-token');
+    if (!regToken) return;
+    setRedeemStatus('redeeming');
+    fetch('/auth/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registrationToken: regToken }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Ungültiger oder abgelaufener QR-Code');
+        const data = (await res.json()) as { token: string };
+        await loginWithToken(data.token);
+        navigate('/', { replace: true });
+      })
+      .catch((err: unknown) => {
+        setRedeemStatus('error');
+        setTokenError(err instanceof Error ? err.message : 'QR-Code ungültig');
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +87,28 @@ export function LoginView() {
 
   const handleGuest = () => navigate('/');
 
-  if (serverMode === null) {
+  const handleTokenSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTokenError(null);
+    const t = tokenInput.trim();
+    if (!t) { setTokenError('Token eingeben'); return; }
+    try {
+      await loginWithToken(t);
+      navigate('/');
+    } catch (err) {
+      setTokenError(err instanceof Error ? err.message : 'Token ungültig');
+    }
+  };
+
+  if (serverMode === null || redeemStatus === 'redeeming') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          {redeemStatus === 'redeeming' && (
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">QR-Code wird eingelöst…</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -253,6 +299,38 @@ export function LoginView() {
               </button>
             </div>
           )}
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => { setShowTokenForm((v) => !v); setTokenError(null); }}
+              className="flex w-full items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              <Key className="h-4 w-4" />
+              {showTokenForm ? 'Token-Eingabe ausblenden' : 'Mit Geräte-Token anmelden'}
+            </button>
+            {showTokenForm && (
+              <form onSubmit={handleTokenSubmit} className="mt-3 space-y-3">
+                <textarea
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  rows={3}
+                  placeholder="Token hier einfügen…"
+                  className="block w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs text-gray-900 dark:text-white font-mono placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                {tokenError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{tokenError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full rounded-xl bg-gray-800 hover:bg-gray-900 dark:bg-gray-600 dark:hover:bg-gray-500 disabled:bg-gray-400 px-4 py-2.5 text-white text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Prüfe Token…' : 'Token verwenden & speichern'}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </div>
