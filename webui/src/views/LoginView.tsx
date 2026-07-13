@@ -1,26 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Lock, User, UserPlus } from 'lucide-react';
-
-type AuthStatus = { needsBootstrap: boolean; mode: 'optional' | 'enforced' };
 
 export function LoginView() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [status, setStatus] = useState<AuthStatus | null>(null);
   const [onboardError, setOnboardError] = useState<string | null>(null);
   const [onboardLoading, setOnboardLoading] = useState(false);
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoading, error, clearError, needsBootstrap, serverMode, checkAuthStatus } = useAuthStore();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetch('/auth/status')
-      .then((r) => r.json())
-      .then((data: AuthStatus) => setStatus(data))
-      .catch(() => setStatus({ needsBootstrap: false, mode: 'enforced' }));
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +46,9 @@ export function LoginView() {
         setOnboardError((body as { error?: string }).error ?? `Fehler ${res.status}`);
         return;
       }
-      // Auto-login after successful onboarding
+      // Auto-login after successful onboarding; refresh store so needsBootstrap flips to false
       await login(username, password);
+      await checkAuthStatus();
       navigate('/');
     } catch {
       setOnboardError('Verbindungsfehler');
@@ -68,10 +59,10 @@ export function LoginView() {
 
   const handleGuest = () => navigate('/');
 
-  // While fetching status show nothing (avoids flash)
-  if (!status) return null;
+  // While server mode is unknown show nothing (avoids flash)
+  if (serverMode === null) return null;
 
-  if (status.needsBootstrap) {
+  if (needsBootstrap) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
         <div className="w-full max-w-md">
@@ -246,7 +237,7 @@ export function LoginView() {
             </button>
           </form>
 
-          {status.mode === 'optional' && (
+          {serverMode === 'optional' && (
             <div className="mt-4">
               <button
                 type="button"

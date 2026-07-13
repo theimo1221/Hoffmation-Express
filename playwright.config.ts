@@ -10,15 +10,16 @@ export default defineConfig({
   globalSetup: './test/e2e-ui/global-setup.ts',
   globalTeardown: './test/e2e-ui/global-teardown.ts',
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:3001',
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    // The dev server serves the built WebUI under /ui - run `npm run build:webui` (with sourcemaps) first.
-    command: 'npm run dev:mock',
-    url: 'http://127.0.0.1:3000/isAlive',
-    reuseExistingServer: !process.env.CI,
+    // Tests use port 3001 to avoid conflicts with the manual dev:mock on port 3000.
+    // admin/admin + enforced mode so all login-gated tests can authenticate.
+    command: 'PORT=3001 DEV_MODE=enforced npm run dev:mock',
+    url: 'http://127.0.0.1:3001/isAlive',
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

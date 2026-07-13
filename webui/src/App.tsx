@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { FloorPlanView } from '@/views/FloorPlanView';
 import { FavoritesView } from '@/views/FavoritesView';
 import { RoomsView } from '@/views/RoomsView';
@@ -16,8 +16,10 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 function App() {
   const { darkMode, pollingInterval } = useSettingsStore();
   const { fetchRooms, fetchDevices } = useDataStore();
-  const { checkAuthStatus } = useAuthStore();
+  const { checkAuthStatus, needsBootstrap, serverMode, isAuthenticated } = useAuthStore();
   const isOnline = useOnlineStatus();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -43,6 +45,15 @@ function App() {
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
+
+  // Redirect to login when bootstrap needed or enforced mode without session
+  useEffect(() => {
+    if (serverMode === null) return; // not yet fetched
+    if (location.pathname === '/login') return; // already there
+    if (needsBootstrap || (serverMode === 'enforced' && !isAuthenticated)) {
+      navigate('/login', { replace: true });
+    }
+  }, [needsBootstrap, serverMode, isAuthenticated, navigate, location.pathname]);
 
   // Poll devices regularly
   useEffect(() => {
