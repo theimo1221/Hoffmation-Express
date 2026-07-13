@@ -59,8 +59,13 @@ export function LoginView() {
 
   const handleGuest = () => navigate('/');
 
-  // While server mode is unknown show nothing (avoids flash)
-  if (serverMode === null) return null;
+  if (serverMode === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   if (needsBootstrap) {
     return (

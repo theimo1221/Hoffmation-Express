@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug, Shield } from 'lucide-react';
+import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug, Shield, LogIn, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { BugReportDialog } from '@/components/BugReportDialog';
@@ -40,7 +40,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   const { t } = useTranslation();
   const expertMode = useSettingsStore((state) => state.expertMode);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const { isAdmin, isAuthenticated, logout } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bugDialogOpen, setBugDialogOpen] = useState(false);
 
@@ -102,6 +102,25 @@ export function PageHeader({
                       <span className="text-sm font-medium">{label}</span>
                     </NavLink>
                   ))}
+                  <div className="my-1 border-t border-border/50" />
+                  {isAuthenticated ? (
+                    <button
+                      onClick={() => { void logout(); setMenuOpen(false); }}
+                      className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-foreground hover:bg-accent transition-all duration-200"
+                    >
+                      <LogOut className="h-5 w-5" strokeWidth={1.5} />
+                      <span className="text-sm font-medium">Abmelden</span>
+                    </button>
+                  ) : (
+                    <NavLink
+                      to="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-foreground hover:bg-accent transition-all duration-200"
+                    >
+                      <LogIn className="h-5 w-5" strokeWidth={1.5} />
+                      <span className="text-sm font-medium">Anmelden</span>
+                    </NavLink>
+                  )}
                 </div>
               )}
             </div>
