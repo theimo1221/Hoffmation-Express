@@ -377,7 +377,9 @@ export class RestService {
     });
 
     this._app.get('/ac/:acId/power/:mode/:temp', (req, res) => {
-      return res.send(API.setAc(req.params.acId, true, parseInt(req.params.mode) as AcMode, parseInt(req.params.temp)));
+      return res.send(
+        API.setAc(req.params.acId, true, parseInt(req.params.mode) as AcMode, parseFloat(req.params.temp)),
+      );
     });
 
     this._app.get('/camera/:cameraId/lastMotionImage', (req, res) => {
@@ -645,6 +647,26 @@ export class RestService {
         ServerLogService.writeLog(LogLevel.Error, `Failed to read webui-settings.json: ${err.message}`);
         // Return default settings on error
         return res.json({ version: '1.0', floors: [] });
+      }
+    });
+
+    // WebUI Settings: Write (admin only, merges with existing to preserve push subscriptions)
+    this._app.post('/webui/settings', requireAdmin, (req, res) => {
+      const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
+      try {
+        type StoredSettings = Record<string, unknown>;
+        let existing: StoredSettings = { version: '1.0', floors: [] };
+        if (fs.existsSync(settingsPath)) {
+          existing = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as StoredSettings;
+        }
+        const incoming = req.body as StoredSettings;
+        const merged = { ...existing, ...incoming };
+        fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2), 'utf-8');
+        return res.json(merged);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        ServerLogService.writeLog(LogLevel.Error, `Failed to write webui-settings.json: ${err.message}`);
+        return res.status(500).json({ error: 'Failed to save settings' });
       }
     });
 

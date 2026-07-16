@@ -148,16 +148,14 @@ export function AcControls({ device }: AcControlsProps) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Modus</span>
           <select
-            value={acMode}
-            onChange={(e) => handleAc(true, Number(e.target.value))}
+            value={acMode === 0 ? 1 : acMode}
+            onChange={(e) => handleAc(true, Number(e.target.value), desiredTemp !== -99 ? desiredTemp : 22)}
             disabled={isLoading}
             className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
           >
-            <option value={0}>Auto</option>
-            <option value={1}>Kühlen</option>
-            <option value={2}>Entfeuchten</option>
-            <option value={3}>Lüften</option>
-            <option value={4}>Heizen</option>
+            <option value={1}>Auto</option>
+            <option value={2}>Kühlen</option>
+            <option value={3}>Heizen</option>
           </select>
         </div>
         {desiredTemp !== -99 && (
@@ -165,7 +163,7 @@ export function AcControls({ device }: AcControlsProps) {
             <span className="text-muted-foreground">Zieltemperatur</span>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => handleAc(true, undefined, Math.max(16, desiredTemp - 0.5))}
+                onClick={() => handleAc(true, acMode === 0 ? 1 : acMode, Math.max(16, desiredTemp - 0.5))}
                 disabled={isLoading}
                 className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
               >
@@ -173,7 +171,7 @@ export function AcControls({ device }: AcControlsProps) {
               </button>
               <span className="font-medium w-14 text-center">{desiredTemp.toFixed(1)}°C</span>
               <button
-                onClick={() => handleAc(true, undefined, Math.min(30, desiredTemp + 0.5))}
+                onClick={() => handleAc(true, acMode === 0 ? 1 : acMode, Math.min(30, desiredTemp + 0.5))}
                 disabled={isLoading}
                 className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
               >

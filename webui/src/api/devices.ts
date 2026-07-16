@@ -83,10 +83,17 @@ export async function setLed(
 
 export async function setAc(deviceId: string, power: boolean, mode?: number, temp?: number): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  let url = `/ac/${encodedId}/power/${power}`;
-  if (mode !== undefined) url += `/${mode}`;
-  if (temp !== undefined) url += `/${temp}`;
-  await apiGetNoResponse(url);
+  if (!power) {
+    await apiGetNoResponse(`/ac/${encodedId}/power/false`);
+    return;
+  }
+  // Expert route: /ac/:id/power/:mode/:temp (both required, no 'true' in path)
+  if (mode !== undefined && temp !== undefined) {
+    await apiGetNoResponse(`/ac/${encodedId}/power/${mode}/${temp}`);
+    return;
+  }
+  // Simple on — server resolves mode by season / useAutomatic
+  await apiGetNoResponse(`/ac/${encodedId}/power/true`);
 }
 
 export async function startScene(deviceId: string, timeout?: number): Promise<void> {
@@ -132,11 +139,8 @@ export async function getTemperatureHistory(
 ): Promise<TemperatureHistoryEntry[]> {
   const encodedId = encodeURIComponent(deviceId);
   let url = `/temperature/${encodedId}/history`;
-  if (startDate) {
-    url += `/${startDate.getTime()}`;
-    if (endDate) {
-      url += `/${endDate.getTime()}`;
-    }
+  if (startDate && endDate) {
+    url += `/${startDate.getTime()}/${endDate.getTime()}`;
   }
   return apiGet<TemperatureHistoryEntry[]>(url);
 }
