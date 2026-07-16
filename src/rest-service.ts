@@ -55,6 +55,9 @@ export class RestService {
   public static async initialize(app: Express, config: iRestSettings): Promise<void> {
     this._app = app;
 
+    // Trust one proxy hop so req.ip reflects X-Forwarded-For from Caddy/nginx, not the proxy socket IP.
+    this._app.set('trust proxy', 1);
+
     // Initialize push notification service
     PushNotificationService.initialize();
 
