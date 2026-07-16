@@ -61,11 +61,14 @@ export async function getUsers(): Promise<User[]> {
   return apiGet<User[]>('/auth/users');
 }
 
-export async function createUser(user: { username: string; password: string; role: string; deny?: any }): Promise<{ success: boolean }> {
+/** Shape of a per-principal access-deny policy (matches User.deny). */
+type UserDeny = NonNullable<User['deny']>;
+
+export async function createUser(user: { username: string; password: string; role: string; deny?: UserDeny }): Promise<{ success: boolean }> {
   return apiPost<{ success: boolean }>('/auth/users', user);
 }
 
-export async function updateUser(username: string, updates: { role?: string; deny?: any; disabled?: boolean; password?: string }): Promise<{ success: boolean }> {
+export async function updateUser(username: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean; password?: string }): Promise<{ success: boolean }> {
   return apiPatch<{ success: boolean }>(`/auth/users/${encodeURIComponent(username)}`, updates);
 }
 
@@ -77,7 +80,7 @@ export async function getTokens(): Promise<Token[]> {
   return apiGet<Token[]>('/auth/tokens');
 }
 
-export async function mintToken(label: string, role: string, deny?: any, scope?: string[]): Promise<MintTokenResponse> {
+export async function mintToken(label: string, role: string, deny?: UserDeny, scope?: string[]): Promise<MintTokenResponse> {
   return apiPost<MintTokenResponse>('/auth/tokens', { label, role, deny, scope });
 }
 

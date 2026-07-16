@@ -3,6 +3,7 @@ import { Clock } from 'lucide-react';
 import type { Device } from '@/stores';
 import { blockAutomatic, liftAutomaticBlock } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
+import { getAutomaticBlockedUntil } from '@/stores/deviceStore';
 
 interface BlockAutomaticControlsProps {
   device: Device;
@@ -19,16 +20,7 @@ export function BlockAutomaticControls({ device }: BlockAutomaticControlsProps) 
   const [blockHours, setBlockHours] = useState(1);
   const [blockUntilDate, setBlockUntilDate] = useState('');
   
-  const getBlockedUntil = (): number => {
-    const handler = device.blockAutomationHandler ?? (device as Record<string, unknown>)._blockAutomationHandler as typeof device.blockAutomationHandler;
-    const value = handler?.automaticBlockedUntil ?? (handler as Record<string, unknown>)?._automaticBlockedUntil;
-    if (!value) return 0;
-    if (value instanceof Date) return value.getTime();
-    if (typeof value === 'string') return new Date(value).getTime();
-    if (typeof value === 'number') return value;
-    return 0;
-  };
-  const automaticBlockedUntil = getBlockedUntil();
+  const automaticBlockedUntil = getAutomaticBlockedUntil(device);
   
   const handleBlockAutomatic = async (hours: number) => {
     await executeDeviceAction(

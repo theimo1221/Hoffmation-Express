@@ -111,11 +111,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             const data = (await res.json()) as { role: string };
             isAuthenticated = true;
             set({ isAuthenticated: true, isAdmin: data.role === 'admin', hasMobileToken: true });
-          } else {
-            // Token expired or revoked — clear it so the user sees the login form
+          } else if (res.status === 401) {
+            // 401 = token definitiv ungültig oder widerrufen — löschen
             localStorage.removeItem(MOBILE_TOKEN_KEY);
             set({ hasMobileToken: false });
           }
+          // Bei 5xx / sonstigen Fehlern: Token behalten, nächster App-Start versucht es erneut
         } catch {
           // network error — leave token in place, try again next time
         }

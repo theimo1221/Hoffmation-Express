@@ -41,9 +41,16 @@ function App() {
     fetchRooms();
   }, [fetchRooms]);
 
-  // Check auth status on mount
+  // Check auth status on mount and when the PWA resumes from background
   useEffect(() => {
     checkAuthStatus();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAuthStatus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [checkAuthStatus]);
 
   // Redirect to login when bootstrap needed or enforced mode without session

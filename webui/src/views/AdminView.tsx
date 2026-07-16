@@ -14,8 +14,9 @@ import {
   type User,
   type Token
 } from '@/api/auth';
-import { UserDialog } from '@/views/admin/UserDialog';
+import { UserDialog, type UserCreatePayload, type UserUpdatePayload } from '@/views/admin/UserDialog';
 import { TokenDialog } from '@/views/admin/TokenDialog';
+import type { DenyPolicy } from '@/views/admin/DenyEditor';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 export function AdminView() {
@@ -50,14 +51,21 @@ export function AdminView() {
     }
   };
 
-  const handleCreateUser = async (data: { username: string; password: string; role: string; deny?: any }) => {
-    await createUser(data);
+  const handleCreateUser = async (data: UserCreatePayload | UserUpdatePayload) => {
+    if ('username' in data) {
+      await createUser({ username: data.username, password: data.password, role: data.role, deny: data.deny });
+    }
     await loadData();
     setUserDialogOpen(false);
   };
 
-  const handleUpdateUser = async (username: string, updates: any) => {
-    await updateUser(username, updates);
+  const handleUpdateUser = async (username: string, updates: UserCreatePayload | UserUpdatePayload) => {
+    await updateUser(username, {
+      role: updates.role,
+      deny: updates.deny,
+      disabled: 'disabled' in updates ? updates.disabled : undefined,
+      password: updates.password,
+    });
     await loadData();
     setUserDialogOpen(false);
     setEditingUser(null);
@@ -69,7 +77,7 @@ export function AdminView() {
     await loadData();
   };
 
-  const handleMintToken = async (data: { label: string; role: string; deny?: any; scope?: string[] }) => {
+  const handleMintToken = async (data: { label: string; role: string; deny?: DenyPolicy; scope?: string[] }) => {
     const result = await mintToken(data.label, data.role, data.deny, data.scope);
     setMintedToken(result.token);
     const redeemUrl = `${window.location.origin}/ui/login?registration-token=${encodeURIComponent(result.registrationToken)}`;

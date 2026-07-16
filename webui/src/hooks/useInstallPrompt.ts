@@ -17,7 +17,7 @@ export function useInstallPrompt() {
     }
 
     // Check if running as iOS PWA
-    if ((window.navigator as any).standalone === true) {
+    if ((window.navigator as Navigator & { standalone?: boolean }).standalone === true) {
       setIsInstalled(true);
       return;
     }

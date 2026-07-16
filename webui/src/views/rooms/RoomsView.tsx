@@ -30,24 +30,7 @@ export function RoomsView() {
     loadFloors();
   }, [fetchData, loadFloors]);
 
-  if (selectedDevice) {
-    return <DeviceDetailView device={selectedDevice} onBack={() => navigate(-1)} />;
-  }
-
-  if (selectedGroup && selectedRoom) {
-    return (
-      <GroupDetailView 
-        room={selectedGroup.room}
-        groupType={selectedGroup.groupType}
-        group={selectedGroup.group}
-        devices={devices}
-        onBack={() => setSelectedGroup(null)}
-        onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
-      />
-    );
-  }
-
-  // Build floors with room counts
+  // Build floors with room counts — must be called before any early return
   const floors = useMemo(() => {
     return floorDefinitions.map(def => {
       const floorRooms = Object.values(rooms).filter(room => {
@@ -57,6 +40,23 @@ export function RoomsView() {
       return { ...def, rooms: floorRooms };
     });
   }, [rooms, floorDefinitions]);
+
+  if (selectedDevice) {
+    return <DeviceDetailView device={selectedDevice} onBack={() => navigate(-1)} />;
+  }
+
+  if (selectedGroup && selectedRoom) {
+    return (
+      <GroupDetailView
+        room={selectedGroup.room}
+        groupType={selectedGroup.groupType}
+        group={selectedGroup.group}
+        devices={devices}
+        onBack={() => setSelectedGroup(null)}
+        onSelectDevice={(device) => navigate(`/devices/${encodeURIComponent(device.id ?? '')}`)}
+      />
+    );
+  }
 
   const roomList = Object.values(rooms).filter(
     (room) => {

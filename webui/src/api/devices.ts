@@ -111,9 +111,14 @@ export async function endScene(deviceId: string): Promise<void> {
   await apiGetNoResponse(`/scene/${encodedId}/end`);
 }
 
-export async function speakOnDevice(deviceId: string, message: string): Promise<void> {
+export async function setGarageDoor(deviceId: string, open: boolean): Promise<void> {
   const encodedId = encodeURIComponent(deviceId);
-  await apiPostNoResponse(`/speak/${encodedId}`, { message });
+  await apiGetNoResponse(`/garageDoor/${encodedId}/${open}`);
+}
+
+export async function speakOnDevice(deviceId: string, message: string, volume?: number): Promise<void> {
+  const encodedId = encodeURIComponent(deviceId);
+  await apiPostNoResponse(`/speak/${encodedId}`, { message, ...(volume !== undefined && { volume }) });
 }
 
 export async function blockAutomatic(deviceId: string, durationSeconds: number): Promise<void> {

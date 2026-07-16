@@ -8,7 +8,7 @@ interface BugReportDialogProps {
   onClose: () => void;
   entityType?: 'device' | 'room' | 'scene' | 'group';
   entityId?: string;
-  entityData?: any;
+  entityData?: unknown;
 }
 
 export function BugReportDialog({ isOpen, onClose, entityType, entityId, entityData }: BugReportDialogProps) {

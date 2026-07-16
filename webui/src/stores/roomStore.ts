@@ -257,9 +257,10 @@ export function getGroup(room: Room, groupType: GroupType): GroupData | undefine
  */
 export function getRoomWebUISettings(room: Room): RoomWebUISettings | null {
   try {
-    // Try _settingsContainer first (backend structure)
-    const json = (room.settings as any)?._settingsContainer?.customSettingsJson 
-                 ?? room.settings?.customSettingsJson;
+    // Try _settingsContainer first (backend structure — private field with _ prefix)
+    const settingsContainer = (room.settings as Record<string, unknown> | undefined)?.['_settingsContainer'] as
+      { customSettingsJson?: string } | undefined;
+    const json = settingsContainer?.customSettingsJson ?? room.settings?.customSettingsJson;
     if (typeof json === 'string' && json.length > 0) {
       const parsed = JSON.parse(json);
       return parsed.webui || null;

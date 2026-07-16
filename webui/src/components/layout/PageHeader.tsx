@@ -21,7 +21,7 @@ interface PageHeaderProps {
   bugReportContext?: {
     entityType?: 'device' | 'room' | 'scene' | 'group';
     entityId?: string;
-    entityData?: any;
+    entityData?: unknown;
   };
 }
 

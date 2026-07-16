@@ -4,9 +4,12 @@ import type { User } from '@/api/auth';
 import { DenyEditor } from './DenyEditor';
 import type { DenyPolicy } from './DenyEditor';
 
+export type UserCreatePayload = { username: string; password: string; role: string; deny: DenyPolicy };
+export type UserUpdatePayload = { role: string; disabled: boolean; deny: DenyPolicy; password?: string };
+
 interface UserDialogProps {
   user: User | null;
-  onSave: (data: any) => Promise<void>;
+  onSave: (data: UserCreatePayload | UserUpdatePayload) => Promise<void>;
   onClose: () => void;
 }
 
@@ -23,7 +26,7 @@ export function UserDialog({ user, onSave, onClose }: UserDialogProps) {
     setSaving(true);
     try {
       if (user) {
-        const updates: any = { role, disabled, deny };
+        const updates: UserUpdatePayload = { role, disabled, deny };
         if (password) updates.password = password;
         await onSave(updates);
       } else {

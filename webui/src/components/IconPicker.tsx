@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { Search, X } from 'lucide-react';
+import { type LucideIcon, Search, X } from 'lucide-react';
 
 interface IconPickerProps {
   value?: string;
@@ -31,7 +31,7 @@ export function IconPicker({ value, onChange, color = '#3B82F6' }: IconPickerPro
 
   const displayedIcons = filteredIcons.slice(0, 48);
 
-  const IconComponent = value && (LucideIcons as any)[value];
+  const IconComponent = value && (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[value];
 
   return (
     <div className="relative">
@@ -84,7 +84,8 @@ export function IconPicker({ value, onChange, color = '#3B82F6' }: IconPickerPro
 
             <div className="grid grid-cols-8 gap-2">
               {displayedIcons.map((iconName) => {
-                const Icon = (LucideIcons as any)[iconName];
+                const Icon = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[iconName];
+                if (!Icon) return null;
                 const isSelected = value === iconName;
                 return (
                   <button

@@ -5,8 +5,8 @@
 
 import type { Device } from '@/stores';
 import { isDeviceOn, isAcOn } from '@/stores';
-import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice } from '@/stores/deviceStore';
-import { setLamp, setDimmer, setActuator, setShutter, setAc, startScene, endScene, getDevice } from '@/api/devices';
+import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice, getDeviceBrightness, getDeviceColor, DeviceCapability } from '@/stores/deviceStore';
+import { setLamp, setDimmer, setLed, setActuator, setShutter, setAc, startScene, endScene, getDevice } from '@/api/devices';
 
 export const REFRESH_DELAY_MS = 800; // Increased for Zigbee devices (was 300ms)
 export const REFRESH_DELAY_AC_MS = 1000; // AC/Shutter need longer delay
@@ -50,11 +50,11 @@ export async function executeDeviceAction(
 }
 
 /**
- * Helper to calculate duration in milliseconds
- * @param minutes - Duration in minutes, 0 means no timeout (-1)
+ * Helper to calculate duration in milliseconds.
+ * 0 maps to 24 h — backend interprets -1 as "no block" (automation reverts immediately).
  */
 export function calculateDuration(minutes: number): number {
-  return minutes === 0 ? -1 : minutes * 60 * 1000;
+  return minutes === 0 ? 24 * 60 * 60 * 1000 : minutes * 60 * 1000;
 }
 
 /**
@@ -85,13 +85,16 @@ export async function toggleDevice(
       // Lamp, Dimmer, LED
       if (isLampDevice(device)) {
         const caps = device.deviceCapabilities ?? [];
-        const isDimmer = caps.includes(9) || caps.includes(18); // dimmableLamp or ledLamp
-        
-        if (isDimmer) {
-          // For dimmers, use setDimmer without brightness - backend handles it
+        const hasLedCap = caps.includes(DeviceCapability.ledLamp);      // 18
+        const hasDimmerCap = caps.includes(DeviceCapability.dimmableLamp); // 9
+        if (hasLedCap && !hasDimmerCap) {
+          // Pure LED device: backend route is /led/:id/:state/:brightness/:color
+          const brightness = Math.max(1, getDeviceBrightness(device) === -1 ? 100 : getDeviceBrightness(device));
+          const color = getDeviceColor(device) ?? '#FFFFFF';
+          return setLed(id, !currentState, brightness, color);
+        } else if (hasDimmerCap) {
           return setDimmer(id, !currentState);
         } else {
-          // For simple lamps, use setLamp
           return setLamp(id, !currentState);
         }
       }

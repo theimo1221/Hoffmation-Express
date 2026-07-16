@@ -32,9 +32,8 @@ export function MotionSensorControls({ device }: MotionSensorControlsProps) {
   const movementDetected = isMotionDetected(device);
   const detectionsToday = getDeviceDetectionsToday(device);
   
-  // Calculate time since last motion from timestamp
-  const motionTimestamp = device._motionDetectedTimestamp ?? 0;
-  const timeSinceLastMotion = motionTimestamp === 0 ? 0 : Math.floor((Date.now() - motionTimestamp) / 1000);
+  // Backend serializes pre-computed elapsed seconds as _timeSinceLastMotion (-1=never, 0=active, n=seconds ago)
+  const timeSinceLastMotion = device._timeSinceLastMotion ?? 0;
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">

@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { setDevicePosition } from '@/api/devices';
 import { toggleDevice } from '@/lib/deviceActions';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Plus, Info, ArrowUp, ArrowDown, Thermometer, Lightbulb, Wind, Blinds, LockOpen, PersonStanding, Sunrise, Sunset } from 'lucide-react';
+import { type LucideIcon, Edit3, Save, X, Plus, Info, ArrowUp, ArrowDown, Thermometer, Lightbulb, Wind, Blinds, LockOpen, PersonStanding, Sunrise, Sunset } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { DeviceIcon } from '@/components/DeviceIcon';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -667,7 +667,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
             <>
               {canGoUp && (() => {
                 const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex + 1]);
-                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[targetFloor.icon] : null;
                 return (
                   <button
                     onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex + 1])}
@@ -682,7 +682,7 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
               })()}
               {canGoDown && (() => {
                 const targetFloor = roomFloors.find(f => f.level === availableFloorLevels[currentFloorIndex - 1]);
-                const FloorIcon = targetFloor?.icon ? (LucideIcons as any)[targetFloor.icon] : null;
+                const FloorIcon = targetFloor?.icon ? (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[targetFloor.icon] : null;
                 return (
                   <button
                     onClick={() => onChangeFloor(availableFloorLevels[currentFloorIndex - 1])}

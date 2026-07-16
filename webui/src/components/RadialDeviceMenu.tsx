@@ -1,6 +1,6 @@
 import { Wind } from 'lucide-react';
 import type { Device } from '@/stores';
-import { isDeviceOn, hasCapability, DeviceCapability } from '@/stores/deviceStore';
+import { isDeviceOn, hasCapability, DeviceCapability, getAcMode } from '@/stores/deviceStore';
 import { setLamp, setActuator, setShutter, setAc, setDimmer, startScene, endScene } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 import { DeviceIcon } from './DeviceIcon';
@@ -123,7 +123,7 @@ export function RadialDeviceMenu({
   const centerIcon = (() => {
     // For AC devices, always show Wind icon (colored by mode)
     if (hasCapability(device, DeviceCapability.ac)) {
-      const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
+      const acMode = getAcMode(device);
       const currentMonth = new Date().getMonth();
       const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
       const isCooling = acMode === 1 || (acMode === 0 && isSummerSeason);

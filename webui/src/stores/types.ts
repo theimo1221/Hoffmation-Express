@@ -1,6 +1,6 @@
 /**
  * Shared Types for Hoffmation Express WebUI
- * 
+ *
  * This file contains all shared interfaces and types used across stores.
  */
 
@@ -46,9 +46,9 @@ export interface GroupData {
 }
 
 export interface RoomWebUISettings {
-  crossSectionFloors?: string[];  // Floor IDs
-  icon?: string;                  // Lucide Icon Name
-  color?: string;                 // Hex Color (#RRGGBB)
+  crossSectionFloors?: string[]; // Floor IDs
+  icon?: string; // Lucide Icon Name
+  color?: string; // Hex Col¥or (#RRGGBB)
 }
 
 export interface FloorDefinition {
@@ -56,8 +56,8 @@ export interface FloorDefinition {
   name: string;
   level: number;
   sortOrder: number;
-  icon?: string;   // Lucide Icon Name
-  color?: string;  // Hex Color (#RRGGBB)
+  icon?: string; // Lucide Icon Name
+  color?: string; // Hex Color (#RRGGBB)
 }
 
 export interface RoomSettings {
@@ -103,7 +103,7 @@ export interface TimeCallback {
   name?: string;
   type?: number;
   minuteOffset?: number;
-  nextToDo?: number;  // Unix timestamp in milliseconds
+  nextToDo?: number; // Unix timestamp in milliseconds
   lastDone?: number;
   cloudOffset?: number;
 }
@@ -356,7 +356,7 @@ export interface Device {
   _movementDetected?: boolean;
   _detectionsToday?: number;
   detectionsToday?: number;
-  _motionDetectedTimestamp?: number;
+  _timeSinceLastMotion?: number;
   // Battery
   battery?: Battery;
   batteryLevel?: number;

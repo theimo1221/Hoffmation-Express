@@ -4,7 +4,7 @@ import { getRoomStats } from '@/stores/roomStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { cn } from '@/lib/utils';
-import { Edit3, Save, X, Thermometer } from 'lucide-react';
+import { type LucideIcon, Edit3, Save, X, Thermometer } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { DeviceIcon } from '@/components/DeviceIcon';
@@ -433,7 +433,7 @@ export function FloorPlan({ floor, onBack, onSelectRoom }: FloorPlanProps) {
                   {!editMode && (() => {
                     const webui = getRoomWebUISettings(room);
                     if (webui?.icon) {
-                      const IconComponent = (LucideIcons as any)[webui.icon];
+                      const IconComponent = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[webui.icon];
                       if (IconComponent) {
                         return (
                           <div className="absolute top-1 left-0 right-0 flex justify-center pointer-events-none z-10">

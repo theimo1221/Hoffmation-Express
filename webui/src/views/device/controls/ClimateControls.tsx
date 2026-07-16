@@ -3,7 +3,7 @@ import { Thermometer, Droplets, Snowflake, Flame } from 'lucide-react';
 import type { TemperatureHistoryEntry } from '@/api/devices';
 import type { Device } from '@/stores';
 import { getDeviceValveLevel, getDeviceTemperature, getRoomTemperature, getDeviceDesiredTemp, getDeviceHumidity } from '@/stores/deviceStore';
-import { getTemperatureHistory } from '@/api/devices';
+import { updateDeviceSettings, getTemperatureHistory } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 
 interface TemperatureControlsProps {
@@ -108,7 +108,7 @@ export function TemperatureControls({ device }: TemperatureControlsProps) {
   );
 }
 
-import { isDeviceOn, getAcMode } from '@/stores/deviceStore';
+import { isAcOn, getAcMode } from '@/stores/deviceStore';
 import { setAc } from '@/api/devices';
 
 interface AcControlsProps {
@@ -117,8 +117,8 @@ interface AcControlsProps {
 
 export function AcControls({ device }: AcControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
-  
-  const isOn = isDeviceOn(device);
+
+  const isOn = isAcOn(device);
   const acMode = getAcMode(device);
   const desiredTemp = getDeviceDesiredTemp(device);
   const roomTemp = getRoomTemperature(device) ?? -99;
@@ -150,8 +150,9 @@ export function AcControls({ device }: AcControlsProps) {
           <select
             value={acMode === 0 ? 1 : acMode}
             onChange={(e) => handleAc(true, Number(e.target.value), desiredTemp !== -99 ? desiredTemp : 22)}
-            disabled={isLoading}
+            disabled={isLoading || !isOn}
             className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+            title={!isOn ? 'Klimaanlage einschalten um Modus zu ändern' : undefined}
           >
             <option value={1}>Auto</option>
             <option value={2}>Kühlen</option>
@@ -212,9 +213,18 @@ interface HeaterControlsProps {
 }
 
 export function HeaterControls({ device }: HeaterControlsProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const valveLevel = getDeviceValveLevel(device);
   const roomTemp = getRoomTemperature(device) ?? -99;
   const desiredTemp = getDeviceDesiredTemp(device);
+
+  const adjustTemp = (delta: number) => {
+    if (desiredTemp === -99) return;
+    const next = Math.round((desiredTemp + delta) * 10) / 10;
+    if (next < 4 || next > 30) return;
+    executeDeviceAction(device, (id) => updateDeviceSettings(id, { desiredTemperature: next }), setIsLoading);
+  };
+
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -237,7 +247,23 @@ export function HeaterControls({ device }: HeaterControlsProps) {
         {desiredTemp !== -99 && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Zieltemperatur</span>
-            <span className="font-medium">{desiredTemp.toFixed(1)}°C</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => adjustTemp(-0.5)}
+                disabled={isLoading}
+                className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
+              >
+                -
+              </button>
+              <span className="font-medium w-14 text-center">{desiredTemp.toFixed(1)}°C</span>
+              <button
+                onClick={() => adjustTemp(0.5)}
+                disabled={isLoading}
+                className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
+              >
+                +
+              </button>
+            </div>
           </div>
         )}
       </div>

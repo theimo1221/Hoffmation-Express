@@ -8,3 +8,4 @@ export { MotionSensorControls, HandleSensorControls } from './SensorControls';
 export { SpeakerControls, SceneControls, CameraControls } from './MediaControls';
 export { BlockAutomaticControls } from './AutomaticControls';
 export { EnergyManagerControls, BatteryControls } from './EnergyControls';
+export { GarageDoorControls } from './GarageDoorControls';

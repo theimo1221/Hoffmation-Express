@@ -12,7 +12,8 @@ interface LedControlsProps {
 export function LedControls({ device }: LedControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [forceDuration, setForceDuration] = useState(60);
-  const [desiredBrightness, setDesiredBrightness] = useState(getDeviceBrightness(device));
+  const rawBrightness = getDeviceBrightness(device);
+  const [desiredBrightness, setDesiredBrightness] = useState(rawBrightness === -1 ? 50 : Math.max(0, rawBrightness));
   const [desiredColor, setDesiredColor] = useState(getDeviceColor(device) ?? '#FFFFFF');
   
   const isOn = isDeviceOn(device);

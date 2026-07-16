@@ -3,15 +3,16 @@ import { cn } from '@/lib/utils';
 import type { Device } from '@/stores';
 import { DeviceCapability } from '@/components/DeviceIcon';
 import { 
-  getDeviceTemperature, 
-  getDeviceDesiredTemp, 
-  getDeviceBrightness, 
-  getDeviceShutterLevel, 
-  isDeviceOn, 
-  getDeviceDetectionsToday, 
+  getDeviceTemperature,
+  getDeviceDesiredTemp,
+  getDeviceBrightness,
+  getDeviceShutterLevel,
+  isDeviceOn,
+  getDeviceDetectionsToday,
   isMotionDetected,
   getDeviceBattery,
-  getDeviceLinkQuality
+  getDeviceLinkQuality,
+  getAcMode
 } from '@/stores/deviceStore';
 import { 
   Info, Lightbulb,
@@ -496,7 +497,7 @@ export function getDeviceMenuItems(
   // AC controls - Wind icon with mode-dependent colors
   else if (caps.includes(DeviceCapability.ac)) {
     // Determine current mode and seasonal default
-    const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
+    const acMode = getAcMode(device);
     const currentMonth = new Date().getMonth(); // 0-11
     const isSummerSeason = currentMonth >= 4 && currentMonth <= 9; // May-October = cooling
     
@@ -545,7 +546,7 @@ export function getDeviceMenuItems(
   
   // AC target temperature - at 9 o'clock (left side) for heating/cooling devices
   if (caps.includes(DeviceCapability.ac)) {
-    const acMode = (device as Record<string, unknown>)._acMode as number | undefined;
+    const acMode = getAcMode(device);
     const currentMonth = new Date().getMonth();
     const isSummerSeason = currentMonth >= 4 && currentMonth <= 9;
     const isCooling = acMode === 1 || (acMode === 0 && isSummerSeason);

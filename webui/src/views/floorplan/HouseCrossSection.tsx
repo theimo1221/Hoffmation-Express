@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useDataStore } from '@/stores';
 import { getFloorStats } from '@/stores/roomStore';
-import { Lightbulb, Wind, Blinds, LockOpen, PersonStanding } from 'lucide-react';
+import { type LucideIcon, Lightbulb, Wind, Blinds, LockOpen, PersonStanding } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { HouseCrossSectionProps } from './types';
 
@@ -41,7 +41,7 @@ export function HouseCrossSection({ floors, onSelectFloor }: HouseCrossSectionPr
                 >
                   <div className="flex items-center gap-3">
                     {floor.icon && (() => {
-                      const IconComponent = (LucideIcons as any)[floor.icon];
+                      const IconComponent = (LucideIcons as unknown as Record<string, LucideIcon | undefined>)[floor.icon];
                       return IconComponent ? (
                         <IconComponent 
                           size={24} 

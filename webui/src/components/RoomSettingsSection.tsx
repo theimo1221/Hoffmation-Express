@@ -92,7 +92,7 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
     
     // Build WebUI settings if any are set
     const hasWebuiChanges = selectedFloors.length > 0 || selectedIcon || selectedColor;
-    let updatedSettings = { ...changedFields };
+    const updatedSettings = { ...changedFields };
     
     if (hasWebuiChanges) {
       // Load existing WebUI settings to preserve unchanged fields

@@ -4,7 +4,7 @@ import { DenyEditor } from './DenyEditor';
 import type { DenyPolicy } from './DenyEditor';
 
 interface TokenDialogProps {
-  onSave: (data: { label: string; role: string; deny?: any; scope?: string[] }) => Promise<void>;
+  onSave: (data: { label: string; role: string; deny?: DenyPolicy; scope?: string[] }) => Promise<void>;
   onClose: () => void;
 }
 

@@ -5,7 +5,7 @@ export interface BugReportContext {
   route: string;
   entityType?: 'device' | 'room' | 'scene' | 'group';
   entityId?: string;
-  entityData?: any;
+  entityData?: unknown;
   userAgent: string;
   screenWidth: number;
   screenHeight: number;
@@ -30,7 +30,7 @@ export function useBugReport() {
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getContext = (entityType?: 'device' | 'room' | 'scene' | 'group', entityId?: string, entityData?: any): BugReportContext => {
+  const getContext = (entityType?: 'device' | 'room' | 'scene' | 'group', entityId?: string, entityData?: unknown): BugReportContext => {
     return {
       route: location.pathname,
       entityType,
@@ -47,7 +47,7 @@ export function useBugReport() {
     description: string,
     entityType?: 'device' | 'room' | 'scene' | 'group',
     entityId?: string,
-    entityData?: any
+    entityData?: unknown
   ): Promise<{ success: boolean; id?: string; error?: string }> => {
     if (!description.trim()) {
       return { success: false, error: 'Beschreibung ist erforderlich' };

@@ -27,6 +27,7 @@ import {
   BlockAutomaticControls,
   EnergyManagerControls,
   BatteryControls,
+  GarageDoorControls,
 } from './controls';
 
 interface DeviceDetailViewProps {
@@ -190,11 +191,15 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                 />
               )}
 
+              {hasCapability(device, DeviceCapability.garageDoorOpener) && (
+                <GarageDoorControls device={device} />
+              )}
+
               {hasCapability(device, DeviceCapability.camera) && (
                 <CameraControls device={device} />
               )}
 
-              {hasCapability(device, 104) && (
+              {hasCapability(device, DeviceCapability.blockAutomatic) && (
                 <BlockAutomaticControls
                   device={device}
                 />

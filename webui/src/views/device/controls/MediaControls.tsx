@@ -12,11 +12,12 @@ interface SpeakerControlsProps {
 export function SpeakerControls({ device }: SpeakerControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [speakMessage, setSpeakMessage] = useState('');
-  
+  const [volume, setVolume] = useState(50);
+
   const handleSpeak = async (message: string) => {
     await executeDeviceAction(
       device,
-      (id) => speakOnDevice(id, message),
+      (id) => speakOnDevice(id, message, volume),
       setIsLoading
     );
   };
@@ -33,6 +34,21 @@ export function SpeakerControls({ device }: SpeakerControlsProps) {
           placeholder="Nachricht eingeben..."
           className="w-full rounded-xl bg-secondary p-3 text-sm resize-none h-20"
         />
+        <div>
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-muted-foreground">Lautstärke</span>
+            <span className="font-medium">{volume}%</span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-full accent-primary"
+          />
+        </div>
         <button
           onClick={() => {
             handleSpeak(speakMessage);
@@ -107,7 +123,7 @@ export function SceneControls({ device }: SceneControlsProps) {
           </button>
         ) : (
           <button
-            onClick={() => handleScene(true, sceneTimeout > 0 ? sceneTimeout : undefined)}
+            onClick={() => handleScene(true, sceneTimeout > 0 ? sceneTimeout * 60 * 1000 : undefined)}
             disabled={isLoading}
             className="w-full rounded-xl bg-green-500/20 text-green-600 py-3 font-medium transition-all hover:bg-green-500/30 active:scale-95 disabled:opacity-50"
           >
