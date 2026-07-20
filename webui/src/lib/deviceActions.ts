@@ -4,9 +4,9 @@
  */
 
 import type { Device } from '@/stores';
-import { isDeviceOn, isAcOn } from '@/stores';
+import { isDeviceOn, isAcOn, useDataStore } from '@/stores';
 import { isToggleableDevice, isLampDevice, isActuatorDevice, isShutterDevice, isAcDevice, isSceneDevice, getDeviceBrightness, getDeviceColor, DeviceCapability } from '@/stores/deviceStore';
-import { setLamp, setDimmer, setLed, setActuator, setShutter, setAc, startScene, endScene, getDevice } from '@/api/devices';
+import { setLamp, setDimmer, setLed, setActuator, setShutter, setAc, startScene, endScene } from '@/api/devices';
 
 export const REFRESH_DELAY_MS = 800; // Increased for Zigbee devices (was 300ms)
 export const REFRESH_DELAY_AC_MS = 1000; // AC/Shutter need longer delay
@@ -40,8 +40,7 @@ export async function executeDeviceAction(
   try {
     await action(device.id);
     await new Promise(resolve => setTimeout(resolve, delayMs));
-    // Automatically refresh device state after action
-    await getDevice(device.id);
+    await useDataStore.getState().fetchDevice(device.id);
   } catch (e) {
     console.error('Device action failed:', e);
   } finally {

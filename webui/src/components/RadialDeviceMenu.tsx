@@ -33,9 +33,11 @@ export function RadialDeviceMenu({
   // Internal action handlers
   const handleLampOn = async () => {
     onClose();
+    const caps = device.deviceCapabilities ?? [];
+    const hasDimmer = caps.includes(DeviceCapability.dimmableLamp);
     await executeDeviceAction(
       device,
-      (id) => setLamp(id, true),
+      (id) => hasDimmer ? setDimmer(id, true) : setLamp(id, true),
       () => {}
     );
   };

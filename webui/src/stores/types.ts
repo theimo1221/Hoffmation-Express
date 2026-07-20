@@ -127,6 +127,14 @@ export interface Room {
 // Device Settings Types
 // ============================================================================
 
+export interface EnergySettings {
+  /** -1=Ignorieren, 1–99=Priorität, 100=Immer an */
+  priority: number;
+  rampUpOnSpareEnergy: boolean;
+  powerReactionTime: number;
+  runAnyways: boolean;
+}
+
 export interface ActuatorSettings {
   dayOn?: boolean;
   dawnOn?: boolean;
@@ -264,6 +272,7 @@ export interface DeviceSettings {
   sceneSettings?: SceneSettings;
   speakerSettings?: SpeakerSettings;
   dachsSettings?: DachsSettings;
+  energySettings?: EnergySettings;
   // Trilateration position in room
   trilaterationRoomPosition?: { x: number; y: number; z: number };
 }

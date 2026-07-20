@@ -26,6 +26,7 @@ import {
   CameraControls,
   BlockAutomaticControls,
   EnergyManagerControls,
+  EnergySettingsSection,
   BatteryControls,
   GarageDoorControls,
 } from './controls';
@@ -207,6 +208,10 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
 
               {hasCapability(device, DeviceCapability.energyManager) && (
                 <EnergyManagerControls device={device} />
+              )}
+
+              {hasCapability(device, DeviceCapability.energyManager) && (
+                <EnergySettingsSection device={device} />
               )}
 
               {batteryLevel !== -99 && (
