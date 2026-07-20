@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Key, Plus, Trash2, Edit, Copy, Check, X } from 'lucide-react';
+import { Users, Key, Plus, Trash2, Edit, Copy, Check, X, RefreshCw, Download, CheckCircle, XCircle, Loader2, Bug, Settings } from 'lucide-react';
 import QRCode from 'qrcode';
 import {
   getUsers,
@@ -14,9 +14,11 @@ import {
   type User,
   type Token
 } from '@/api/auth';
+import { updateWebUI, restartHoffmation, type WebUIUpdateResult, type HoffmationRestartResult } from '@/api/system';
 import { UserDialog, type UserCreatePayload, type UserUpdatePayload } from '@/views/admin/UserDialog';
 import { TokenDialog } from '@/views/admin/TokenDialog';
 import type { DenyPolicy } from '@/views/admin/DenyEditor';
+import { BugReportsManagement } from '@/components/BugReportsManagement';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 export function AdminView() {
@@ -24,7 +26,13 @@ export function AdminView() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [authMode, setAuthModeState] = useState<'optional' | 'enforced'>('optional');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'tokens'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'tokens' | 'system'>('users');
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<WebUIUpdateResult | null>(null);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [restartResult, setRestartResult] = useState<HoffmationRestartResult | null>(null);
+  const [showBugReports, setShowBugReports] = useState(false);
 
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
@@ -104,6 +112,35 @@ export function AdminView() {
     }
   };
 
+  const handleUpdateWebUI = async () => {
+    setIsUpdating(true);
+    setUpdateResult(null);
+    try {
+      const result = await updateWebUI();
+      setUpdateResult(result);
+      if (result.success) {
+        setTimeout(() => window.location.reload(), 2000);
+      }
+    } catch (e) {
+      setUpdateResult({ success: false, steps: [], error: String(e) });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRestartHoffmation = async () => {
+    setIsRestarting(true);
+    setRestartResult(null);
+    try {
+      const result = await restartHoffmation();
+      setRestartResult(result);
+    } catch (e) {
+      setRestartResult({ success: false, error: String(e) });
+    } finally {
+      setIsRestarting(false);
+    }
+  };
+
   const handleToggleAuthMode = async () => {
     const newMode = authMode === 'optional' ? 'enforced' : 'optional';
     await setAuthMode(newMode);
@@ -170,6 +207,17 @@ export function AdminView() {
           >
             <Key className="inline h-5 w-5 mr-2" />
             Tokens
+          </button>
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`flex-1 rounded-xl px-4 py-3 font-medium transition-colors ${
+              activeTab === 'system'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Settings className="inline h-5 w-5 mr-2" />
+            System
           </button>
         </div>
 
@@ -308,6 +356,119 @@ export function AdminView() {
         )}
       </div>
 
+        {activeTab === 'system' && (
+          <div className="space-y-6">
+            {/* Bug Reports */}
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                <Bug className="h-5 w-5" />
+                Bug-Reports
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Verwalte gemeldete Bugs: Bearbeiten, Abhaken und Historie einsehen.
+              </p>
+              <button
+                onClick={() => setShowBugReports(true)}
+                className="w-full rounded-xl bg-red-500 py-3 text-sm font-medium text-white transition-all hover:bg-red-600 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Bug className="h-4 w-4" />
+                Bug-Verwaltung öffnen
+              </button>
+            </div>
+
+            {/* Hoffmation Restart */}
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                <RefreshCw className="h-5 w-5" />
+                Hoffmation Update & Restart
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Aktualisiert Hoffmation vom Git-Repository und startet den Service neu.
+              </p>
+              <button
+                onClick={handleRestartHoffmation}
+                disabled={isRestarting}
+                className="w-full rounded-xl bg-orange-500 py-3 text-sm font-medium text-white transition-all hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isRestarting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Restart läuft...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Hoffmation neu starten
+                  </>
+                )}
+              </button>
+              {restartResult && (
+                <div className={`mt-3 rounded-xl p-3 text-sm ${restartResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                  <div className="flex items-center gap-2">
+                    {restartResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    <span className="font-medium">
+                      {restartResult.success ? restartResult.message : restartResult.error ?? 'Restart fehlgeschlagen'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* WebUI Update */}
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                WebUI Update
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Aktualisiert die WebUI vom Git-Repository (git pull, npm ci, build).
+              </p>
+              <button
+                onClick={handleUpdateWebUI}
+                disabled={isUpdating}
+                className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Update läuft...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    WebUI aktualisieren
+                  </>
+                )}
+              </button>
+              {updateResult && (
+                <div className={`mt-3 rounded-xl p-3 text-sm ${updateResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {updateResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    <span className="font-medium">
+                      {updateResult.success ? 'Update erfolgreich! Seite wird neu geladen...' : 'Update fehlgeschlagen'}
+                    </span>
+                  </div>
+                  {updateResult.steps.length > 0 && (
+                    <div className="space-y-1 text-xs">
+                      {updateResult.steps.map((step, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          {step.success ? <CheckCircle className="h-3 w-3 text-green-500" /> : <XCircle className="h-3 w-3 text-red-500" />}
+                          <span>{step.step}</span>
+                          {step.output && <span className="text-muted-foreground">– {step.output}</span>}
+                          {step.error && <span className="text-red-500">– {step.error}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {updateResult.error && !updateResult.steps.length && (
+                    <p className="text-xs">{updateResult.error}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       {userDialogOpen && (
         <UserDialog
           user={editingUser}
@@ -322,6 +483,11 @@ export function AdminView() {
           onClose={() => setTokenDialogOpen(false)}
         />
       )}
+
+      <BugReportsManagement
+        isOpen={showBugReports}
+        onClose={() => setShowBugReports(false)}
+      />
       </div>
     </div>
   );

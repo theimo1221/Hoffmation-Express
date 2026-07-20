@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, RefreshCw, Server, Settings, Layers, Download, CheckCircle, XCircle, Loader2, Smartphone, Bell, BellOff, Bug, Shield } from 'lucide-react';
-import { updateWebUI, type WebUIUpdateResult, restartHoffmation, type HoffmationRestartResult } from '@/api/system';
+import { Moon, Sun, Globe, Server, Settings, Layers, Smartphone, Bell, BellOff, Download, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { BugReportsManagement } from '@/components/BugReportsManagement';
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -48,14 +45,9 @@ export function SettingsView() {
     i18n.changeLanguage(lang);
   };
 
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [updateResult, setUpdateResult] = useState<WebUIUpdateResult | null>(null);
-  const [isRestarting, setIsRestarting] = useState(false);
-  const [restartResult, setRestartResult] = useState<HoffmationRestartResult | null>(null);
   const { canInstall, isInstalled, promptInstall } = useInstallPrompt();
   const [isInstalling, setIsInstalling] = useState(false);
   const pushNotifications = usePushNotifications();
-  const [showBugReports, setShowBugReports] = useState(false);
 
   const handleInstall = async () => {
     setIsInstalling(true);
@@ -72,47 +64,6 @@ export function SettingsView() {
 
   const handlePushUnsubscribe = async () => {
     await pushNotifications.unsubscribe();
-  };
-
-  const handleUpdateWebUI = async () => {
-    if (isUpdating) return;
-    setIsUpdating(true);
-    setUpdateResult(null);
-    try {
-      const result = await updateWebUI();
-      setUpdateResult(result);
-      if (result.success) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      }
-    } catch (error) {
-      setUpdateResult({
-        success: false,
-        steps: [],
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const handleRestartHoffmation = async () => {
-    if (isRestarting) return;
-    if (!confirm('Hoffmation wirklich neu starten? Der Service wird kurz nicht erreichbar sein.')) return;
-    setIsRestarting(true);
-    setRestartResult(null);
-    try {
-      const result = await restartHoffmation();
-      setRestartResult(result);
-    } catch (error) {
-      setRestartResult({
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } finally {
-      setIsRestarting(false);
-    }
   };
 
   return (
@@ -378,31 +329,6 @@ export function SettingsView() {
             </div>
           </section>
 
-          {/* Admin Panel */}
-          {expertMode && (
-            <section>
-              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Administration
-              </h2>
-              <Link
-                to="/admin"
-                className="block rounded-2xl bg-card p-4 shadow-soft hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="font-medium">Admin-Panel</div>
-                      <div className="text-sm text-muted-foreground">Benutzer- und Token-Verwaltung</div>
-                    </div>
-                  </div>
-                  <span className="text-muted-foreground">→</span>
-                </div>
-              </Link>
-            </section>
-          )}
-
           {/* Exclude Levels */}
           <section>
             <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -430,142 +356,8 @@ export function SettingsView() {
             </div>
           </section>
 
-          {/* Bug Reports Management (Expert Mode Only) */}
-          {expertMode && (
-            <section>
-              <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-                <Bug className="h-4 w-4" />
-                Bug-Reports
-              </h2>
-              <div className="rounded-2xl bg-card p-4 shadow-soft">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Verwalte gemeldete Bugs: Bearbeiten, Abhaken und Historie einsehen.
-                </p>
-                <button
-                  onClick={() => setShowBugReports(true)}
-                  className="w-full rounded-xl bg-red-500 py-3 text-sm font-medium text-white transition-all hover:bg-red-600 active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <Bug className="h-4 w-4" />
-                  Bug-Verwaltung öffnen
-                </button>
-              </div>
-            </section>
-          )}
-
-          {/* Hoffmation Restart */}
-          <section>
-            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Hoffmation Update & Restart
-            </h2>
-            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Aktualisiert Hoffmation vom Git-Repository und startet den Service neu.
-              </p>
-              <button
-                onClick={handleRestartHoffmation}
-                disabled={isRestarting}
-                className="w-full rounded-xl bg-orange-500 py-3 text-sm font-medium text-white transition-all hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isRestarting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Restart läuft...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    Hoffmation neu starten
-                  </>
-                )}
-              </button>
-              {restartResult && (
-                <div className={`rounded-xl p-3 text-sm ${restartResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                  <div className="flex items-center gap-2">
-                    {restartResult.success ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    <span className="font-medium">
-                      {restartResult.success ? restartResult.message : restartResult.error ?? 'Restart fehlgeschlagen'}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* WebUI Update */}
-          <section>
-            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              WebUI Update
-            </h2>
-            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Aktualisiert die WebUI vom Git-Repository (git pull, npm ci, build).
-              </p>
-              <button
-                onClick={handleUpdateWebUI}
-                disabled={isUpdating}
-                className="w-full rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Update läuft...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    WebUI aktualisieren
-                  </>
-                )}
-              </button>
-              {updateResult && (
-                <div className={`rounded-xl p-3 text-sm ${updateResult.success ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    {updateResult.success ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : (
-                      <XCircle className="h-4 w-4" />
-                    )}
-                    <span className="font-medium">
-                      {updateResult.success ? 'Update erfolgreich! Seite wird neu geladen...' : 'Update fehlgeschlagen'}
-                    </span>
-                  </div>
-                  {updateResult.steps.length > 0 && (
-                    <div className="space-y-1 text-xs">
-                      {updateResult.steps.map((step, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          {step.success ? (
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <XCircle className="h-3 w-3 text-red-500" />
-                          )}
-                          <span>{step.step}</span>
-                          {step.output && <span className="text-muted-foreground">– {step.output}</span>}
-                          {step.error && <span className="text-red-500">– {step.error}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {updateResult.error && !updateResult.steps.length && (
-                    <p className="text-xs">{updateResult.error}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
         </div>
       </div>
-
-      {/* Bug Reports Management Dialog */}
-      <BugReportsManagement 
-        isOpen={showBugReports} 
-        onClose={() => setShowBugReports(false)} 
-      />
     </div>
   );
 }
