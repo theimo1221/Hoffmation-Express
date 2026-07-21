@@ -68,7 +68,7 @@ export class RestService {
       }),
     );
 
-    this.app.use(json());
+    this.app.use(json({ limit: '5mb' }));
 
     this._app.use(cookieParser());
     await AuthService.init();
@@ -474,7 +474,6 @@ export class RestService {
 
     this._app.put(
       '/cockpit/snapshot/:name',
-      json({ limit: '5mb' }),
       requireScope('cockpit:deploy'),
       async (req, res) => {
         const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
