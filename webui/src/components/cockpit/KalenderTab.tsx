@@ -6,7 +6,7 @@ import { TODAY, DOMAIN_FALLBACK_COLOR } from './helpers';
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-type CalView = 'month' | 'week';
+type CalView = 'month' | 'week' | 'list';
 
 function buildMonthCells(year: number, month: number): Array<{ day: number | null; iso: string | null }> {
   const firstDay = new Date(year, month, 1);
@@ -97,6 +97,23 @@ function MonthGrid({
   );
 }
 
+const LIST_WEEKS = 8;
+
+function buildListDays(): string[] {
+  const days: string[] = [];
+  const d = new Date(TODAY);
+  for (let i = 0; i < LIST_WEEKS * 7; i++) {
+    days.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
+function formatListDate(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 export function KalenderTab({
   data,
   config,
@@ -106,7 +123,7 @@ export function KalenderTab({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
 }) {
-  const [view, setView] = useState<CalView>('month');
+  const [view, setView] = useState<CalView>('list');
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth());
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
@@ -153,22 +170,91 @@ export function KalenderTab({
     </div>
   );
 
-  const navHeader = (
-    <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2 shrink-0">
-      <button onClick={view === 'month' ? prevMonth : prevWeek} className="rounded-lg p-2 hover:bg-muted"><ChevronLeft className="h-4 w-4" /></button>
-      <div className="flex items-center gap-2 flex-wrap justify-center">
-        {view === 'month'
-          ? <span className="font-semibold">{new Date(year, month, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
-          : <span className="font-semibold">{weekLabel}</span>}
-        <button onClick={goToday} className="rounded-lg border border-border px-2 py-0.5 text-xs hover:bg-muted">Heute</button>
-        <div className="flex rounded-lg border border-border overflow-hidden text-xs">
-          <button onClick={() => setView('month')} className={cn('px-2 py-0.5', view === 'month' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>Monat</button>
-          <button onClick={() => setView('week')} className={cn('px-2 py-0.5 border-l border-border', view === 'week' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>Woche</button>
-        </div>
-      </div>
-      <button onClick={view === 'month' ? nextMonth : nextWeek} className="rounded-lg p-2 hover:bg-muted"><ChevronRight className="h-4 w-4" /></button>
+  const viewToggle = (
+    <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+      <button onClick={() => setView('list')} className={cn('px-2 py-0.5', view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>Liste</button>
+      <button onClick={() => setView('month')} className={cn('px-2 py-0.5 border-l border-border', view === 'month' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>Monat</button>
+      <button onClick={() => setView('week')} className={cn('px-2 py-0.5 border-l border-border', view === 'week' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>Woche</button>
     </div>
   );
+
+  const navHeader = (
+    <div className="flex items-center justify-between px-3 pt-3 pb-2 gap-2 shrink-0">
+      <button onClick={view === 'month' ? prevMonth : prevWeek} className={cn('rounded-lg p-2 hover:bg-muted', view === 'list' && 'invisible')}><ChevronLeft className="h-4 w-4" /></button>
+      <div className="flex items-center gap-2 flex-wrap justify-center">
+        {view === 'list'
+          ? <span className="font-semibold text-sm">Nächste {LIST_WEEKS} Wochen</span>
+          : view === 'month'
+            ? <span className="font-semibold">{new Date(year, month, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</span>
+            : <span className="font-semibold">{weekLabel}</span>}
+        {view !== 'list' && <button onClick={goToday} className="rounded-lg border border-border px-2 py-0.5 text-xs hover:bg-muted">Heute</button>}
+        {viewToggle}
+      </div>
+      <button onClick={view === 'month' ? nextMonth : nextWeek} className={cn('rounded-lg p-2 hover:bg-muted', view === 'list' && 'invisible')}><ChevronRight className="h-4 w-4" /></button>
+    </div>
+  );
+
+  if (view === 'list') {
+    const overdue = [...itemsByDate.entries()]
+      .filter(([iso]) => iso < TODAY)
+      .flatMap(([, items]) => items)
+      .sort((a, b) => (a.due_key < b.due_key ? -1 : 1));
+
+    const futureDays = buildListDays().filter((iso) => itemsByDate.has(iso));
+
+    return (
+      <div className="flex flex-col h-full">
+        {navHeader}
+        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-4">
+          {overdue.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-red-500 mb-2 sticky top-0 bg-background py-1">Überfällig</div>
+              <div className="space-y-1.5">
+                {overdue.map((item) => {
+                  const bg = config.domain[item.domain]?.color ?? DOMAIN_FALLBACK_COLOR;
+                  const color = config.domain[item.domain]?.text_color ?? '#fff';
+                  return (
+                    <div key={item.id} className="flex items-start gap-2 rounded-xl bg-card border border-border p-2.5 cursor-pointer hover:bg-muted/30" onClick={() => onItemClick(item)}>
+                      <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium font-mono leading-snug" style={{ backgroundColor: bg, color }}>{item.id}</span>
+                      <span className="text-sm leading-snug">{item.title}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {futureDays.map((iso) => {
+            const items = itemsByDate.get(iso)!;
+            const isToday = iso === TODAY;
+            const bg = config.domain;
+            return (
+              <div key={iso}>
+                <div className={cn('text-xs font-semibold uppercase tracking-wide mb-2 sticky top-0 py-1', isToday ? 'text-primary bg-background' : 'text-muted-foreground bg-background')}>
+                  {isToday ? '● ' : ''}{formatListDate(iso)}
+                </div>
+                <div className="space-y-1.5">
+                  {items.map((item) => {
+                    const domainDef = bg[item.domain];
+                    const badgeBg = domainDef?.color ?? DOMAIN_FALLBACK_COLOR;
+                    const badgeColor = domainDef?.text_color ?? '#fff';
+                    return (
+                      <div key={item.id} className="flex items-start gap-2 rounded-xl bg-card border border-border p-2.5 cursor-pointer hover:bg-muted/30" onClick={() => onItemClick(item)}>
+                        <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium font-mono leading-snug" style={{ backgroundColor: badgeBg, color: badgeColor }}>{item.id}</span>
+                        <span className="text-sm leading-snug">{item.title}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {futureDays.length === 0 && overdue.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center pt-8">Keine Fälligkeiten in den nächsten {LIST_WEEKS} Wochen.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'month') {
     return (

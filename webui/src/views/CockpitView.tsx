@@ -112,7 +112,7 @@ export function CockpitView() {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
+      <div className="flex items-center justify-between px-4 pb-2 border-b border-border shrink-0" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-2 relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
