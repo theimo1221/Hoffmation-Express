@@ -11,6 +11,7 @@ import { AuthService } from '../src/auth-service';
 const adminPw = 'admin-password';
 const COCKPIT_TOKEN = 'cockpit-bearer-token';
 const NO_SCOPE_TOKEN = 'no-scope-bearer-token';
+const DEPLOY_TOKEN = 'cockpit-deploy-bearer-token';
 
 function tokenRec(label: string, plaintext: string, role: string, scope: string[] | null = null) {
   return {
@@ -153,6 +154,67 @@ describe('POST /cockpit/inbox — input validation (with cockpit token)', () => 
       .set('Authorization', `Bearer ${COCKPIT_TOKEN}`)
       .send({ kind: 'note', text: '' })
       .expect(400);
+  });
+});
+
+describe('PUT /cockpit/snapshot/:name — scope gate', () => {
+  const validBody = { schema_version: 1, generated_at: '2026-01-01T00:00:00Z', items: [] };
+
+  it('cockpit-read token (no deploy scope) -> 403', async () => {
+    const { app } = await bootMock(
+      storeWith('enforced', { tokens: [tokenRec('cockpit', COCKPIT_TOKEN, 'admin', ['cockpit'])] }),
+    );
+    await request(app)
+      .put('/cockpit/snapshot/data')
+      .set('Authorization', `Bearer ${COCKPIT_TOKEN}`)
+      .send(validBody)
+      .expect(403);
+  });
+
+  it('deploy token -> 200 or 503 (not 403, not 404, not 500)', async () => {
+    const { app } = await bootMock(
+      storeWith('enforced', { tokens: [tokenRec('deploy', DEPLOY_TOKEN, 'admin', ['cockpit:deploy'])] }),
+    );
+    const res = await request(app)
+      .put('/cockpit/snapshot/data')
+      .set('Authorization', `Bearer ${DEPLOY_TOKEN}`)
+      .send(validBody);
+    expect([200, 503]).toContain(res.status);
+  });
+
+  it('unknown name -> 400', async () => {
+    const { app } = await bootMock(
+      storeWith('enforced', { tokens: [tokenRec('deploy', DEPLOY_TOKEN, 'admin', ['cockpit:deploy'])] }),
+    );
+    await request(app)
+      .put('/cockpit/snapshot/malicious')
+      .set('Authorization', `Bearer ${DEPLOY_TOKEN}`)
+      .send(validBody)
+      .expect(400);
+  });
+
+  it('body without schema_version -> 400', async () => {
+    const { app } = await bootMock(
+      storeWith('enforced', { tokens: [tokenRec('deploy', DEPLOY_TOKEN, 'admin', ['cockpit:deploy'])] }),
+    );
+    await request(app)
+      .put('/cockpit/snapshot/data')
+      .set('Authorization', `Bearer ${DEPLOY_TOKEN}`)
+      .send({ items: [] })
+      .expect(400);
+  });
+
+  it('all four valid names accepted (200 or 503)', async () => {
+    const { app } = await bootMock(
+      storeWith('enforced', { tokens: [tokenRec('deploy', DEPLOY_TOKEN, 'admin', ['cockpit:deploy'])] }),
+    );
+    for (const name of ['data', 'projects', 'archive', 'config']) {
+      const res = await request(app)
+        .put(`/cockpit/snapshot/${name}`)
+        .set('Authorization', `Bearer ${DEPLOY_TOKEN}`)
+        .send(validBody);
+      expect([200, 503]).toContain(res.status);
+    }
   });
 });
 

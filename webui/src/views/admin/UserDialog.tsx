@@ -20,13 +20,18 @@ export function UserDialog({ user, onSave, onClose }: UserDialogProps) {
   const [disabled, setDisabled] = useState(user?.disabled || false);
   const [deny, setDeny] = useState<DenyPolicy>(user?.deny ?? {});
   const [cockpitScope, setCockpitScope] = useState((user?.scope ?? []).includes('cockpit'));
+  const [cockpitDeployScope, setCockpitDeployScope] = useState((user?.scope ?? []).includes('cockpit:deploy'));
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const scope = cockpitScope ? ['cockpit'] : null;
+      const scopes = [
+        ...(cockpitScope ? ['cockpit'] : []),
+        ...(cockpitDeployScope ? ['cockpit:deploy'] : []),
+      ];
+      const scope = scopes.length > 0 ? scopes : null;
       if (user) {
         const updates: UserUpdatePayload = { role, disabled, deny, scope };
         if (password) updates.password = password;
@@ -120,6 +125,18 @@ export function UserDialog({ user, onSave, onClose }: UserDialogProps) {
               />
               <label htmlFor="user-cockpit-scope" className="text-sm text-gray-700 dark:text-gray-300">
                 🗂 Cockpit-Zugriff
+              </label>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="checkbox"
+                id="user-cockpit-deploy-scope"
+                checked={cockpitDeployScope}
+                onChange={(e) => setCockpitDeployScope(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor="user-cockpit-deploy-scope" className="text-sm text-gray-700 dark:text-gray-300">
+                📤 Cockpit-Deploy (Snapshots schreiben)
               </label>
             </div>
           </div>

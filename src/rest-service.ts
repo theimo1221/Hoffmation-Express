@@ -364,6 +364,20 @@ export class RestService {
       }
     };
 
+    // Atomic write: write to .tmp then rename so a crash mid-write never corrupts the live file.
+    const writeCockpitJsonAtomic = async (filename: string, data: unknown): Promise<void> => {
+      const target = path.join(COCKPIT_DIR, filename);
+      const tmp = target + '.tmp';
+      try {
+        await fs.promises.writeFile(tmp, JSON.stringify(data, null, 2), 'utf-8');
+        await fs.promises.rename(tmp, target);
+      } catch (err) {
+        ServerLogService.writeLog(LogLevel.Warn, `COCKPIT-WRITE-ATOMIC-ERR: ${filename}: ${err}`);
+        await fs.promises.unlink(tmp).catch(() => undefined);
+        throw err;
+      }
+    };
+
     this._app.get('/cockpit/data', requireScope('cockpit'), async (_req, res) => {
       const data = await readCockpitJson('cockpit-data.json');
       if (!data) return res.status(503).json({ error: 'data unavailable' });
@@ -451,6 +465,36 @@ export class RestService {
       }
       return res.json({ success: true, archived: toArchive.length });
     });
+    const SNAPSHOT_FILES: Record<string, string> = {
+      data: 'cockpit-data.json',
+      projects: 'cockpit-projects.json',
+      archive: 'cockpit-archive.json',
+      config: 'cockpit-config.json',
+    };
+
+    this._app.put(
+      '/cockpit/snapshot/:name',
+      json({ limit: '5mb' }),
+      requireScope('cockpit:deploy'),
+      async (req, res) => {
+        const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+        const filename = SNAPSHOT_FILES[name];
+        if (!filename) return res.status(400).json({ error: `unknown snapshot name: ${name}` });
+
+        const body = req.body as Record<string, unknown>;
+        if (typeof body !== 'object' || body === null || !('schema_version' in body)) {
+          return res.status(400).json({ error: 'body must be JSON with schema_version' });
+        }
+
+        try {
+          await writeCockpitJsonAtomic(filename, body);
+        } catch {
+          return res.status(503).json({ error: 'write failed' });
+        }
+        ServerLogService.writeLog(LogLevel.Info, `COCKPIT-SNAPSHOT: name=${name} by=${req.principal?.name}`);
+        return res.json({ success: true, name });
+      },
+    );
     // ── End cockpit endpoints ─────────────────────────────────────────────────
 
     if (!process.env.HOFFMATION_TESTMODE) {

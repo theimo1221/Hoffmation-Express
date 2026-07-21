@@ -15,13 +15,18 @@ export function TokenEditDialog({ token, onSave, onClose }: TokenEditDialogProps
   const [disabled, setDisabled] = useState(token.disabled ?? false);
   const [deny, setDeny] = useState<DenyPolicy>(token.deny ?? {});
   const [cockpitScope, setCockpitScope] = useState((token.scope ?? []).includes('cockpit'));
+  const [cockpitDeployScope, setCockpitDeployScope] = useState((token.scope ?? []).includes('cockpit:deploy'));
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const scope = cockpitScope ? ['cockpit'] : null;
+      const scopes = [
+        ...(cockpitScope ? ['cockpit'] : []),
+        ...(cockpitDeployScope ? ['cockpit:deploy'] : []),
+      ];
+      const scope = scopes.length > 0 ? scopes : null;
       await onSave({ role, deny, disabled, scope });
     } finally {
       setSaving(false);
@@ -90,6 +95,18 @@ export function TokenEditDialog({ token, onSave, onClose }: TokenEditDialogProps
               />
               <label htmlFor="edit-token-cockpit" className="text-sm text-gray-700 dark:text-gray-300">
                 🗂 Cockpit-Zugriff
+              </label>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="checkbox"
+                id="edit-token-cockpit-deploy"
+                checked={cockpitDeployScope}
+                onChange={(e) => setCockpitDeployScope(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor="edit-token-cockpit-deploy" className="text-sm text-gray-700 dark:text-gray-300">
+                📤 Cockpit-Deploy (Snapshots schreiben)
               </label>
             </div>
           </div>
