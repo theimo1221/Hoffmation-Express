@@ -1,13 +1,13 @@
 import { type Device } from '@/stores';
-import { 
-  getDeviceShutterLevel, 
-  isDeviceOn, 
-  getDeviceTemperature, 
-  getAcMode, 
-  isMotionDetected, 
-  isDeviceUnreachable,
+import {
+  getDeviceShutterLevel,
+  isDeviceOn,
+  getDeviceTemperature,
+  getAcMode,
+  isMotionDetected,
   getPrimaryCapability,
-  getHandlePosition
+  getHandlePosition,
+  DeviceCapability,
 } from '@/stores/deviceStore';
 import { 
   Lightbulb, 
@@ -22,31 +22,9 @@ import {
   PersonStanding,
   Activity,
   Flame,
-  Speaker,
-  CloudFog
+  Speaker
 } from 'lucide-react';
 
-// Device capabilities from hoffmation-base DeviceCapability enum
-export const DeviceCapability = {
-  ac: 0,
-  actuator: 1,
-  energyManager: 3,
-  heater: 5,
-  humiditySensor: 6,
-  co2Sensor: 7,
-  lamp: 8,
-  dimmableLamp: 9,
-  motionSensor: 10,
-  shutter: 11,
-  temperatureSensor: 12,
-  speaker: 14,
-  handleSensor: 15,
-  batteryDriven: 16,
-  ledLamp: 18,
-  scene: 103,
-  blockAutomatic: 104,
-  camera: 105,
-};
 
 interface DeviceIconProps {
   device: Device;
@@ -172,21 +150,7 @@ export function DeviceIcon({ device, size = 'md', showStatus = true }: DeviceIco
     return <Speaker className={`${sizeClass} text-primary`} />;
   }
 
-  // CO2 Sensor
-  if (primaryCap === DeviceCapability.co2Sensor) {
-    return <CloudFog className={`${sizeClass} text-muted-foreground`} />;
-  }
-
   // Default
   return <Zap className={`${sizeClass} text-muted-foreground`} />;
 }
 
-export function getDeviceStatusColor(device: Device): string {
-  // Use centralized unreachability detection
-  if (isDeviceUnreachable(device)) {
-    return 'bg-red-500';
-  }
-  
-  const isOn = isDeviceOn(device);
-  return isOn ? 'bg-primary' : 'bg-primary/10';
-}

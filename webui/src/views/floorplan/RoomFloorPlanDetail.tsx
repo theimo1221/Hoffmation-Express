@@ -212,36 +212,27 @@ export function RoomFloorPlanDetail({ room, devices, allRooms = [], currentFloor
   const scaledWidth = roomWidth * scale;
   const scaledHeight = roomHeight * scale;
 
-  const screenToRoom = (screenX: number, screenY: number) => {
-    if (!startPoint || !endPoint) return { x: 0, y: 0 };
-    // Position is relative to room (0,0 = bottom-left corner of room)
-    let roomX = screenX / scale;
-    let roomY = roomHeight - screenY / scale;
-    // Clamp to room bounds (0 to roomWidth/Height, edge positions allowed)
-    roomX = Math.max(0, Math.min(roomWidth, roomX));
-    roomY = Math.max(0, Math.min(roomHeight, roomY));
-    return { x: Math.round(roomX * 10) / 10, y: Math.round(roomY * 10) / 10 };
-  };
-
-  // Unified move handler for mouse and touch
   const handleMove = useCallback((clientX: number, clientY: number) => {
     if (!draggingDevice || !containerRef.current || !startPoint || !endPoint) return;
-    
+
     const canvas = containerRef.current.querySelector('.room-canvas');
     if (!canvas) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const screenX = clientX - rect.left - 16;
     const screenY = clientY - rect.top - 16;
-    
-    const { x, y } = screenToRoom(screenX, screenY);
+
+    let roomX = Math.max(0, Math.min(roomWidth, screenX / scale));
+    let roomY = Math.max(0, Math.min(roomHeight, roomHeight - screenY / scale));
+    roomX = Math.round(roomX * 10) / 10;
+    roomY = Math.round(roomY * 10) / 10;
     const z = startPoint.z ?? 0;
-    
+
     setEditedPositions(prev => ({
       ...prev,
-      [draggingDevice]: { x, y, z }
+      [draggingDevice]: { x: roomX, y: roomY, z }
     }));
-  }, [draggingDevice, startPoint, endPoint, screenToRoom]);
+  }, [draggingDevice, startPoint, endPoint, scale, roomWidth, roomHeight]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     handleMove(e.clientX, e.clientY);

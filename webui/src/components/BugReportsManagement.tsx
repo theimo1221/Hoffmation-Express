@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bug, CheckCircle, Circle, Edit2, X, AlertCircle, Loader2 } from 'lucide-react';
 import { useBugReport, type BugReport } from '@/hooks/useBugReport';
 import { createPortal } from 'react-dom';
@@ -16,13 +16,7 @@ export function BugReportsManagement({ isOpen, onClose }: BugReportsManagementPr
   const [showDone, setShowDone] = useState(false);
   const { fetchBugReports, updateBugReport } = useBugReport();
 
-  useEffect(() => {
-    if (isOpen) {
-      loadReports();
-    }
-  }, [isOpen]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     const result = await fetchBugReports();
@@ -36,7 +30,13 @@ export function BugReportsManagement({ isOpen, onClose }: BugReportsManagementPr
       setError(result.error || 'Fehler beim Laden');
     }
     setIsLoading(false);
-  };
+  }, [fetchBugReports]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadReports();
+    }
+  }, [isOpen, loadReports]);
 
   const handleToggleDone = async (report: BugReport) => {
     const result = await updateBugReport(report.id, { done: !report.done });

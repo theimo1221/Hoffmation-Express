@@ -462,3 +462,8 @@ export function getCapabilityNames(device: Device): string[] {
   const caps = device.deviceCapabilities ?? [];
   return caps.map((cap) => getCapabilityName(cap));
 }
+
+export function getDeviceStatusColor(device: Device): string {
+  if (isDeviceUnreachable(device)) return 'bg-red-500';
+  return isDeviceOn(device) ? 'bg-primary' : 'bg-primary/10';
+}

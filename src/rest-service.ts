@@ -295,6 +295,21 @@ export class RestService {
         note: 'QR-Code einmalig einlösbar (15 min), Token nur einmal sichtbar',
       });
     });
+    this._app.patch('/auth/tokens/:label', requireAdmin, async (req, res) => {
+      const label = Array.isArray(req.params.label) ? req.params.label[0] : req.params.label;
+      const cur = AuthService.getTokenForPatch(label);
+      if (!cur) return res.status(404).json({ error: 'not found' });
+      const body = req.body;
+      if (body.role && !['admin', 'control', 'webhook'].includes(body.role)) {
+        return res.status(400).json({ error: 'invalid role' });
+      }
+      await AuthService.patchToken(label, {
+        role: body.role ?? cur.role,
+        deny: body.deny ?? cur.deny ?? {},
+        disabled: body.disabled ?? cur.disabled ?? false,
+      });
+      return res.json({ success: true });
+    });
     this._app.delete('/auth/tokens/:label', requireAdmin, async (req, res) => {
       const label = Array.isArray(req.params.label) ? req.params.label[0] : req.params.label;
       await AuthService.revokeToken(label);

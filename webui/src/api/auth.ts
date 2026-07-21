@@ -84,6 +84,10 @@ export async function mintToken(label: string, role: string, deny?: UserDeny, sc
   return apiPost<MintTokenResponse>('/auth/tokens', { label, role, deny, scope });
 }
 
+export async function updateToken(label: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean }): Promise<{ success: boolean }> {
+  return apiPatch<{ success: boolean }>(`/auth/tokens/${encodeURIComponent(label)}`, updates);
+}
+
 export async function revokeToken(label: string): Promise<{ success: boolean }> {
   return apiDelete<{ success: boolean }>(`/auth/tokens/${encodeURIComponent(label)}`);
 }

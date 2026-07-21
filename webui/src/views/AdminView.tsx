@@ -15,8 +15,10 @@ import {
   type Token
 } from '@/api/auth';
 import { updateWebUI, restartHoffmation, type WebUIUpdateResult, type HoffmationRestartResult } from '@/api/system';
+import { updateToken } from '@/api/auth';
 import { UserDialog, type UserCreatePayload, type UserUpdatePayload } from '@/views/admin/UserDialog';
 import { TokenDialog } from '@/views/admin/TokenDialog';
+import { TokenEditDialog } from '@/views/admin/TokenEditDialog';
 import type { DenyPolicy } from '@/views/admin/DenyEditor';
 import { BugReportsManagement } from '@/components/BugReportsManagement';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -36,6 +38,7 @@ export function AdminView() {
 
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+  const [editingToken, setEditingToken] = useState<Token | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [mintedToken, setMintedToken] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -96,6 +99,12 @@ export function AdminView() {
       setQrDataUrl(null);
     }
     await loadData();
+  };
+
+  const handleUpdateToken = async (label: string, updates: { role: string; deny: object; disabled: boolean }) => {
+    await updateToken(label, updates);
+    await loadData();
+    setEditingToken(null);
   };
 
   const handleRevokeToken = async (label: string) => {
@@ -343,18 +352,25 @@ export function AdminView() {
                       {token.lastUsed && <span>Zuletzt verwendet: {new Date(token.lastUsed).toLocaleString('de-DE')}</span>}
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleRevokeToken(token.label)}
-                    className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingToken(token)}
+                      className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRevokeToken(token.label)}
+                      className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </div>
 
         {activeTab === 'system' && (
           <div className="space-y-6">
@@ -469,6 +485,8 @@ export function AdminView() {
           </div>
         )}
 
+      </div>
+
       {userDialogOpen && (
         <UserDialog
           user={editingUser}
@@ -481,6 +499,14 @@ export function AdminView() {
         <TokenDialog
           onSave={handleMintToken}
           onClose={() => setTokenDialogOpen(false)}
+        />
+      )}
+
+      {editingToken && (
+        <TokenEditDialog
+          token={editingToken}
+          onSave={(updates) => handleUpdateToken(editingToken.label, updates)}
+          onClose={() => setEditingToken(null)}
         />
       )}
 

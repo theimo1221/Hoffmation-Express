@@ -4,7 +4,8 @@ import { isDeviceOn, hasCapability, DeviceCapability, getAcMode } from '@/stores
 import { setLamp, setActuator, setShutter, setAc, setDimmer, startScene, endScene } from '@/api/devices';
 import { executeDeviceAction } from '@/lib/deviceActions';
 import { DeviceIcon } from './DeviceIcon';
-import { RadialMenu, getDeviceMenuItems } from './RadialMenu';
+import { RadialMenu } from './RadialMenu';
+import { getDeviceMenuItems } from './radialMenuUtils';
 
 interface RadialDeviceMenuProps {
   device: Device | null;

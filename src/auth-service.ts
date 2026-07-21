@@ -354,6 +354,22 @@ export class AuthService {
     return this.getUser(name);
   }
 
+  public static getTokenForPatch(label: string): TokenRec | undefined {
+    return this.store?.tokens.find((x) => x.label === label);
+  }
+
+  public static async patchToken(
+    label: string,
+    updates: { role?: Role; deny?: DenyPolicy; disabled?: boolean },
+  ): Promise<void> {
+    if (!this.store) return;
+    const idx = this.store.tokens.findIndex((x) => x.label === label);
+    if (idx === -1) return;
+    const cur = this.store.tokens[idx];
+    this.store.tokens[idx] = { ...cur, ...updates };
+    await this.persist();
+  }
+
   public static verifyPassword(username: string, pw: string): boolean {
     const u = this.store?.users.find((x) => x.username === username && !x.disabled);
     return !!u && this.verifyPw(pw, u.pwHash);
