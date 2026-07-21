@@ -6,7 +6,7 @@ import type { DenyPolicy } from './DenyEditor';
 
 interface TokenEditDialogProps {
   token: Token;
-  onSave: (updates: { role: string; deny: DenyPolicy; disabled: boolean }) => Promise<void>;
+  onSave: (updates: { role: string; deny: DenyPolicy; disabled: boolean; scope: string[] | null }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -14,13 +14,15 @@ export function TokenEditDialog({ token, onSave, onClose }: TokenEditDialogProps
   const [role, setRole] = useState<string>(token.role);
   const [disabled, setDisabled] = useState(token.disabled ?? false);
   const [deny, setDeny] = useState<DenyPolicy>(token.deny ?? {});
+  const [cockpitScope, setCockpitScope] = useState((token.scope ?? []).includes('cockpit'));
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await onSave({ role, deny, disabled });
+      const scope = cockpitScope ? ['cockpit'] : null;
+      await onSave({ role, deny, disabled, scope });
     } finally {
       setSaving(false);
     }
@@ -74,6 +76,22 @@ export function TokenEditDialog({ token, onSave, onClose }: TokenEditDialogProps
             <label htmlFor="edit-token-disabled" className="text-sm text-gray-700 dark:text-gray-300">
               Deaktiviert
             </label>
+          </div>
+
+          <div>
+            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Scopes</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-token-cockpit"
+                checked={cockpitScope}
+                onChange={(e) => setCockpitScope(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor="edit-token-cockpit" className="text-sm text-gray-700 dark:text-gray-300">
+                🗂 Cockpit-Zugriff
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

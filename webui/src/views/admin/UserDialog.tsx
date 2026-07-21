@@ -4,8 +4,8 @@ import type { User } from '@/api/auth';
 import { DenyEditor } from './DenyEditor';
 import type { DenyPolicy } from './DenyEditor';
 
-export type UserCreatePayload = { username: string; password: string; role: string; deny: DenyPolicy };
-export type UserUpdatePayload = { role: string; disabled: boolean; deny: DenyPolicy; password?: string };
+export type UserCreatePayload = { username: string; password: string; role: string; deny: DenyPolicy; scope: string[] | null };
+export type UserUpdatePayload = { role: string; disabled: boolean; deny: DenyPolicy; scope: string[] | null; password?: string };
 
 interface UserDialogProps {
   user: User | null;
@@ -19,18 +19,20 @@ export function UserDialog({ user, onSave, onClose }: UserDialogProps) {
   const [role, setRole] = useState<string>(user?.role || 'control');
   const [disabled, setDisabled] = useState(user?.disabled || false);
   const [deny, setDeny] = useState<DenyPolicy>(user?.deny ?? {});
+  const [cockpitScope, setCockpitScope] = useState((user?.scope ?? []).includes('cockpit'));
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const scope = cockpitScope ? ['cockpit'] : null;
       if (user) {
-        const updates: UserUpdatePayload = { role, disabled, deny };
+        const updates: UserUpdatePayload = { role, disabled, deny, scope };
         if (password) updates.password = password;
         await onSave(updates);
       } else {
-        await onSave({ username, password, role, deny });
+        await onSave({ username, password, role, deny, scope });
       }
     } finally {
       setSaving(false);
@@ -105,6 +107,22 @@ export function UserDialog({ user, onSave, onClose }: UserDialogProps) {
           </div>
 
           <DenyEditor deny={deny} onChange={setDeny} />
+
+          <div>
+            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Scopes</span>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="user-cockpit-scope"
+                checked={cockpitScope}
+                onChange={(e) => setCockpitScope(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label htmlFor="user-cockpit-scope" className="text-sm text-gray-700 dark:text-gray-300">
+                🗂 Cockpit-Zugriff
+              </label>
+            </div>
+          </div>
 
           {user && (
             <div className="flex items-center gap-2">

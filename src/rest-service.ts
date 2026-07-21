@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { Express, json, Request, Response, NextFunction, static as expressStatic } from 'express';
@@ -79,6 +80,16 @@ export class RestService {
       /^\/ui(\/|$)/,
       /^\/favicon/,
     ];
+
+    const requireScope = (scope: string) => (req: Request, res: Response, next: NextFunction) => {
+      const p = req.principal;
+      if (!p) return res.status(401).json({ error: 'unauthorized' });
+      if (!Array.isArray(p.scope) || !p.scope.includes(scope)) {
+        ServerLogService.writeLog(LogLevel.Warn, `SCOPE-DENY: principal=${p.name} required=${scope} has=${JSON.stringify(p.scope)}`);
+        return res.status(403).json({ error: 'forbidden-scope' });
+      }
+      return next();
+    };
 
     const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
       // Onboarding window: allow the very first admin to be created without credentials.
@@ -228,7 +239,7 @@ export class RestService {
 
     this._app.get('/auth/users', requireAdmin, (_req, res) => res.json(AuthService.listUsers()));
     this._app.post('/auth/users', requireAdmin, async (req, res) => {
-      const { username, password, role, deny } = req.body;
+      const { username, password, role, deny, scope } = req.body;
       if (!username || typeof username !== 'string' || username.trim().length === 0) {
         return res.status(400).json({ error: 'invalid username' });
       }
@@ -244,6 +255,7 @@ export class RestService {
         pwHash: AuthService.hashPw(password),
         deny: deny ?? {},
         disabled: false,
+        scope: Array.isArray(scope) ? scope : null,
       });
       return res.json({ success: true });
     });
@@ -264,6 +276,8 @@ export class RestService {
         deny: body.deny ?? cur.deny ?? {},
         disabled: body.disabled ?? cur.disabled ?? false,
         pwHash: body.password ? AuthService.hashPw(body.password) : cur.pwHash,
+        scope: 'scope' in body ? (body.scope ?? null) : (cur.scope ?? null),
+        lastLogin: cur.lastLogin,
       });
       return res.json({ success: true });
     });
@@ -307,6 +321,7 @@ export class RestService {
         role: body.role ?? cur.role,
         deny: body.deny ?? cur.deny ?? {},
         disabled: body.disabled ?? cur.disabled ?? false,
+        scope: 'scope' in body ? (body.scope ?? null) : (cur.scope ?? null),
       });
       return res.json({ success: true });
     });
@@ -324,6 +339,119 @@ export class RestService {
       await AuthService.setMode(mode);
       return res.json({ mode });
     });
+
+    // ── Cockpit endpoints ─────────────────────────────────────────────────────
+    const COCKPIT_DIR = path.join(__dirname, '..', 'config', 'private');
+    const COCKPIT_ID_PATTERN = /^(G|H|P|Ph)-\d+[a-z]?$/;
+
+    const readCockpitJson = async (filename: string): Promise<unknown | null> => {
+      try {
+        const raw = await fs.promises.readFile(path.join(COCKPIT_DIR, filename), 'utf-8');
+        return JSON.parse(raw);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== 'ENOENT') ServerLogService.writeLog(LogLevel.Warn, `COCKPIT-READ-ERR: ${filename}: ${err}`);
+        return null;
+      }
+    };
+
+    const writeCockpitJson = async (filename: string, data: unknown): Promise<void> => {
+      try {
+        await fs.promises.writeFile(path.join(COCKPIT_DIR, filename), JSON.stringify(data, null, 2), 'utf-8');
+      } catch (err) {
+        ServerLogService.writeLog(LogLevel.Warn, `COCKPIT-WRITE-ERR: ${filename}: ${err}`);
+        throw err;
+      }
+    };
+
+    this._app.get('/cockpit/data', requireScope('cockpit'), async (_req, res) => {
+      const data = await readCockpitJson('cockpit-data.json');
+      if (!data) return res.status(503).json({ error: 'data unavailable' });
+      return res.json(data);
+    });
+
+    this._app.get('/cockpit/archive', requireScope('cockpit'), async (_req, res) => {
+      const data = await readCockpitJson('cockpit-archive.json');
+      if (!data) return res.status(503).json({ error: 'data unavailable' });
+      return res.json(data);
+    });
+
+    this._app.get('/cockpit/config', requireScope('cockpit'), async (_req, res) => {
+      const data = await readCockpitJson('cockpit-config.json');
+      if (!data) return res.status(503).json({ error: 'data unavailable' });
+      return res.json(data);
+    });
+
+    this._app.get('/cockpit/inbox', requireScope('cockpit'), async (_req, res) => {
+      const raw = await readCockpitJson('cockpit-inbox.json');
+      return res.json(Array.isArray(raw) ? raw : []);
+    });
+
+    this._app.post('/cockpit/inbox', requireScope('cockpit'), async (req, res) => {
+      const { kind, ref, text } = req.body as { kind?: unknown; ref?: unknown; text?: unknown };
+      if (!['note', 'answer', 'done', 'new'].includes(kind as string)) {
+        return res.status(400).json({ error: 'invalid kind' });
+      }
+      if (ref !== undefined && (typeof ref !== 'string' || !COCKPIT_ID_PATTERN.test(ref))) {
+        return res.status(400).json({ error: 'invalid ref' });
+      }
+      if (typeof text !== 'string' || text.length === 0 || text.length > 2000) {
+        return res.status(400).json({ error: 'invalid text' });
+      }
+
+      let inbox: Array<Record<string, unknown>> = [];
+      const raw = await readCockpitJson('cockpit-inbox.json');
+      if (Array.isArray(raw)) inbox = raw as Array<Record<string, unknown>>;
+
+      const entry: Record<string, unknown> = {
+        id: crypto.randomBytes(8).toString('hex'),
+        kind,
+        text,
+        ts: new Date().toISOString(),
+        by: req.principal?.name ?? 'unknown',
+      };
+      if (ref !== undefined) entry.ref = ref;
+      inbox.push(entry);
+
+      try {
+        await writeCockpitJson('cockpit-inbox.json', inbox);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      ServerLogService.writeLog(LogLevel.Info, `COCKPIT-INBOX: kind=${kind} ref=${ref ?? '-'} by=${req.principal?.name}`);
+      return res.json({ success: true, id: entry.id });
+    });
+
+    this._app.post('/cockpit/inbox/ack', requireScope('cockpit'), async (req, res) => {
+      const { through_id } = req.body as { through_id?: unknown };
+      if (!through_id || typeof through_id !== 'string') {
+        return res.status(400).json({ error: 'through_id required' });
+      }
+
+      let inbox: Array<Record<string, unknown>> = [];
+      const rawInbox = await readCockpitJson('cockpit-inbox.json');
+      if (Array.isArray(rawInbox)) inbox = rawInbox as Array<Record<string, unknown>>;
+
+      const idx = inbox.findIndex((e) => e.id === through_id);
+      if (idx === -1) return res.json({ success: true, archived: 0 });
+
+      const toArchive = inbox.slice(0, idx + 1);
+      const remaining = inbox.slice(idx + 1);
+
+      let archive: Array<unknown> = [];
+      const rawArchive = await readCockpitJson('cockpit-inbox-archive.json');
+      if (Array.isArray(rawArchive)) archive = rawArchive;
+      archive.push(...toArchive);
+
+      try {
+        await writeCockpitJson('cockpit-inbox-archive.json', archive);
+        await writeCockpitJson('cockpit-inbox.json', remaining);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      return res.json({ success: true, archived: toArchive.length });
+    });
+    // ── End cockpit endpoints ─────────────────────────────────────────────────
 
     if (!process.env.HOFFMATION_TESTMODE) {
       this._app.listen(config.port, () => {

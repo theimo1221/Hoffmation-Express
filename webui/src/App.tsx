@@ -7,6 +7,7 @@ import { DevicesView } from '@/views/DevicesView';
 import { SettingsView } from '@/views/SettingsView';
 import { LoginView } from '@/views/LoginView';
 import { AdminView } from '@/views/AdminView';
+import { CockpitView } from '@/views/CockpitView';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useDataStore } from '@/stores';
 import { useAuthStore } from '@/stores/authStore';
@@ -85,6 +86,7 @@ function App() {
           <Route path="/devices" element={<DevicesView />} />
           <Route path="/devices/:deviceId" element={<DevicesView />} />
           <Route path="/settings" element={<SettingsView />} />
+          <Route path="/cockpit" element={<CockpitView />} />
         </Routes>
       </main>
     </div>

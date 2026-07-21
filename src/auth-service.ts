@@ -8,7 +8,7 @@ export type { Role, AuthMode, DenyPolicy, Principal } from './types';
 
 export class AuthService {
   private static store: AuthStore | null = null;
-  private static sessions = new Map<string, { name: string; role: Role; deny?: DenyPolicy; exp: number }>();
+  private static sessions = new Map<string, { name: string; role: Role; deny?: DenyPolicy; scope?: string[] | null; exp: number }>();
   private static loginAttempts = new Map<string, { count: number; firstAttempt: number }>(); // key: ip:username
   private static tokenLastPersist = new Map<string, number>(); // label -> timestamp of last persist
   // One-time registration tokens: hash → {rawBearerToken, exp}. Cleared on redemption.
@@ -130,7 +130,7 @@ export class AuthService {
             ServerLogService.writeLog(LogLevel.Error, `AUTH: failed to persist lastUsed (${e})`),
           );
         }
-        return { name: tk.label, role: tk.role, deny: tk.deny, via: 'bearer' };
+        return { name: tk.label, role: tk.role, deny: tk.deny, scope: tk.scope ?? null, via: 'bearer' };
       }
     }
     return null;
@@ -141,7 +141,7 @@ export class AuthService {
       if (s) this.sessions.delete(sid);
       return null;
     }
-    return { name: s.name, role: s.role, deny: s.deny, via: 'cookie' };
+    return { name: s.name, role: s.role, deny: s.deny, scope: s.scope ?? null, via: 'cookie' };
   }
 
   private static pruneExpiredSessions(): void {
@@ -182,6 +182,7 @@ export class AuthService {
       name: u.username,
       role: u.role,
       deny: u.deny,
+      scope: u.scope ?? null,
       exp: Date.now() + (this.store.sessionTtlMinutes ?? 720) * 60000,
     });
     return { sid, role: u.role };
@@ -360,7 +361,7 @@ export class AuthService {
 
   public static async patchToken(
     label: string,
-    updates: { role?: Role; deny?: DenyPolicy; disabled?: boolean },
+    updates: { role?: Role; deny?: DenyPolicy; disabled?: boolean; scope?: string[] | null },
   ): Promise<void> {
     if (!this.store) return;
     const idx = this.store.tokens.findIndex((x) => x.label === label);

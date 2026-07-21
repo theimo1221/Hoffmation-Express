@@ -19,6 +19,7 @@ export interface User {
     floors?: number[];
     deviceClasses?: string[];
   };
+  scope?: string[] | null;
   createdAt?: string;
   lastLogin?: string | null;
 }
@@ -64,11 +65,11 @@ export async function getUsers(): Promise<User[]> {
 /** Shape of a per-principal access-deny policy (matches User.deny). */
 type UserDeny = NonNullable<User['deny']>;
 
-export async function createUser(user: { username: string; password: string; role: string; deny?: UserDeny }): Promise<{ success: boolean }> {
+export async function createUser(user: { username: string; password: string; role: string; deny?: UserDeny; scope?: string[] | null }): Promise<{ success: boolean }> {
   return apiPost<{ success: boolean }>('/auth/users', user);
 }
 
-export async function updateUser(username: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean; password?: string }): Promise<{ success: boolean }> {
+export async function updateUser(username: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean; password?: string; scope?: string[] | null }): Promise<{ success: boolean }> {
   return apiPatch<{ success: boolean }>(`/auth/users/${encodeURIComponent(username)}`, updates);
 }
 
@@ -84,7 +85,7 @@ export async function mintToken(label: string, role: string, deny?: UserDeny, sc
   return apiPost<MintTokenResponse>('/auth/tokens', { label, role, deny, scope });
 }
 
-export async function updateToken(label: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean }): Promise<{ success: boolean }> {
+export async function updateToken(label: string, updates: { role?: string; deny?: UserDeny; disabled?: boolean; scope?: string[] | null }): Promise<{ success: boolean }> {
   return apiPatch<{ success: boolean }>(`/auth/tokens/${encodeURIComponent(label)}`, updates);
 }
 

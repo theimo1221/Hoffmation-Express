@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, X, Layers, Star, DoorOpen, Smartphone, Settings } from 'lucide-react';
+import { Menu, X, Layers, Star, DoorOpen, Smartphone, Settings, LayoutDashboard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +19,7 @@ export function MenuButton({ variant = 'inline', className }: MenuButtonProps) {
     { to: '/rooms', icon: DoorOpen, label: t('tabs.rooms') },
     { to: '/devices', icon: Smartphone, label: t('tabs.devices') },
     { to: '/settings', icon: Settings, label: t('tabs.settings') },
+    { to: '/cockpit', icon: LayoutDashboard, label: 'Cockpit' },
   ];
 
   const buttonClass = variant === 'floating'

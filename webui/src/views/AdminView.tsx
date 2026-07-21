@@ -64,7 +64,7 @@ export function AdminView() {
 
   const handleCreateUser = async (data: UserCreatePayload | UserUpdatePayload) => {
     if ('username' in data) {
-      await createUser({ username: data.username, password: data.password, role: data.role, deny: data.deny });
+      await createUser({ username: data.username, password: data.password, role: data.role, deny: data.deny, scope: data.scope });
     }
     await loadData();
     setUserDialogOpen(false);
@@ -76,6 +76,7 @@ export function AdminView() {
       deny: updates.deny,
       disabled: 'disabled' in updates ? updates.disabled : undefined,
       password: updates.password,
+      scope: updates.scope,
     });
     await loadData();
     setUserDialogOpen(false);
@@ -101,7 +102,7 @@ export function AdminView() {
     await loadData();
   };
 
-  const handleUpdateToken = async (label: string, updates: { role: string; deny: object; disabled: boolean }) => {
+  const handleUpdateToken = async (label: string, updates: { role: string; deny: object; disabled: boolean; scope: string[] | null }) => {
     await updateToken(label, updates);
     await loadData();
     setEditingToken(null);

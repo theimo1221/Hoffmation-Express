@@ -125,3 +125,4 @@ dist
 
 # Personal Room Configuration
 /src/OwnRooms/*
+/.claude/launch.json

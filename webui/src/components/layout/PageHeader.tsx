@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug, Shield, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeft, Menu, RefreshCw, X, Layers, Star, DoorOpen, Smartphone, Settings, Bug, Shield, LayoutDashboard, LogIn, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { BugReportDialog } from '@/components/BugReportDialog';
@@ -51,6 +51,7 @@ export function PageHeader({
     { to: '/devices', icon: Smartphone, label: t('tabs.devices') },
     { to: '/settings', icon: Settings, label: t('tabs.settings') },
     ...(isAdmin ? [{ to: '/admin', icon: Shield, label: 'Admin-Panel' }] : []),
+    ...(isAuthenticated ? [{ to: '/cockpit', icon: LayoutDashboard, label: 'Cockpit' }] : []),
   ];
 
   return (

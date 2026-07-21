@@ -7,6 +7,7 @@ export interface UserRec {
   pwHash: string;
   disabled?: boolean;
   deny?: DenyPolicy;
+  scope?: string[] | null;
   createdAt?: string;
   lastLogin?: string | null;
 }
