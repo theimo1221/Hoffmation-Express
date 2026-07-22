@@ -210,7 +210,7 @@ export function DeviceDetailView({ device: initialDevice, onBack }: DeviceDetail
                 <EnergyManagerControls device={device} />
               )}
 
-              {hasCapability(device, DeviceCapability.energyManager) && (
+              {device.settings?.energySettings && (
                 <EnergySettingsSection device={device} />
               )}
 
