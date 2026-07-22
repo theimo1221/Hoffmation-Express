@@ -1,20 +1,64 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Send, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { postCockpitInbox } from '@/api/cockpit';
+import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitQuestion, CockpitConfig } from '@/types/cockpit';
 
-export function FragenTab({ questions, config }: { questions: CockpitQuestion[]; config: CockpitConfig }) {
+function extractDqId(text: string): string {
+  return text.match(/^(DQ\d+):/)?.[1] ?? '';
+}
+
+function prefixAnswer(q: CockpitQuestion, answer: string): string {
+  const dq = extractDqId(q.text);
+  return dq ? `Antwort an ${dq}: ${answer}` : answer;
+}
+
+export function FragenTab({
+  questions,
+  config,
+  inbox,
+}: {
+  questions: CockpitQuestion[];
+  config: CockpitConfig;
+  inbox: InboxEntry[];
+}) {
+  const answeredDqs = useMemo(() => {
+    const s = new Set<string>();
+    inbox.forEach((e) => { if (e.kind === 'answer' && e.dq) s.add(e.dq); });
+    return s;
+  }, [inbox]);
+
+  const answeredRefs = useMemo(() => {
+    const s = new Set<string>();
+    inbox.forEach((e) => { if (e.kind === 'answer' && e.ref) s.add(e.ref); });
+    return s;
+  }, [inbox]);
+
+  const isAlreadyAnswered = (q: CockpitQuestion): string | null => {
+    const dq = extractDqId(q.text);
+    if (dq && answeredDqs.has(dq)) {
+      const entry = inbox.find((e) => e.kind === 'answer' && e.dq === dq);
+      return entry?.text ?? '';
+    }
+    if (q.ref && answeredRefs.has(q.ref)) {
+      const entry = inbox.find((e) => e.kind === 'answer' && e.ref === q.ref);
+      return entry?.text ?? '';
+    }
+    return null;
+  };
+
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [sending, setSending] = useState<Record<number, boolean>>({});
   const [sent, setSent] = useState<Record<number, boolean>>({});
 
   const handleSend = async (idx: number, q: CockpitQuestion) => {
-    const text = answers[idx]?.trim();
-    if (!text) return;
+    const raw = answers[idx]?.trim();
+    if (!raw) return;
     setSending((prev) => ({ ...prev, [idx]: true }));
+    const dq = extractDqId(q.text) || undefined;
     try {
-      await postCockpitInbox({ kind: 'answer', ref: q.ref, text });
+      await postCockpitInbox({ kind: 'answer', ref: q.ref, text: prefixAnswer(q, raw), dq });
       setSent((prev) => ({ ...prev, [idx]: true }));
     } finally {
       setSending((prev) => ({ ...prev, [idx]: false }));
@@ -23,8 +67,9 @@ export function FragenTab({ questions, config }: { questions: CockpitQuestion[];
 
   const handleYesNo = async (idx: number, q: CockpitQuestion, answer: 'Ja' | 'Nein') => {
     setSending((prev) => ({ ...prev, [idx]: true }));
+    const dq = extractDqId(q.text) || undefined;
     try {
-      await postCockpitInbox({ kind: 'answer', ref: q.ref, text: answer });
+      await postCockpitInbox({ kind: 'answer', ref: q.ref, text: prefixAnswer(q, answer), dq });
       setSent((prev) => ({ ...prev, [idx]: true }));
     } finally {
       setSending((prev) => ({ ...prev, [idx]: false }));
@@ -54,10 +99,17 @@ export function FragenTab({ questions, config }: { questions: CockpitQuestion[];
             {config.domain[domain] ? `${config.domain[domain].emoji} ${config.domain[domain].label}` : domain}
           </h2>
           <div className="space-y-4">
-            {qs.map((q, idx) => (
+            {qs.map((q, idx) => {
+              const existingAnswer = isAlreadyAnswered(q);
+              return (
               <div key={idx} className="rounded-2xl border border-border bg-card p-4 space-y-3">
                 <p className="text-sm leading-relaxed">{q.text}</p>
-                {!sent[idx] ? (
+                {existingAnswer !== null ? (
+                  <div className="flex items-start gap-1.5 text-sm text-green-600">
+                    <CheckSquare className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span className="text-muted-foreground">{existingAnswer}</span>
+                  </div>
+                ) : !sent[idx] ? (
                   <>
                     <div className="flex gap-2">
                       <button onClick={() => handleYesNo(idx, q, 'Ja')} disabled={sending[idx]} className="rounded-lg border border-border px-4 py-1.5 text-sm hover:bg-muted disabled:opacity-50">Ja</button>
@@ -85,7 +137,8 @@ export function FragenTab({ questions, config }: { questions: CockpitQuestion[];
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       ))}

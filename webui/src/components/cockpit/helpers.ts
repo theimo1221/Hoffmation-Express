@@ -14,7 +14,7 @@ export interface TodoFilters {
   domain: string;
   status: string;
   importance: string;
-  person: string;
+  persons: string[];
   project: string;
   text: string;
   fokus: boolean;
@@ -64,7 +64,7 @@ export function applyFilters(items: CockpitItem[], f: TodoFilters): CockpitItem[
     if (f.domain && item.domain !== f.domain) return false;
     if (f.status && item.status !== f.status) return false;
     if (f.importance && item.importance !== f.importance) return false;
-    if (f.person && !item.people.some((p) => p.name === f.person)) return false;
+    if (f.persons.length > 0 && !item.people.some((p) => f.persons.includes(p.name))) return false;
     if (f.project && item.project?.key !== f.project) return false;
     if (f.text) {
       const q = f.text.toLowerCase();

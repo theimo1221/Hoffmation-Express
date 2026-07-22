@@ -402,7 +402,7 @@ export class RestService {
     });
 
     this._app.post('/cockpit/inbox', requireScope('cockpit'), async (req, res) => {
-      const { kind, ref, text } = req.body as { kind?: unknown; ref?: unknown; text?: unknown };
+      const { kind, ref, text, dq } = req.body as { kind?: unknown; ref?: unknown; text?: unknown; dq?: unknown };
       if (!['note', 'answer', 'done', 'new'].includes(kind as string)) {
         return res.status(400).json({ error: 'invalid kind' });
       }
@@ -411,6 +411,9 @@ export class RestService {
       }
       if (typeof text !== 'string' || text.length === 0 || text.length > 2000) {
         return res.status(400).json({ error: 'invalid text' });
+      }
+      if (dq !== undefined && (typeof dq !== 'string' || !/^DQ\d+$/.test(dq))) {
+        return res.status(400).json({ error: 'invalid dq' });
       }
 
       let inbox: Array<Record<string, unknown>> = [];
@@ -425,6 +428,7 @@ export class RestService {
         by: req.principal?.name ?? 'unknown',
       };
       if (ref !== undefined) entry.ref = ref;
+      if (dq !== undefined) entry.dq = dq;
       inbox.push(entry);
 
       try {

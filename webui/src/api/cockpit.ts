@@ -14,6 +14,7 @@ export async function getCockpitConfig(): Promise<CockpitConfig> {
 export interface InboxEntry {
   id: string;
   ref?: string;
+  dq?: string;
   kind: string;
   text: string;
   ts: string;
@@ -28,6 +29,7 @@ export interface InboxPost {
   kind: 'note' | 'answer' | 'done' | 'new';
   ref?: string;
   text: string;
+  dq?: string;
 }
 
 export async function postCockpitInbox(entry: InboxPost): Promise<{ success: boolean; id: string }> {

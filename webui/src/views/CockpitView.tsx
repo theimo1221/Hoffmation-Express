@@ -158,7 +158,7 @@ export function CockpitView() {
         {activeTab === 'todos' && (
           <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} onEditItem={(item) => setTodoDialog({ type: 'edit', item })} initialFilters={todosFilters} inboxByRef={inboxByRef} />
         )}
-        {activeTab === 'fragen' && <div className="h-full overflow-y-auto"><FragenTab questions={data.questions} config={config} /></div>}
+        {activeTab === 'fragen' && <div className="h-full overflow-y-auto"><FragenTab questions={data.questions} config={config} inbox={inbox} /></div>}
         {activeTab === 'kanban' && <KanbanTab data={data} config={config} onItemClick={setDetailItem} />}
         {activeTab === 'projekte' && <div className="h-full overflow-y-auto"><ProjekteTab data={data} config={config} onItemClick={setDetailItem} onNoteSent={handleNoteSent} /></div>}
         {activeTab === 'kalender' && <div className="h-full overflow-hidden"><KalenderTab data={data} config={config} onItemClick={setDetailItem} /></div>}

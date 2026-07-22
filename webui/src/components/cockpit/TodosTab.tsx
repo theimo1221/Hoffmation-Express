@@ -206,9 +206,10 @@ export function TodosTab({
   inboxByRef: Map<string, InboxEntry[]>;
 }) {
   const [filters, setFilters] = useState<TodoFilters>(() => ({
-    domain: '', status: '', importance: '', person: '', project: '', text: '', fokus: false, showGated: false, tags: [],
+    domain: '', status: '', importance: '', persons: [], project: '', text: '', fokus: false, showGated: false, tags: [],
     ...initialFilters,
   }));
+  const [personDropOpen, setPersonDropOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>('due_key');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -238,15 +239,20 @@ export function TodosTab({
   const rest = filtered.filter((i) => !isOverdue(i) && !isDueToday(i));
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 700;
-  const hasFilter = filters.domain || filters.status || filters.importance || filters.person || filters.project || filters.text || filters.tags.length > 0;
+  const hasFilter = !!(filters.domain || filters.status || filters.importance || filters.persons.length > 0 || filters.project || filters.text || filters.tags.length > 0);
 
   const setF = (patch: Partial<TodoFilters>) => setFilters((prev) => ({ ...prev, ...patch }));
+
+  const togglePerson = (name: string) =>
+    setF({ persons: filters.persons.includes(name) ? filters.persons.filter((p) => p !== name) : [...filters.persons, name] });
 
   const handleQuickFilter = (f: QuickFilter) => {
     setFilters((prev) => ({
       ...prev,
       ...(f.domain !== undefined ? { domain: f.domain } : {}),
-      ...(f.person !== undefined ? { person: f.person } : {}),
+      ...(f.person !== undefined ? {
+        persons: prev.persons.includes(f.person) ? prev.persons : [...prev.persons, f.person],
+      } : {}),
       ...(f.project !== undefined ? { project: f.project } : {}),
       ...(f.tag !== undefined ? { tags: prev.tags.includes(f.tag!) ? prev.tags : [...prev.tags, f.tag!] } : {}),
     }));
@@ -269,10 +275,40 @@ export function TodosTab({
             <option value="">Wichtigkeit (alle)</option>
             {Object.entries(config.importance).sort(([, a], [, b]) => b.rank - a.rank).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label_de}</option>)}
           </select>
-          <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.person} onChange={(e) => setF({ person: e.target.value })}>
-            <option value="">Person (alle)</option>
-            {allPeople.map((p) => <option key={p} value={p}>{p}</option>)}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => setPersonDropOpen((o) => !o)}
+              className={cn(
+                'rounded-lg border border-border bg-background px-2 py-1 text-xs flex items-center gap-1 whitespace-nowrap',
+                filters.persons.length > 0 && 'border-primary text-primary',
+              )}
+            >
+              {filters.persons.length === 0
+                ? 'Person (alle)'
+                : filters.persons.length === 1
+                  ? filters.persons[0]
+                  : `${filters.persons[0]} +${filters.persons.length - 1}`}
+              <span className="opacity-50">▾</span>
+            </button>
+            {personDropOpen && (
+              <div
+                className="absolute top-full left-0 mt-1 z-30 min-w-[180px] rounded-xl border border-border bg-card shadow-lg py-1 max-h-64 overflow-y-auto"
+                onMouseLeave={() => setPersonDropOpen(false)}
+              >
+                {allPeople.map((p) => (
+                  <label key={p} className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-muted">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 accent-primary"
+                      checked={filters.persons.includes(p)}
+                      onChange={() => togglePerson(p)}
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.project} onChange={(e) => setF({ project: e.target.value })}>
             <option value="">Projekt (alle)</option>
             {allProjects.map((p) => <option key={p} value={p}>{p.replace('project_', '')}</option>)}
@@ -286,7 +322,7 @@ export function TodosTab({
           />
           {hasFilter && (
             <button
-              onClick={() => setFilters({ domain: '', status: '', importance: '', person: '', project: '', text: '', fokus: filters.fokus, showGated: filters.showGated, tags: [] })}
+              onClick={() => setFilters({ domain: '', status: '', importance: '', persons: [], project: '', text: '', fokus: filters.fokus, showGated: filters.showGated, tags: [] })}
               className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
             >
               × Filter
