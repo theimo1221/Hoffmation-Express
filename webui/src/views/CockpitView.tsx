@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { NavLink } from 'react-router-dom';
-import { AlertTriangle, Menu, X, Layers, Star, DoorOpen, Smartphone, Settings, Shield, LayoutDashboard, LogOut, LogIn } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCockpitData, getCockpitConfig, getCockpitInbox } from '@/api/cockpit';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
-import { useAuthStore } from '@/stores/authStore';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { formatTs } from '@/components/cockpit/helpers';
 import type { TodoFilters } from '@/components/cockpit/helpers';
 import { ItemDetailDialog } from '@/components/cockpit/ItemDetailDialog';
+import { NewTodoDialog } from '@/components/cockpit/NewTodoDialog';
 import { OverviewTab } from '@/components/cockpit/OverviewTab';
 import { TodosTab } from '@/components/cockpit/TodosTab';
 import { FragenTab } from '@/components/cockpit/FragenTab';
@@ -38,8 +38,8 @@ export function CockpitView() {
   const [todosFilters, setTodosFilters] = useState<Partial<TodoFilters>>({});
   const [todosTabKey, setTodosTabKey] = useState(0);
   const [sentToast, setSentToast] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { isAdmin, isAuthenticated, logout } = useAuthStore();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [newTodoOpen, setNewTodoOpen] = useState(false);
 
   const handleGoToTodos = useCallback((filters: Partial<TodoFilters>) => {
     setTodosFilters(filters);
@@ -50,6 +50,7 @@ export function CockpitView() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     Promise.all([getCockpitData(), getCockpitConfig(), getCockpitInbox().catch(() => [] as InboxEntry[])])
       .then(([d, c, ib]) => {
         if (!cancelled) { setData(d); setConfig(c); setInbox(ib); setLoading(false); }
@@ -61,7 +62,7 @@ export function CockpitView() {
         }
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
 
   const inboxByRef = useMemo(() => {
     const m = new Map<string, InboxEntry[]>();
@@ -79,16 +80,6 @@ export function CockpitView() {
     getCockpitInbox().catch(() => [] as InboxEntry[]).then(setInbox);
     void newId;
   }, []);
-
-  const navTabs = [
-    { to: '/', icon: Layers, label: 'Grundriss' },
-    { to: '/favorites', icon: Star, label: 'Favoriten' },
-    { to: '/rooms', icon: DoorOpen, label: 'Räume' },
-    { to: '/devices', icon: Smartphone, label: 'Geräte' },
-    { to: '/settings', icon: Settings, label: 'Einstellungen' },
-    ...(isAuthenticated ? [{ to: '/cockpit', icon: LayoutDashboard, label: 'Cockpit' }] : []),
-    ...(isAdmin ? [{ to: '/admin', icon: Shield, label: 'Admin-Panel' }] : []),
-  ];
 
   if (loading) {
     return (
@@ -111,59 +102,22 @@ export function CockpitView() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pb-2 border-b border-border shrink-0" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-        <div className="flex items-center gap-2 relative">
+      <PageHeader
+        title="Cockpit"
+        subtitle={`Stand ${formatTs(data.generated_at)}`}
+        onRefresh={() => setRefreshKey((k) => k + 1)}
+        isLoading={loading}
+        rightContent={
           <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Menü"
+            onClick={() => setNewTodoOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95 text-lg font-light"
+            aria-label="Neues TODO"
+            title="Neues TODO erfassen"
           >
-            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            +
           </button>
-          {menuOpen && (
-            <div className="absolute top-8 left-0 min-w-[180px] rounded-2xl bg-card/95 p-2 shadow-soft-lg backdrop-blur-xl z-50 border border-border">
-              {navTabs.map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200',
-                      isActive ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent',
-                    )
-                  }
-                >
-                  <Icon className="h-5 w-5" strokeWidth={1.5} />
-                  <span className="text-sm font-medium">{label}</span>
-                </NavLink>
-              ))}
-              <div className="my-1 border-t border-border/50" />
-              {isAuthenticated ? (
-                <button
-                  onClick={() => { void logout(); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-foreground hover:bg-accent transition-all duration-200"
-                >
-                  <LogOut className="h-5 w-5" strokeWidth={1.5} />
-                  <span className="text-sm font-medium">Abmelden</span>
-                </button>
-              ) : (
-                <NavLink
-                  to="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-foreground hover:bg-accent transition-all duration-200"
-                >
-                  <LogIn className="h-5 w-5" strokeWidth={1.5} />
-                  <span className="text-sm font-medium">Anmelden</span>
-                </NavLink>
-              )}
-            </div>
-          )}
-          <h1 className="font-semibold text-base">Cockpit</h1>
-        </div>
-        <span className="text-xs text-muted-foreground">Stand {formatTs(data.generated_at)}</span>
-      </div>
+        }
+      />
 
       {/* Tab bar */}
       <div className="flex border-b border-border overflow-x-auto shrink-0 scrollbar-none">
@@ -219,6 +173,10 @@ export function CockpitView() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 rounded-xl bg-foreground text-background text-sm px-4 py-2 shadow-lg z-50">
           Gesendet — wird im nächsten Digest verarbeitet
         </div>
+      )}
+
+      {newTodoOpen && (
+        <NewTodoDialog onSent={handleNoteSent} onClose={() => setNewTodoOpen(false)} />
       )}
     </div>
   );

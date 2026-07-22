@@ -20,7 +20,7 @@ const SORT_COLS: Array<{ key: SortKey | null; label: string }> = [
   { key: null, label: 'Beteiligte' },
   { key: 'due_key', label: 'Fällig' },
   { key: null, label: 'Ab' },
-  { key: null, label: 'Aufwand' },
+  { key: 'effort', label: 'Aufwand' },
   { key: 'created', label: 'Erstellt' },
   { key: 'touched', label: 'Zuletzt' },
 ];

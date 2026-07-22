@@ -8,7 +8,7 @@ export const DOMAIN_FALLBACK_COLOR = '#6b7280';
 
 export type QuickFilter = { domain?: string; person?: string; tag?: string; project?: string };
 
-export type SortKey = 'due_key' | 'importance_rank' | 'created' | 'touched' | 'domain' | 'status';
+export type SortKey = 'due_key' | 'importance_rank' | 'created' | 'touched' | 'domain' | 'status' | 'effort';
 
 export interface TodoFilters {
   domain: string;
@@ -76,11 +76,18 @@ export function applyFilters(items: CockpitItem[], f: TodoFilters): CockpitItem[
   });
 }
 
+function effortMinutes(e: string): number {
+  const n = parseInt(e, 10);
+  return isNaN(n) ? Infinity : n;
+}
+
 export function sortItems(items: CockpitItem[], sortBy: SortKey = 'due_key', sortDir: 'asc' | 'desc' = 'asc'): CockpitItem[] {
   return [...items].sort((a, b) => {
     let cmp = 0;
     if (sortBy === 'importance_rank') {
       cmp = a.importance_rank - b.importance_rank;
+    } else if (sortBy === 'effort') {
+      cmp = effortMinutes(a.effort) - effortMinutes(b.effort);
     } else if (sortBy === 'due_key') {
       cmp = a.due_key < b.due_key ? -1 : a.due_key > b.due_key ? 1 : 0;
       if (cmp === 0) cmp = b.importance_rank - a.importance_rank;
