@@ -8,7 +8,8 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { formatTs } from '@/components/cockpit/helpers';
 import type { TodoFilters } from '@/components/cockpit/helpers';
 import { ItemDetailDialog } from '@/components/cockpit/ItemDetailDialog';
-import { NewTodoDialog } from '@/components/cockpit/NewTodoDialog';
+import { TodoDialog } from '@/components/cockpit/TodoDialog';
+import type { TodoDialogMode } from '@/components/cockpit/TodoDialog';
 import { OverviewTab } from '@/components/cockpit/OverviewTab';
 import { TodosTab } from '@/components/cockpit/TodosTab';
 import { FragenTab } from '@/components/cockpit/FragenTab';
@@ -39,7 +40,7 @@ export function CockpitView() {
   const [todosTabKey, setTodosTabKey] = useState(0);
   const [sentToast, setSentToast] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [newTodoOpen, setNewTodoOpen] = useState(false);
+  const [todoDialog, setTodoDialog] = useState<TodoDialogMode | null>(null);
 
   const handleGoToTodos = useCallback((filters: Partial<TodoFilters>) => {
     setTodosFilters(filters);
@@ -63,6 +64,13 @@ export function CockpitView() {
       });
     return () => { cancelled = true; };
   }, [refreshKey]);
+
+  const allPeople = useMemo(() => {
+    if (!data) return [];
+    const s = new Set<string>();
+    data.items.forEach((i) => i.people.forEach((p) => s.add(p.name)));
+    return [...s].sort();
+  }, [data]);
 
   const inboxByRef = useMemo(() => {
     const m = new Map<string, InboxEntry[]>();
@@ -109,7 +117,7 @@ export function CockpitView() {
         isLoading={loading}
         rightContent={
           <button
-            onClick={() => setNewTodoOpen(true)}
+            onClick={() => setTodoDialog({ type: 'new' })}
             className="flex h-10 w-10 items-center justify-center rounded-xl bg-card shadow-soft transition-all hover:bg-accent active:scale-95 text-lg font-light"
             aria-label="Neues TODO"
             title="Neues TODO erfassen"
@@ -148,7 +156,7 @@ export function CockpitView() {
           </div>
         )}
         {activeTab === 'todos' && (
-          <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} initialFilters={todosFilters} inboxByRef={inboxByRef} />
+          <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} onEditItem={(item) => setTodoDialog({ type: 'edit', item })} initialFilters={todosFilters} inboxByRef={inboxByRef} />
         )}
         {activeTab === 'fragen' && <div className="h-full overflow-y-auto"><FragenTab questions={data.questions} config={config} /></div>}
         {activeTab === 'kanban' && <KanbanTab data={data} config={config} onItemClick={setDetailItem} />}
@@ -175,8 +183,14 @@ export function CockpitView() {
         </div>
       )}
 
-      {newTodoOpen && (
-        <NewTodoDialog onSent={handleNoteSent} onClose={() => setNewTodoOpen(false)} />
+      {todoDialog && (
+        <TodoDialog
+          mode={todoDialog}
+          config={config}
+          availablePeople={allPeople}
+          onSent={handleNoteSent}
+          onClose={() => setTodoDialog(null)}
+        />
       )}
     </div>
   );

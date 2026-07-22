@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { AlertTriangle, Clock, MessageSquare, ChevronUp, ChevronDown } from 'lucide-react';
+import { AlertTriangle, Clock, MessageSquare, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
@@ -29,6 +29,7 @@ function TodoRow({
   item,
   config,
   onItemClick,
+  onEditItem,
   onQuickFilter,
   findItem,
   hasComment,
@@ -36,6 +37,7 @@ function TodoRow({
   item: CockpitItem;
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
+  onEditItem: (item: CockpitItem) => void;
   onQuickFilter: (f: QuickFilter) => void;
   findItem: (id: string) => CockpitItem | undefined;
   hasComment?: boolean;
@@ -50,14 +52,18 @@ function TodoRow({
   const blockedByIds = blockedByRaw ? parseBlockedByIds(blockedByRaw) : [];
 
   return (
-    <tr className={cn('border-b border-border text-xs hover:bg-muted/30', gated && 'opacity-50')}>
-      <td
-        className="px-2 py-2 font-mono font-medium whitespace-nowrap cursor-pointer hover:text-primary"
-        onClick={() => onItemClick(item)}
-      >
+    <tr className={cn('group border-b border-border text-xs hover:bg-muted/30', gated && 'opacity-50')}>
+      <td className="px-2 py-2 font-mono font-medium whitespace-nowrap">
         <span className="flex items-center gap-1">
-          {item.id}
+          <span className="cursor-pointer hover:text-primary" onClick={() => onItemClick(item)}>{item.id}</span>
           {hasComment && <span title="Kommentiert"><MessageSquare className="h-2.5 w-2.5 text-orange-400 shrink-0" /></span>}
+          <button
+            title="Bearbeiten"
+            onClick={(e) => { e.stopPropagation(); onEditItem(item); }}
+            className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-opacity"
+          >
+            <Pencil className="h-2.5 w-2.5" />
+          </button>
         </span>
       </td>
       <td className="px-1 py-2 text-center">{config.status[item.status]?.emoji ?? item.status}</td>
@@ -120,12 +126,14 @@ function TodoCard({
   item,
   config,
   onItemClick,
+  onEditItem,
   onQuickFilter,
   hasComment,
 }: {
   item: CockpitItem;
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
+  onEditItem: (item: CockpitItem) => void;
   onQuickFilter: (f: QuickFilter) => void;
   hasComment?: boolean;
 }) {
@@ -142,6 +150,15 @@ function TodoCard({
         <DomainBadge domain={item.domain} config={config} onClick={qf({ domain: item.domain })} />
         <span>{config.status[item.status]?.emoji}</span>
         <span>{config.importance[item.importance]?.emoji}</span>
+        <span className="ml-auto">
+          <button
+            title="Bearbeiten"
+            onClick={(e) => { e.stopPropagation(); onEditItem(item); }}
+            className="rounded-lg p-1 hover:bg-muted text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+        </span>
       </div>
       <p className="text-sm leading-snug">{item.title}</p>
       {item.tags.length > 0 && (
@@ -177,12 +194,14 @@ export function TodosTab({
   data,
   config,
   onItemClick,
+  onEditItem,
   initialFilters,
   inboxByRef,
 }: {
   data: CockpitData;
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
+  onEditItem: (item: CockpitItem) => void;
   initialFilters?: Partial<TodoFilters>;
   inboxByRef: Map<string, InboxEntry[]>;
 }) {
@@ -317,7 +336,7 @@ export function TodosTab({
         {isMobile ? (
           <div className="p-3 space-y-2">
             {[...overdue, ...today, ...rest].map((item) => (
-              <TodoCard key={item.id} item={item} config={config} onItemClick={onItemClick} onQuickFilter={handleQuickFilter} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+              <TodoCard key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onQuickFilter={handleQuickFilter} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
             ))}
           </div>
         ) : (
@@ -345,7 +364,7 @@ export function TodosTab({
               </thead>
               <tbody>
                 {[...overdue, ...today, ...rest].map((item) => (
-                  <TodoRow key={item.id} item={item} config={config} onItemClick={onItemClick} onQuickFilter={handleQuickFilter} findItem={findItem} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+                  <TodoRow key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onQuickFilter={handleQuickFilter} findItem={findItem} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
                 ))}
               </tbody>
             </table>
