@@ -13,7 +13,10 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.png', 'icon-192.png', 'icon-512.png'],
-        injectRegister: 'auto',
+        // Registered manually in main.tsx so we can poll for new builds; the
+        // auto-injected registration never calls update(), which left an
+        // installed PWA serving a stale bundle after a deploy.
+        injectRegister: null,
         manifest: {
           name: 'Hoffmation',
           short_name: 'Hoffmation',

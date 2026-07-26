@@ -127,8 +127,11 @@ export function DeviceInfo({
           );
         })()}
         {expertMode && (() => {
-          const lastCommands = (device as Record<string, unknown>).lastCommands as BaseCommand[] | undefined;
-          if (!lastCommands || lastCommands.length === 0) return null;
+          const rawCommands = (device as Record<string, unknown>).lastCommands as (BaseCommand | null)[] | undefined;
+          // Unwritten ring-buffer slots arrive as null, so length alone is not
+          // a reliable emptiness check and mapping over them would throw.
+          const lastCommands = rawCommands?.filter((c): c is BaseCommand => c != null) ?? [];
+          if (lastCommands.length === 0) return null;
           
           return (
             <div className="mt-3 pt-3 border-t border-border">

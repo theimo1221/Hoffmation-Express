@@ -127,8 +127,10 @@ export function CockpitView() {
         }
       />
 
-      {/* Tab bar */}
-      <div className="flex border-b border-border overflow-x-auto shrink-0 scrollbar-none">
+      {/* Tab bar — w-max + mx-auto centers the tabs when they fit and still
+          allows horizontal scrolling (with a reachable first tab) when they don't */}
+      <div className="border-b border-border overflow-x-auto shrink-0 scrollbar-none">
+        <div className="flex w-max mx-auto">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -146,6 +148,7 @@ export function CockpitView() {
             )}
           </button>
         ))}
+        </div>
       </div>
 
       {/* Content */}
