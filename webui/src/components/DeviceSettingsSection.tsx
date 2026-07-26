@@ -152,22 +152,32 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
       // The backend reads device-type settings FLAT (fromPartialObject reads
       // data.heatingAllowed, data.nightOn, ...). Nesting them under a
       // *Settings key makes every field undefined there, so the update is
-      // silently discarded. Only energySettings/blockAutomaticSettings are
-      // genuinely nested, and those keep their shape when spread.
-      const applyFlat = (s: unknown) => {
-        if (s) Object.assign(settings, s);
+      // silently discarded.
+      //
+      // Send only the fields that actually changed: a device can match several
+      // settings blocks at once (Dachs is also an actuator), and each local
+      // copy starts out as the whole settings object - spreading them wholesale
+      // would let a stale copy overwrite an edited one.
+      const original = (flatSettings ?? {}) as Record<string, unknown>;
+      const applyChanged = (local: unknown) => {
+        if (!local || typeof local !== 'object') return;
+        for (const [key, value] of Object.entries(local as Record<string, unknown>)) {
+          if (JSON.stringify(value) !== JSON.stringify(original[key])) {
+            settings[key] = value;
+          }
+        }
       };
 
-      if (showLampSettings) applyFlat(localLampSettings);
-      if (showShutter) applyFlat(localShutter);
-      if (showHeater) applyFlat(localHeater);
-      if (showAc) applyFlat(localAc);
-      if (showHandle) applyFlat(localHandle);
-      if (showCamera) applyFlat(localCamera);
-      if (showMotionSensor) applyFlat(localMotionSensor);
-      if (showScene) applyFlat(localScene);
-      if (showSpeaker) applyFlat(localSpeaker);
-      if (showDachs) applyFlat(localDachs);
+      if (showLampSettings) applyChanged(localLampSettings);
+      if (showShutter) applyChanged(localShutter);
+      if (showHeater) applyChanged(localHeater);
+      if (showAc) applyChanged(localAc);
+      if (showHandle) applyChanged(localHandle);
+      if (showCamera) applyChanged(localCamera);
+      if (showMotionSensor) applyChanged(localMotionSensor);
+      if (showScene) applyChanged(localScene);
+      if (showSpeaker) applyChanged(localSpeaker);
+      if (showDachs) applyChanged(localDachs);
       
       await updateDeviceSettings(device.id, settings);
       setIsEditing(false);
