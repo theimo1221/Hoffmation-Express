@@ -301,7 +301,7 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
               onChange={(h, m) => setLocalAc(s => ({ ...s, maximumHours: h, maximumMinutes: m }))} disabled={!isEditing} />
             <SettingSlider label="Min. Außentemp. für Kühlung" value={localAc.minOutdoorTempForCooling ?? 20} min={16} max={25} step={0.5} unit="°C"
               onChange={(v) => setLocalAc(s => ({ ...s, minOutdoorTempForCooling: v }))} disabled={!isEditing} />
-            <SettingSlider label="Kühlziel überschreiben (-1 = aus)" value={localAc.overrideCoolingTargetTemp ?? -1} min={-1} max={22} step={0.5} unit="°C"
+            <SettingSlider label="Kühlziel überschreiben (-1 = aus)" value={localAc.overrideCoolingTargetTemp ?? -1} min={-1} max={25} step={0.5} unit="°C"
               onChange={(v) => setLocalAc(s => ({ ...s, overrideCoolingTargetTemp: v }))} disabled={!isEditing} />
           </SettingsGroup>
         )}

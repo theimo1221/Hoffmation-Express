@@ -25,6 +25,7 @@ interface SettingsState {
   setLanguage: (lang: 'en' | 'de') => void;
   setApiBaseUrl: (url: string) => void;
   setExpertMode: (enabled: boolean) => void;
+  applyAdminExpertDefault: () => void;
   setExcludedLevels: (levels: number[]) => void;
   toggleFloorPlanFilter: (key: keyof FloorPlanFilters) => void;
   toggleFloorViewFilter: (key: keyof FloorPlanFilters) => void;
@@ -134,6 +135,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setExpertMode: (enabled) => {
     localStorage.setItem('hoffmation-expert-mode', enabled.toString());
     set({ expertMode: enabled });
+  },
+
+  // Admins get expert mode by default. Only applies when they have never made
+  // an explicit choice, so turning it off stays turned off.
+  applyAdminExpertDefault: () => {
+    if (localStorage.getItem('hoffmation-expert-mode') !== null) return;
+    localStorage.setItem('hoffmation-expert-mode', 'true');
+    set({ expertMode: true });
   },
 
   setExcludedLevels: (levels) => {

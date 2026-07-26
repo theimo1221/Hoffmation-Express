@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { login as apiLogin, logout as apiLogout } from '@/api/auth';
+import { useSettingsStore } from './settingsStore';
 
 const MOBILE_TOKEN_KEY = 'hf_mobile_token';
+
+/**
+ * Admins see the advanced settings by default. The role is only known once
+ * authentication resolves, so this runs at every site that determines it.
+ */
+function applyRoleDefaults(isAdmin: boolean): void {
+  if (isAdmin) useSettingsStore.getState().applyAdminExpertDefault();
+}
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -32,11 +41,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiLogin(username, password);
+      const isAdmin = response.role === 'admin';
       set({
         isAuthenticated: true,
-        isAdmin: response.role === 'admin',
+        isAdmin,
         isLoading: false,
       });
+      applyRoleDefaults(isAdmin);
     } catch (error) {
       set({
         isAuthenticated: false,
@@ -62,13 +73,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       const data = (await res.json()) as { role: string };
       localStorage.setItem(MOBILE_TOKEN_KEY, token);
+      const isAdmin = data.role === 'admin';
       set({
         isAuthenticated: true,
-        isAdmin: data.role === 'admin',
+        isAdmin,
         isLoading: false,
         hasMobileToken: true,
         error: null,
       });
+      applyRoleDefaults(isAdmin);
     } catch (error) {
       set({
         isLoading: false,
@@ -96,6 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     let isAuthenticated = !!roleCookie;
     const role = roleCookie?.split('=')[1];
     set({ isAdmin: role === 'admin', isAuthenticated });
+    applyRoleDefaults(role === 'admin');
 
     // If no active session, try auto-login via stored mobile token
     if (!isAuthenticated) {
@@ -111,6 +125,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const data = (await res.json()) as { role: string };
             isAuthenticated = true;
             set({ isAuthenticated: true, isAdmin: data.role === 'admin', hasMobileToken: true });
+            applyRoleDefaults(data.role === 'admin');
           } else if (res.status === 401) {
             // 401 = token definitiv ungültig oder widerrufen — löschen
             localStorage.removeItem(MOBILE_TOKEN_KEY);
