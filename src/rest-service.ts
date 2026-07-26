@@ -821,6 +821,18 @@ export class RestService {
     });
 
     // WebUI Settings endpoint (readonly)
+    // Service uptime for the version section in the WebUI settings view.
+    // Deliberately limited to timing and version data - no host names or paths.
+    this._app.get('/webui/status', (_req, res) => {
+      const uptimeSeconds = Math.floor(process.uptime());
+      return res.json({
+        uptimeSeconds,
+        startedAt: new Date(Date.now() - uptimeSeconds * 1000).toISOString(),
+        nodeVersion: process.version,
+        baseVersion: RestService.readBaseVersion(),
+      });
+    });
+
     this._app.get('/webui/settings', (_req, res) => {
       const settingsPath = path.join(__dirname, '..', 'config', 'private', 'webui-settings.json');
       try {
@@ -1169,6 +1181,17 @@ export class RestService {
       ServerLogService.writeLog(LogLevel.Error, `REST API Error: ${err.message}\n${err.stack}`);
       res.status(500).json({ error: 'Internal server error', message: err.message });
     });
+  }
+
+  /** Installed hoffmation-base version, so a deployment can be pinned down. */
+  private static readBaseVersion(): string {
+    try {
+      const pkgPath = path.join(__dirname, '..', 'node_modules', 'hoffmation-base', 'package.json');
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as { version?: string };
+      return pkg.version ?? 'unknown';
+    } catch {
+      return 'unknown';
+    }
   }
 
   private static restartDevice(deviceId: string, clientInfo: string): Error | null {

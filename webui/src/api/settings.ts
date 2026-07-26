@@ -19,3 +19,17 @@ export async function getWebUISettings(): Promise<WebUISettings> {
 export async function updateWebUISettings(settings: WebUISettings): Promise<void> {
   await apiPost('/webui/settings', settings);
 }
+
+export interface ServiceStatus {
+  uptimeSeconds: number;
+  startedAt: string;
+  nodeVersion: string;
+  baseVersion: string;
+}
+
+/**
+ * Backend service uptime and versions, shown in the settings version section.
+ */
+export async function getServiceStatus(): Promise<ServiceStatus> {
+  return apiGet<ServiceStatus>('/webui/status');
+}

@@ -1,10 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { Moon, Sun, Globe, Server, Settings, Layers, Smartphone, Bell, BellOff, Download, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
+import { Moon, Sun, Globe, Server, Settings, Layers, Smartphone, Bell, BellOff, Download, Loader2, CheckCircle, RefreshCw, Info } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { getServiceStatus } from '@/api/settings';
+import type { ServiceStatus } from '@/api/settings';
+
+function formatUptime(totalSeconds: number): string {
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} ${days === 1 ? 'Tag' : 'Tage'}`);
+  if (hours > 0) parts.push(`${hours} h`);
+  // Always show minutes so a freshly started service does not render as empty.
+  parts.push(`${minutes} min`);
+  return parts.join(' ');
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export function SettingsView() {
   const { t, i18n } = useTranslation();
@@ -22,6 +48,16 @@ export function SettingsView() {
     excludedLevels,
     setExcludedLevels
   } = useSettingsStore();
+
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getServiceStatus()
+      .then((s) => { if (!cancelled) setServiceStatus(s); })
+      .catch(() => { /* version section falls back to WebUI-only info */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const allLevels = [
     { level: -1, name: 'Keller' },
@@ -353,6 +389,52 @@ export function SettingsView() {
               <p className="text-xs text-muted-foreground mt-2">
                 Ausgewählte Etagen werden in der Raumübersicht ausgeblendet.
               </p>
+            </div>
+          </section>
+
+          {/* Version / service info */}
+          <section>
+            <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Versionsstand
+            </h2>
+            <div className="rounded-2xl bg-card p-4 shadow-soft space-y-2 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Servicelaufzeit</span>
+                <span className="font-medium text-right">
+                  {serviceStatus ? formatUptime(serviceStatus.uptimeSeconds) : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Service gestartet</span>
+                <span className="font-medium text-right">
+                  {serviceStatus ? formatDateTime(serviceStatus.startedAt) : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">WebUI-Commit</span>
+                <span className="font-mono text-xs text-right">{__APP_COMMIT__}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">WebUI-Commit vom</span>
+                <span className="font-medium text-right">{formatDateTime(__APP_COMMIT_DATE__)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">WebUI gebaut</span>
+                <span className="font-medium text-right">{formatDateTime(__APP_BUILD_TIME__)}</span>
+              </div>
+              {serviceStatus && (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">hoffmation-base</span>
+                    <span className="font-mono text-xs text-right">{serviceStatus.baseVersion}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Node</span>
+                    <span className="font-mono text-xs text-right">{serviceStatus.nodeVersion}</span>
+                  </div>
+                </>
+              )}
             </div>
           </section>
 

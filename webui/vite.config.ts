@@ -1,7 +1,21 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * Build stamp for the "Version" section in the settings view, so a deployed
+ * WebUI can be matched against the commit it was built from. Falls back to
+ * 'unknown' when git is unavailable (e.g. building from a source tarball).
+ */
+function git(...args: string[]): string {
+  try {
+    return execFileSync('git', args, { cwd: __dirname, encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 export default defineConfig(({ mode }) => {
   // Load .env / .env.local (empty prefix -> also non-VITE_ vars) so the dev-proxy target is
@@ -127,6 +141,9 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       global: 'globalThis',
+      __APP_COMMIT__: JSON.stringify(git('rev-parse', '--short', 'HEAD')),
+      __APP_COMMIT_DATE__: JSON.stringify(git('log', '-1', '--format=%cI')),
+      __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     },
     resolve: {
       alias: {
