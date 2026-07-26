@@ -149,25 +149,25 @@ export function DeviceSettingsSection({ device }: DeviceSettingsSectionProps) {
     try {
       const settings: Record<string, unknown> = {};
       
-      if (showLampSettings) {
-        // Save to the correct settings key based on what we received from backend
-        if (ledSettings) {
-          settings.ledSettings = localLampSettings;
-        } else if (dimmerSettings) {
-          settings.dimmerSettings = localLampSettings;
-        } else if (actuatorSettings) {
-          settings.actuatorSettings = localLampSettings;
-        }
-      }
-      if (showShutter) settings.shutterSettings = localShutter;
-      if (showHeater) settings.heaterSettings = localHeater;
-      if (showAc) settings.acSettings = localAc;
-      if (showHandle) settings.handleSettings = localHandle;
-      if (showCamera) settings.cameraSettings = localCamera;
-      if (showMotionSensor) settings.motionSensorSettings = localMotionSensor;
-      if (showScene) settings.sceneSettings = localScene;
-      if (showSpeaker) settings.speakerSettings = localSpeaker;
-      if (showDachs) settings.dachsSettings = localDachs;
+      // The backend reads device-type settings FLAT (fromPartialObject reads
+      // data.heatingAllowed, data.nightOn, ...). Nesting them under a
+      // *Settings key makes every field undefined there, so the update is
+      // silently discarded. Only energySettings/blockAutomaticSettings are
+      // genuinely nested, and those keep their shape when spread.
+      const applyFlat = (s: unknown) => {
+        if (s) Object.assign(settings, s);
+      };
+
+      if (showLampSettings) applyFlat(localLampSettings);
+      if (showShutter) applyFlat(localShutter);
+      if (showHeater) applyFlat(localHeater);
+      if (showAc) applyFlat(localAc);
+      if (showHandle) applyFlat(localHandle);
+      if (showCamera) applyFlat(localCamera);
+      if (showMotionSensor) applyFlat(localMotionSensor);
+      if (showScene) applyFlat(localScene);
+      if (showSpeaker) applyFlat(localSpeaker);
+      if (showDachs) applyFlat(localDachs);
       
       await updateDeviceSettings(device.id, settings);
       setIsEditing(false);
