@@ -126,3 +126,6 @@ dist
 # Personal Room Configuration
 /src/OwnRooms/*
 /.claude/launch.json
+
+# Claude Code agent memory (must never be committed - public repo)
+memory/
