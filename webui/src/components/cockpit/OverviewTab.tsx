@@ -26,7 +26,10 @@ export function OverviewTab({
   const itemById = useMemo(() => new Map(data.items.map((i) => [i.id, i])), [data.items]);
 
   return (
-    <div className="p-4 space-y-5 max-w-2xl mx-auto">
+    // Widen with the viewport: the briefing is a long document, and holding it at
+    // max-w-2xl on a wide screen wrapped nearly every line two or three times and
+    // left most of the display empty.
+    <div className="p-4 space-y-5 max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto">
       {/* Daily briefing - rendered verbatim, never reformatted or summarised */}
       {briefing?.markdown && (
         <section>
