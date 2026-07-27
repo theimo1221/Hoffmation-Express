@@ -23,9 +23,15 @@ export function BlockAutomaticControls({ device }: BlockAutomaticControlsProps) 
   const automaticBlockedUntil = getAutomaticBlockedUntil(device);
   
   const handleBlockAutomatic = async (hours: number) => {
+    // The API blocks for a duration counted from *now* (BlockAutomaticHandler sets
+    // automaticBlockedUntil to nowMS + durationMS), but this control offers to
+    // "+Nh verlängern" an already running block. Sending N hours flat would move the
+    // end to now+N, so extending a block with 1h left by 2h only added one hour.
+    // Carry the remaining time along; when nothing is blocked this is a plain N hours.
+    const remainingSeconds = Math.max(0, Math.ceil((automaticBlockedUntil - Date.now()) / 1000));
     await executeDeviceAction(
       device,
-      (id) => blockAutomatic(id, hours * 3600),
+      (id) => blockAutomatic(id, remainingSeconds + hours * 3600),
       setIsLoading
     );
   };

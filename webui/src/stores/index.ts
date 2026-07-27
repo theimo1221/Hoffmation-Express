@@ -118,6 +118,7 @@ export {
   getRoomStats,
   hasGroup,
   getGroup,
+  getRoomSettings,
   getRoomWebUISettings,
   getRoomFloors,
   type RoomStats,

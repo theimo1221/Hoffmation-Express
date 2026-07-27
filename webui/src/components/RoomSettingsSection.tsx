@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
-import { type Room, type RoomSettings, getRoomName, getRoomWebUISettings, type RoomWebUISettings, useDataStore } from '@/stores';
+import { type Room, type RoomSettings, getRoomName, getRoomSettings, getRoomWebUISettings, type RoomWebUISettings, useDataStore } from '@/stores';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { updateRoomSettings } from '@/api/rooms';
 import { IconPicker } from './IconPicker';
@@ -17,7 +17,9 @@ export function RoomSettingsSection({ room, onUpdate }: RoomSettingsSectionProps
   const { floors: floorDefinitions, loadFloors } = useSettingsStore();
   const { fetchRoom } = useDataStore();
   
-  const settings = room.settings;
+  // Must go through the helper: the backend nests the values in _settingsContainer,
+  // so reading room.settings directly makes every control show its default instead.
+  const settings = getRoomSettings(room);
   
   // WebUI settings state
   const [selectedFloors, setSelectedFloors] = useState<string[]>([]);

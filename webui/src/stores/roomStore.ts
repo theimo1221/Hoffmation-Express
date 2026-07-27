@@ -3,7 +3,7 @@
  * Centralized room state and helper functions
  */
 
-import type { Room, Device, GroupType, GroupData, RoomWebUISettings } from './types';
+import type { Room, Device, GroupType, GroupData, RoomWebUISettings, RoomSettings } from './types';
 import { 
   getDeviceRoom, 
   isLampDevice, 
@@ -253,14 +253,27 @@ export function getGroup(room: Room, groupType: GroupType): GroupData | undefine
 }
 
 /**
+ * The room settings the backend actually serves.
+ *
+ * The read and write shapes are asymmetric: RoomSettingsController keeps the values in a
+ * private `_settingsContainer` field, so GET /rooms/:id returns them nested under that key,
+ * while POST /roomSettings/:name expects them flat (it calls settingsContainer.fromPartialObject
+ * on the body). Reading room.settings directly therefore yields none of the actual values and
+ * every control silently falls back to its hard-coded default - saving works, but the saved
+ * value never shows up again. Always read through this helper.
+ */
+export function getRoomSettings(room: Room): RoomSettings {
+  const raw = room.settings as (RoomSettings & Record<string, unknown>) | undefined;
+  const container = raw?.['_settingsContainer'] as RoomSettings | undefined;
+  return container ?? raw ?? {};
+}
+
+/**
  * Parse customSettingsJson from room settings
  */
 export function getRoomWebUISettings(room: Room): RoomWebUISettings | null {
   try {
-    // Try _settingsContainer first (backend structure — private field with _ prefix)
-    const settingsContainer = (room.settings as Record<string, unknown> | undefined)?.['_settingsContainer'] as
-      { customSettingsJson?: string } | undefined;
-    const json = settingsContainer?.customSettingsJson ?? room.settings?.customSettingsJson;
+    const json = getRoomSettings(room).customSettingsJson;
     if (typeof json === 'string' && json.length > 0) {
       const parsed = JSON.parse(json);
       return parsed.webui || null;
