@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCockpitData, getCockpitConfig, getCockpitInbox } from '@/api/cockpit';
-import type { InboxEntry } from '@/api/cockpit';
+import { getCockpitData, getCockpitConfig, getCockpitInbox, getCockpitBriefing } from '@/api/cockpit';
+import type { InboxEntry, CockpitBriefing } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { formatTs } from '@/components/cockpit/helpers';
@@ -32,6 +32,7 @@ export function CockpitView() {
   const [data, setData] = useState<CockpitData | null>(null);
   const [config, setConfig] = useState<CockpitConfig | null>(null);
   const [inbox, setInbox] = useState<InboxEntry[]>([]);
+  const [briefing, setBriefing] = useState<CockpitBriefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('todos');
@@ -52,9 +53,15 @@ export function CockpitView() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    Promise.all([getCockpitData(), getCockpitConfig(), getCockpitInbox().catch(() => [] as InboxEntry[])])
-      .then(([d, c, ib]) => {
-        if (!cancelled) { setData(d); setConfig(c); setInbox(ib); setLoading(false); }
+    Promise.all([
+      getCockpitData(),
+      getCockpitConfig(),
+      getCockpitInbox().catch(() => [] as InboxEntry[]),
+      // Absent until the first briefing is deployed - that is a normal state, not an error.
+      getCockpitBriefing().catch(() => null),
+    ])
+      .then(([d, c, ib, br]) => {
+        if (!cancelled) { setData(d); setConfig(c); setInbox(ib); setBriefing(br); setLoading(false); }
       })
       .catch((e: Error) => {
         if (!cancelled) {
@@ -155,7 +162,7 @@ export function CockpitView() {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'overview' && (
           <div className="h-full overflow-y-auto">
-            <OverviewTab data={data} config={config} onGoToTodos={handleGoToTodos} onItemClick={setDetailItem} />
+            <OverviewTab data={data} config={config} briefing={briefing} onGoToTodos={handleGoToTodos} onItemClick={setDetailItem} />
           </div>
         )}
         {activeTab === 'todos' && (

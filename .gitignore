@@ -129,3 +129,7 @@ dist
 
 # Claude Code agent memory (must never be committed - public repo)
 memory/
+
+# Playwright artefacts - can contain screenshots of private data
+test-results/
+playwright-report/

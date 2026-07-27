@@ -11,6 +11,20 @@ export async function getCockpitConfig(): Promise<CockpitConfig> {
   return apiGet<CockpitConfig>('/cockpit/config');
 }
 
+/**
+ * The daily briefing. Markdown travels JSON-wrapped so it shares the snapshot
+ * deploy path (scope, schema_version validation, atomic write) with the rest.
+ */
+export interface CockpitBriefing {
+  schema_version: number;
+  generated_at: string;
+  markdown: string;
+}
+
+export async function getCockpitBriefing(): Promise<CockpitBriefing> {
+  return apiGet<CockpitBriefing>('/cockpit/briefing');
+}
+
 export interface InboxEntry {
   id: string;
   ref?: string;

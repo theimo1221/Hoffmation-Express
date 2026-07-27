@@ -396,6 +396,14 @@ export class RestService {
       return res.json(data);
     });
 
+    // Daily briefing. Absent until the first deploy, so a missing file is a normal
+    // state the UI hides rather than an error worth surfacing.
+    this._app.get('/cockpit/briefing', requireScope('cockpit'), async (_req, res) => {
+      const data = await readCockpitJson('cockpit-briefing.json');
+      if (!data) return res.status(503).json({ error: 'briefing unavailable' });
+      return res.json(data);
+    });
+
     this._app.get('/cockpit/inbox', requireScope('cockpit'), async (_req, res) => {
       const raw = await readCockpitJson('cockpit-inbox.json');
       return res.json(Array.isArray(raw) ? raw : []);
@@ -474,6 +482,10 @@ export class RestService {
       projects: 'cockpit-projects.json',
       archive: 'cockpit-archive.json',
       config: 'cockpit-config.json',
+      // The daily briefing is Markdown, but it travels JSON-wrapped like every other
+      // snapshot so it inherits the same deploy scope, schema_version validation and
+      // atomic write. Shape: { schema_version, generated_at, markdown }.
+      briefing: 'cockpit-briefing.json',
     };
 
     this._app.put(
