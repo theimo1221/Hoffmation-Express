@@ -3,7 +3,55 @@ import { Send, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { postCockpitInbox } from '@/api/cockpit';
 import type { InboxEntry } from '@/api/cockpit';
-import type { CockpitQuestion, CockpitConfig } from '@/types/cockpit';
+import type { CockpitQuestion, CockpitConfig, CockpitItem } from '@/types/cockpit';
+
+// Item ids as they appear inside a question's free text. Mirrors the backend's
+// COCKPIT_ID_PATTERN, unanchored so it can be scanned for. 'Ph' must precede 'P'
+// so the longer prefix wins. Note this never matches the leading 'DQnn:' - that
+// is the question's own id, not a referenced item.
+const ITEM_ID_IN_TEXT = /\b(?:Ph|P|G|H)-\d+[a-z]?\b/g;
+
+/**
+ * Render a question, turning referenced item ids into buttons that open the item.
+ * Ids that do not resolve to a known item stay plain text rather than offering a
+ * click that would do nothing.
+ */
+function QuestionText({
+  text,
+  itemById,
+  onItemClick,
+}: {
+  text: string;
+  itemById: Map<string, CockpitItem>;
+  onItemClick: (item: CockpitItem) => void;
+}) {
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  for (const match of text.matchAll(ITEM_ID_IN_TEXT)) {
+    const id = match[0];
+    const start = match.index;
+    const item = itemById.get(id);
+    if (start > lastIndex) nodes.push(text.slice(lastIndex, start));
+    if (item) {
+      nodes.push(
+        <button
+          key={`${id}-${start}`}
+          type="button"
+          onClick={() => onItemClick(item)}
+          title={item.title}
+          className="font-mono text-primary underline underline-offset-2 hover:opacity-75"
+        >
+          {id}
+        </button>,
+      );
+    } else {
+      nodes.push(id);
+    }
+    lastIndex = start + id.length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return <>{nodes}</>;
+}
 
 function extractDqId(text: string): string {
   return text.match(/^(DQ\d+):/)?.[1] ?? '';
@@ -18,11 +66,17 @@ export function FragenTab({
   questions,
   config,
   inbox,
+  items,
+  onItemClick,
 }: {
   questions: CockpitQuestion[];
   config: CockpitConfig;
   inbox: InboxEntry[];
+  items: CockpitItem[];
+  onItemClick: (item: CockpitItem) => void;
 }) {
+  const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+
   const answeredDqs = useMemo(() => {
     const s = new Set<string>();
     inbox.forEach((e) => { if (e.kind === 'answer' && e.dq) s.add(e.dq); });
@@ -103,7 +157,9 @@ export function FragenTab({
               const existingAnswer = isAlreadyAnswered(q);
               return (
               <div key={idx} className="rounded-2xl border border-border bg-card p-4 space-y-3">
-                <p className="text-sm leading-relaxed">{q.text}</p>
+                <p className="text-sm leading-relaxed">
+                  <QuestionText text={q.text} itemById={itemById} onItemClick={onItemClick} />
+                </p>
                 {existingAnswer !== null ? (
                   <div className="flex items-start gap-1.5 text-sm text-green-600">
                     <CheckSquare className="h-4 w-4 mt-0.5 shrink-0" />
