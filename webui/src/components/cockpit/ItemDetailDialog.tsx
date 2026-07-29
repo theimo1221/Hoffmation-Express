@@ -6,6 +6,7 @@ import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitItem, CockpitConfig } from '@/types/cockpit';
 import { DomainBadge } from './DomainBadge';
 import { isOverdue, isDueToday, formatShortDate, formatTs } from './helpers';
+import { useCloseOnEscape, isSubmitChord } from '@/hooks/useDialogKeyboard';
 
 export function ItemDetailDialog({
   item,
@@ -26,6 +27,8 @@ export function ItemDetailDialog({
   const [kind, setKind] = useState<'note' | 'done'>('note');
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useCloseOnEscape(onClose, item !== null);
 
   const handleSend = async () => {
     if (!text.trim() || !item) return;
@@ -159,6 +162,9 @@ export function ItemDetailDialog({
             placeholder={`Kommentar zu ${item.id}…`}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            // Opened to comment on an item, so put the caret where the user is heading.
+            autoFocus
+            onKeyDown={(e) => { if (isSubmitChord(e)) { e.preventDefault(); void handleSend(); } }}
           />
           <button
             onClick={handleSend}

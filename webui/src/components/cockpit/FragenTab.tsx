@@ -5,10 +5,7 @@ import { postCockpitInbox } from '@/api/cockpit';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitQuestion, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { TextWithItemLinks } from './itemLinks';
-
-function extractDqId(text: string): string {
-  return text.match(/^(DQ\d+):/)?.[1] ?? '';
-}
+import { extractDqId, findQuestionAnswer } from './helpers';
 
 function prefixAnswer(q: CockpitQuestion, answer: string): string {
   const dq = extractDqId(q.text);
@@ -30,30 +27,7 @@ export function FragenTab({
 }) {
   const itemById = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
-  const answeredDqs = useMemo(() => {
-    const s = new Set<string>();
-    inbox.forEach((e) => { if (e.kind === 'answer' && e.dq) s.add(e.dq); });
-    return s;
-  }, [inbox]);
-
-  const answeredRefs = useMemo(() => {
-    const s = new Set<string>();
-    inbox.forEach((e) => { if (e.kind === 'answer' && e.ref) s.add(e.ref); });
-    return s;
-  }, [inbox]);
-
-  const isAlreadyAnswered = (q: CockpitQuestion): string | null => {
-    const dq = extractDqId(q.text);
-    if (dq && answeredDqs.has(dq)) {
-      const entry = inbox.find((e) => e.kind === 'answer' && e.dq === dq);
-      return entry?.text ?? '';
-    }
-    if (q.ref && answeredRefs.has(q.ref)) {
-      const entry = inbox.find((e) => e.kind === 'answer' && e.ref === q.ref);
-      return entry?.text ?? '';
-    }
-    return null;
-  };
+  const findAnswer = (q: CockpitQuestion) => findQuestionAnswer(q, inbox);
 
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [sending, setSending] = useState<Record<number, boolean>>({});
@@ -107,16 +81,16 @@ export function FragenTab({
           </h2>
           <div className="space-y-4">
             {qs.map((q, idx) => {
-              const existingAnswer = isAlreadyAnswered(q);
+              const existingAnswer = findAnswer(q);
               return (
               <div key={idx} className="rounded-2xl border border-border bg-card p-4 space-y-3">
                 <p className="text-sm leading-relaxed">
                   <TextWithItemLinks text={q.text} itemById={itemById} onItemClick={onItemClick} />
                 </p>
-                {existingAnswer !== null ? (
+                {existingAnswer ? (
                   <div className="flex items-start gap-1.5 text-sm text-green-600">
                     <CheckSquare className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{existingAnswer}</span>
+                    <span className="text-muted-foreground">{existingAnswer.text}</span>
                   </div>
                 ) : !sent[idx] ? (
                   <>

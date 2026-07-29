@@ -1,6 +1,31 @@
-import type { CockpitItem } from '@/types/cockpit';
+import type { CockpitItem, CockpitQuestion } from '@/types/cockpit';
+import type { InboxEntry } from '@/api/cockpit';
 
 export const TODAY = new Date().toISOString().slice(0, 10);
+
+/** Leading 'DQnn:' - a digest question's own id, carried in its text. */
+export function extractDqId(text: string): string {
+  return text.match(/^(DQ\d+):/)?.[1] ?? '';
+}
+
+/**
+ * The inbox entry answering a question, if any.
+ *
+ * Single source of the "already answered" rule: the questions tab renders the answer it
+ * returns, and the tab-bar badge counts what it does not match. Deriving both from one
+ * function keeps the badge from claiming questions the tab shows as done. Matches on the
+ * DQ id first and falls back to the item ref for questions predating those ids.
+ */
+export function findQuestionAnswer(q: CockpitQuestion, inbox: InboxEntry[]): InboxEntry | undefined {
+  const dq = extractDqId(q.text);
+  return inbox.find(
+    (e) => e.kind === 'answer' && ((dq !== '' && e.dq === dq) || (q.ref !== undefined && e.ref === q.ref)),
+  );
+}
+
+export function isQuestionAnswered(q: CockpitQuestion, inbox: InboxEntry[]): boolean {
+  return findQuestionAnswer(q, inbox) !== undefined;
+}
 
 export const ITEM_ID_RE = /((?:G|H|P|Ph)-\d+[a-z]?)/g;
 

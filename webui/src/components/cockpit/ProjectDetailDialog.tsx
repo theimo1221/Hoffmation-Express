@@ -6,6 +6,7 @@ import { postCockpitInbox } from '@/api/cockpit';
 import type { CockpitItem, CockpitConfig, CockpitProject } from '@/types/cockpit';
 import { DomainBadge } from './DomainBadge';
 import { isGated, isOverdue, isDueToday, formatShortDate } from './helpers';
+import { useCloseOnEscape, isSubmitChord } from '@/hooks/useDialogKeyboard';
 
 export function ProjectDetailDialog({
   project,
@@ -24,6 +25,8 @@ export function ProjectDetailDialog({
 }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+
+  useCloseOnEscape(onClose);
 
   const handleSend = async () => {
     if (!text.trim()) return;
@@ -120,6 +123,8 @@ export function ProjectDetailDialog({
             placeholder={`Kommentar zu ${project.key.replace('project_', '')}…`}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => { if (isSubmitChord(e)) { e.preventDefault(); void handleSend(); } }}
           />
           <button
             onClick={handleSend}

@@ -5,7 +5,7 @@ import { getCockpitData, getCockpitConfig, getCockpitInbox, getCockpitBriefing }
 import type { InboxEntry, CockpitBriefing } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { formatTs } from '@/components/cockpit/helpers';
+import { formatTs, isQuestionAnswered } from '@/components/cockpit/helpers';
 import type { TodoFilters } from '@/components/cockpit/helpers';
 import { ItemDetailDialog } from '@/components/cockpit/ItemDetailDialog';
 import { TodoDialog } from '@/components/cockpit/TodoDialog';
@@ -79,6 +79,13 @@ export function CockpitView() {
     return [...s].sort();
   }, [data]);
 
+  // Count only unanswered questions: the badge previously showed every question the
+  // digest had ever asked, so it kept claiming open work after everything was answered.
+  const openQuestionCount = useMemo(
+    () => (data?.questions ?? []).filter((q) => !isQuestionAnswered(q, inbox)).length,
+    [data, inbox],
+  );
+
   const inboxByRef = useMemo(() => {
     const m = new Map<string, InboxEntry[]>();
     inbox.forEach((e) => {
@@ -150,8 +157,8 @@ export function CockpitView() {
             )}
           >
             {tab.label}
-            {tab.id === 'fragen' && data.questions.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-orange-500 text-white text-[10px] px-1.5 py-0.5">{data.questions.length}</span>
+            {tab.id === 'fragen' && openQuestionCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-orange-500 text-white text-[10px] px-1.5 py-0.5">{openQuestionCount}</span>
             )}
           </button>
         ))}

@@ -1,5 +1,6 @@
 import { useState, useRef, useId } from 'react';
 import { postCockpitInbox } from '@/api/cockpit';
+import { useCloseOnEscape } from '@/hooks/useDialogKeyboard';
 import type { CockpitConfig, CockpitItem } from '@/types/cockpit';
 
 const EFFORT_OPTIONS = ['0', '1-10', '10', '30-60', '120-240'];
@@ -92,6 +93,8 @@ export function TodoDialog({
   const [effort, setEffort] = useState(orig?.effort ?? '');
   const [people, setPeople] = useState<string[]>(orig?.people.map((p) => p.name) ?? []);
   const [sending, setSending] = useState(false);
+
+  useCloseOnEscape(onClose);
 
   const uid = useId();
   const effortListId = `effort-list-${uid}`;
