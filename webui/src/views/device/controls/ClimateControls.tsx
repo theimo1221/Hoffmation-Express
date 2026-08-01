@@ -110,6 +110,7 @@ export function TemperatureControls({ device }: TemperatureControlsProps) {
 
 import { isAcOn, getAcMode } from '@/stores/deviceStore';
 import { setAc } from '@/api/devices';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 interface AcControlsProps {
   device: Device;
@@ -117,19 +118,30 @@ interface AcControlsProps {
 
 export function AcControls({ device }: AcControlsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { expertMode } = useSettingsStore();
 
   const isOn = isAcOn(device);
   const acMode = getAcMode(device);
   const desiredTemp = getDeviceDesiredTemp(device);
   const roomTemp = getRoomTemperature(device) ?? -99;
-  
-  const handleAc = async (power: boolean, mode?: number, tempVal?: number) => {
-    await executeDeviceAction(
-      device,
-      (id) => setAc(id, power, mode, tempVal),
-      setIsLoading
-    );
+
+  // Mode and temperature are staged locally and only leave with an explicit apply,
+  // mirroring hoffmation-ios. Firing on every click sent a manual override per
+  // keypress - each one switching the unit on and imposing a fresh automatic block -
+  // while the reading snapped back to whatever the device last reported.
+  // The temperature that automatic operation targets is a device setting, not a
+  // manual command, and lives in the settings section.
+  const [stagedMode, setStagedMode] = useState<number>(acMode === 0 ? 1 : acMode);
+  const [stagedTemp, setStagedTemp] = useState<number>(desiredTemp !== -99 ? desiredTemp : 22);
+
+  const force = async (power: boolean) => {
+    await executeDeviceAction(device, (id) => setAc(id, power), setIsLoading);
   };
+
+  const applyManual = async () => {
+    await executeDeviceAction(device, (id) => setAc(id, true, stagedMode, stagedTemp), setIsLoading);
+  };
+
   return (
     <section>
       <h2 className="mb-3 text-sm font-medium uppercase text-muted-foreground flex items-center gap-2">
@@ -145,40 +157,10 @@ export function AcControls({ device }: AcControlsProps) {
             {isOn ? 'An' : 'Aus'}
           </span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Modus</span>
-          <select
-            value={acMode === 0 ? 1 : acMode}
-            onChange={(e) => handleAc(true, Number(e.target.value), desiredTemp !== -99 ? desiredTemp : 22)}
-            disabled={isLoading || !isOn}
-            className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-            title={!isOn ? 'Klimaanlage einschalten um Modus zu ändern' : undefined}
-          >
-            <option value={1}>Auto</option>
-            <option value={2}>Kühlen</option>
-            <option value={3}>Heizen</option>
-          </select>
-        </div>
         {desiredTemp !== -99 && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Zieltemperatur</span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleAc(true, acMode === 0 ? 1 : acMode, Math.max(16, desiredTemp - 0.5))}
-                disabled={isLoading}
-                className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
-              >
-                -
-              </button>
-              <span className="font-medium w-14 text-center">{desiredTemp.toFixed(1)}°C</span>
-              <button
-                onClick={() => handleAc(true, acMode === 0 ? 1 : acMode, Math.min(30, desiredTemp + 0.5))}
-                disabled={isLoading}
-                className="rounded-lg bg-secondary px-2 py-1 text-sm font-medium hover:bg-accent disabled:opacity-50"
-              >
-                +
-              </button>
-            </div>
+            <span className="text-muted-foreground">Zieltemperatur (Gerät)</span>
+            <span className="font-medium">{desiredTemp.toFixed(1)}°C</span>
           </div>
         )}
         {roomTemp !== -99 && (
@@ -187,22 +169,71 @@ export function AcControls({ device }: AcControlsProps) {
             <span className="font-medium">{roomTemp.toFixed(1)}°C</span>
           </div>
         )}
+
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => handleAc(true)}
+            onClick={() => force(true)}
             disabled={isLoading}
             className="rounded-xl bg-blue-500/20 text-blue-600 py-3 font-medium transition-all hover:bg-blue-500/30 active:scale-95 disabled:opacity-50"
           >
             Einschalten
           </button>
           <button
-            onClick={() => handleAc(false)}
+            onClick={() => force(false)}
             disabled={isLoading}
             className="rounded-xl bg-red-500/20 text-red-600 py-3 font-medium transition-all hover:bg-red-500/30 active:scale-95 disabled:opacity-50"
           >
             Ausschalten
           </button>
         </div>
+
+        {expertMode && (
+          <div className="space-y-3 border-t border-border pt-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Manueller Steuerbefehl
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Modus</span>
+              <select
+                value={stagedMode}
+                onChange={(e) => setStagedMode(Number(e.target.value))}
+                disabled={isLoading}
+                className="rounded-lg bg-secondary px-3 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              >
+                <option value={1}>Auto</option>
+                <option value={2}>Kühlen</option>
+                <option value={3}>Heizen</option>
+              </select>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Temperatur</span>
+                <span className="font-medium">{stagedTemp.toFixed(1)}°C</span>
+              </div>
+              <input
+                type="range"
+                min="16"
+                max="30"
+                step="0.5"
+                value={stagedTemp}
+                onChange={(e) => setStagedTemp(Number(e.target.value))}
+                disabled={isLoading}
+                className="w-full accent-primary"
+              />
+            </div>
+            <button
+              onClick={() => void applyManual()}
+              disabled={isLoading}
+              className="w-full rounded-xl bg-primary text-primary-foreground py-3 font-medium transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isLoading ? 'Senden…' : 'Befehl anwenden'}
+            </button>
+            <p className="text-xs text-muted-foreground">
+              Schaltet die Anlage ein und blockiert die Automatik für eine Stunde. Die
+              Zieltemperatur der Automatik wird in den Einstellungen gesetzt.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );
