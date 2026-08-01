@@ -4,8 +4,9 @@ import { cn } from '@/lib/utils';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { DomainBadge } from './DomainBadge';
+import { PendingDot } from './PendingDot';
 import {
-  isOverdue, isDueToday, isGated, formatShortDate, parseBlockedByIds,
+  isOverdue, isDueToday, isGated, isDuePending, formatShortDate, parseBlockedByIds,
   applyFilters, sortItems,
   type QuickFilter, type TodoFilters, type SortKey,
 } from './helpers';
@@ -30,6 +31,7 @@ function TodoRow({
   config,
   onItemClick,
   onEditItem,
+  onReschedule,
   onQuickFilter,
   findItem,
   hasComment,
@@ -38,6 +40,7 @@ function TodoRow({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem) => void;
   onQuickFilter: (f: QuickFilter) => void;
   findItem: (id: string) => CockpitItem | undefined;
   hasComment?: boolean;
@@ -92,8 +95,13 @@ function TodoRow({
             ))
           : '—'}
       </td>
-      <td className={cn('px-2 py-2 whitespace-nowrap font-medium', overdue && 'text-red-500', today && 'text-amber-600')}>
+      <td
+        className={cn('px-2 py-2 whitespace-nowrap font-medium cursor-pointer select-none', overdue && 'text-red-500', today && 'text-amber-600')}
+        onDoubleClick={() => onReschedule(item)}
+        title="Doppelklick: neu terminieren"
+      >
         {formatShortDate(item.due_key)}
+        {isDuePending(item) && <PendingDot />}
       </td>
       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">
         {blockedByIds.length > 0 ? (
@@ -127,6 +135,7 @@ function TodoCard({
   config,
   onItemClick,
   onEditItem,
+  onReschedule,
   onQuickFilter,
   hasComment,
 }: {
@@ -134,6 +143,7 @@ function TodoCard({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem) => void;
   onQuickFilter: (f: QuickFilter) => void;
   hasComment?: boolean;
 }) {
@@ -170,8 +180,13 @@ function TodoCard({
       )}
       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
         {item.due_key !== '9999-99-99' && (
-          <span className={cn('flex items-center gap-0.5', overdue && 'text-red-500', today && 'text-amber-600')}>
+          <span
+            className={cn('flex items-center gap-0.5 select-none', overdue && 'text-red-500', today && 'text-amber-600')}
+            onDoubleClick={(e) => { e.stopPropagation(); onReschedule(item); }}
+            title="Doppelklick: neu terminieren"
+          >
             <Clock className="h-3 w-3" />{formatShortDate(item.due_key)}
+            {isDuePending(item) && <PendingDot />}
           </span>
         )}
         {item.people.length > 0 && (
@@ -195,6 +210,7 @@ export function TodosTab({
   config,
   onItemClick,
   onEditItem,
+  onReschedule,
   initialFilters,
   inboxByRef,
 }: {
@@ -202,6 +218,7 @@ export function TodosTab({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem) => void;
   initialFilters?: Partial<TodoFilters>;
   inboxByRef: Map<string, InboxEntry[]>;
 }) {
@@ -372,7 +389,7 @@ export function TodosTab({
         {isMobile ? (
           <div className="p-3 space-y-2">
             {[...overdue, ...today, ...rest].map((item) => (
-              <TodoCard key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onQuickFilter={handleQuickFilter} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+              <TodoCard key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onReschedule={onReschedule} onQuickFilter={handleQuickFilter} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
             ))}
           </div>
         ) : (
@@ -400,7 +417,7 @@ export function TodosTab({
               </thead>
               <tbody>
                 {[...overdue, ...today, ...rest].map((item) => (
-                  <TodoRow key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onQuickFilter={handleQuickFilter} findItem={findItem} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+                  <TodoRow key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onReschedule={onReschedule} onQuickFilter={handleQuickFilter} findItem={findItem} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
                 ))}
               </tbody>
             </table>

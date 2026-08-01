@@ -477,6 +477,54 @@ export class RestService {
       }
       return res.json({ success: true, archived: toArchive.length });
     });
+
+    /**
+     * Reschedule an item straight in cockpit-data.json.
+     *
+     * The inbox alone would only surface a new due date after the nightly had
+     * processed it, so a reschedule appeared to be lost on the next reload or on
+     * another device. This writes it through immediately and marks it pending, which
+     * the UI shows as "not yet processed". The nightly replaces the whole file when
+     * it regenerates, so the marker clears itself - there is no state to reset.
+     *
+     * Callers are expected to file an inbox entry as well; this is the optimistic
+     * half, not a replacement for it.
+     */
+    this._app.patch('/cockpit/item/:id/due', requireScope('cockpit'), async (req, res) => {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!COCKPIT_ID_PATTERN.test(id)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+      const { due } = req.body as { due?: unknown };
+      if (due !== null && (typeof due !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(due))) {
+        return res.status(400).json({ error: 'due must be YYYY-MM-DD or null' });
+      }
+
+      const data = await readCockpitJson('cockpit-data.json');
+      if (!data || typeof data !== 'object') {
+        return res.status(503).json({ error: 'data unavailable' });
+      }
+      const doc = data as { items?: Array<Record<string, unknown>> };
+      const item = doc.items?.find((i) => i.id === id);
+      if (!item) return res.status(404).json({ error: 'item not found' });
+
+      item.due = due;
+      // due_key drives sorting and the overdue check; '9999-99-99' is "no date".
+      item.due_key = due ?? '9999-99-99';
+      item.pending_change = { fields: ['due'], since: new Date().toISOString() };
+
+      try {
+        await writeCockpitJsonAtomic('cockpit-data.json', doc);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      ServerLogService.writeLog(
+        LogLevel.Info,
+        `COCKPIT-RESCHEDULE: ${id} -> ${due ?? '(none)'} by=${req.principal?.name}`,
+      );
+      return res.json({ success: true, id, due });
+    });
+
     const SNAPSHOT_FILES: Record<string, string> = {
       data: 'cockpit-data.json',
       projects: 'cockpit-projects.json',

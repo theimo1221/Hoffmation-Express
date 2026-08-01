@@ -9,6 +9,7 @@ import { formatTs, isQuestionAnswered } from '@/components/cockpit/helpers';
 import type { TodoFilters } from '@/components/cockpit/helpers';
 import { ItemDetailDialog } from '@/components/cockpit/ItemDetailDialog';
 import { TodoDialog } from '@/components/cockpit/TodoDialog';
+import { RescheduleDialog } from '@/components/cockpit/RescheduleDialog';
 import type { TodoDialogMode } from '@/components/cockpit/TodoDialog';
 import { OverviewTab } from '@/components/cockpit/OverviewTab';
 import { TodosTab } from '@/components/cockpit/TodosTab';
@@ -42,6 +43,7 @@ export function CockpitView() {
   const [sentToast, setSentToast] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [todoDialog, setTodoDialog] = useState<TodoDialogMode | null>(null);
+  const [rescheduleItem, setRescheduleItem] = useState<CockpitItem | null>(null);
 
   const handleGoToTodos = useCallback((filters: Partial<TodoFilters>) => {
     setTodosFilters(filters);
@@ -173,7 +175,7 @@ export function CockpitView() {
           </div>
         )}
         {activeTab === 'todos' && (
-          <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} onEditItem={(item) => setTodoDialog({ type: 'edit', item })} initialFilters={todosFilters} inboxByRef={inboxByRef} />
+          <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} onEditItem={(item) => setTodoDialog({ type: 'edit', item })} onReschedule={setRescheduleItem} initialFilters={todosFilters} inboxByRef={inboxByRef} />
         )}
         {activeTab === 'fragen' && <div className="h-full overflow-y-auto"><FragenTab questions={data.questions} config={config} inbox={inbox} items={data.items} onItemClick={setDetailItem} /></div>}
         {activeTab === 'kanban' && <KanbanTab data={data} config={config} onItemClick={setDetailItem} />}
@@ -198,6 +200,15 @@ export function CockpitView() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 rounded-xl bg-foreground text-background text-sm px-4 py-2 shadow-lg z-50">
           Gesendet — wird im nächsten Digest verarbeitet
         </div>
+      )}
+
+      {rescheduleItem && (
+        <RescheduleDialog
+          item={rescheduleItem}
+          // Re-read cockpit data so the new date and its pending marker show up.
+          onDone={() => setRefreshKey((k) => k + 1)}
+          onClose={() => setRescheduleItem(null)}
+        />
       )}
 
       {todoDialog && (

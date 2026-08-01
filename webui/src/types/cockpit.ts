@@ -33,6 +33,12 @@ export interface CockpitItem {
   project: CockpitItemProject | null;
   blocked_by: CockpitBlockedBy | null;
   tags: string[];
+  /**
+   * Fields changed from the UI but not yet processed by the nightly run. Written by
+   * PATCH /cockpit/item/:id/due and cleared implicitly when the nightly regenerates
+   * cockpit-data.json, so the UI can mark the value as staged rather than confirmed.
+   */
+  pending_change?: { fields: string[]; since: string };
 }
 
 export interface CockpitProjectRollup {

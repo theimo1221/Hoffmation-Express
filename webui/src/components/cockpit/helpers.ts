@@ -47,6 +47,11 @@ export interface TodoFilters {
   tags: string[];
 }
 
+/** Whether the item's due date is staged locally and still awaiting the nightly run. */
+export function isDuePending(item: CockpitItem): boolean {
+  return item.pending_change?.fields.includes('due') ?? false;
+}
+
 export function isOverdue(item: CockpitItem): boolean {
   return item.due_key !== '9999-99-99' && item.due_key < TODAY;
 }

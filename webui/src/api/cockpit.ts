@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiGet, apiPost, apiPatch } from './client';
 import type { CockpitData, CockpitConfig } from '@/types/cockpit';
 
 export type { CockpitData, CockpitConfig };
@@ -23,6 +23,23 @@ export interface CockpitBriefing {
 
 export async function getCockpitBriefing(): Promise<CockpitBriefing> {
   return apiGet<CockpitBriefing>('/cockpit/briefing');
+}
+
+/**
+ * Write a new due date straight into cockpit-data.json and flag it as pending.
+ *
+ * The inbox entry is what the nightly acts on, but on its own the new date would
+ * only appear after that run. This makes it visible immediately, on this device and
+ * every other one. Always file the inbox entry too.
+ */
+export async function rescheduleCockpitItem(
+  id: string,
+  due: string | null,
+): Promise<{ success: boolean; id: string; due: string | null }> {
+  return apiPatch<{ success: boolean; id: string; due: string | null }>(
+    `/cockpit/item/${encodeURIComponent(id)}/due`,
+    { due },
+  );
 }
 
 export interface InboxEntry {
