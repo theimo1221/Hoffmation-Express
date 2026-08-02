@@ -50,6 +50,8 @@ export interface InboxEntry {
   text: string;
   ts: string;
   by?: string;
+  /** Set once the entry's text has been amended; ts stays the original queue time. */
+  edited_at?: string;
 }
 
 export async function getCockpitInbox(): Promise<InboxEntry[]> {
@@ -65,6 +67,14 @@ export interface InboxPost {
 
 export async function postCockpitInbox(entry: InboxPost): Promise<{ success: boolean; id: string }> {
   return apiPost<{ success: boolean; id: string }>('/cockpit/inbox', entry);
+}
+
+/**
+ * Amend a queued entry's text. Only the text changes - kind and ref describe what
+ * the entry is about, and the original queue time is kept.
+ */
+export async function updateCockpitInboxEntry(id: string, text: string): Promise<{ success: boolean; id: string }> {
+  return apiPatch<{ success: boolean; id: string }>(`/cockpit/inbox/${encodeURIComponent(id)}`, { text });
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Trash2, Send, Inbox } from 'lucide-react';
-import { postCockpitInbox, deleteCockpitInboxEntry } from '@/api/cockpit';
+import { Trash2, Send, Inbox, Pencil } from 'lucide-react';
+import { postCockpitInbox, deleteCockpitInboxEntry, updateCockpitInboxEntry } from '@/api/cockpit';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitItem } from '@/types/cockpit';
 import { TextWithItemLinks } from './itemLinks';
@@ -33,6 +33,7 @@ export function InboxTab({
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
   const itemById = new Map(items.map((i) => [i.id, i]));
   // Newest first: a late addition belongs at the top, not buried under the day's answers.
@@ -49,6 +50,23 @@ export function InboxTab({
       onChanged();
     } catch {
       setError('Konnte nicht gesendet werden.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const text = editing.text.trim();
+    if (!text) return;
+    setBusy(editing.id);
+    setError(null);
+    try {
+      await updateCockpitInboxEntry(editing.id, text);
+      setEditing(null);
+      onChanged();
+    } catch {
+      setError('Konnte nicht gespeichert werden.');
     } finally {
       setBusy(null);
     }
@@ -118,6 +136,16 @@ export function InboxTab({
                   {e.ref && <span className="font-mono">{e.ref}</span>}
                   {e.dq && <span className="font-mono">{e.dq}</span>}
                   <span className="ml-auto">{formatTs(e.ts)}</span>
+                  {e.edited_at && <span title={`Bearbeitet ${formatTs(e.edited_at)}`}>· bearbeitet</span>}
+                  <button
+                    onClick={() => setEditing({ id: e.id, text: e.text })}
+                    disabled={busy === e.id}
+                    title="Eintrag bearbeiten"
+                    aria-label={`Eintrag ${e.id} bearbeiten`}
+                    className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     onClick={() => void remove(e.id)}
                     disabled={busy === e.id}
@@ -128,9 +156,40 @@ export function InboxTab({
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                <p className="text-sm leading-snug whitespace-pre-wrap">
-                  <TextWithItemLinks text={e.text} itemById={itemById} onItemClick={onItemClick} />
-                </p>
+                {editing?.id === e.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      autoFocus
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                      rows={3}
+                      value={editing.text}
+                      onChange={(ev) => setEditing({ id: e.id, text: ev.target.value })}
+                      onKeyDown={(ev) => {
+                        if (ev.key === 'Escape') { ev.preventDefault(); setEditing(null); }
+                        if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); void saveEdit(); }
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditing(null)}
+                        className="rounded-lg border border-border px-3 py-1 text-xs hover:bg-muted"
+                      >
+                        Abbrechen
+                      </button>
+                      <button
+                        onClick={() => void saveEdit()}
+                        disabled={!editing.text.trim() || busy === e.id}
+                        className="rounded-lg bg-primary text-primary-foreground px-3 py-1 text-xs font-medium disabled:opacity-50"
+                      >
+                        {busy === e.id ? 'Speichern…' : 'Speichern  ⌘↵'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm leading-snug whitespace-pre-wrap">
+                    <TextWithItemLinks text={e.text} itemById={itemById} onItemClick={onItemClick} />
+                  </p>
+                )}
               </div>
             ))}
           </div>

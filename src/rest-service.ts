@@ -479,6 +479,44 @@ export class RestService {
     });
 
     /**
+     * Amend a queued inbox entry's text.
+     *
+     * Only the text changes: kind and ref describe what the entry is about, and
+     * rewriting those would turn it into a different entry rather than a correction.
+     * ts keeps the original queue time so ordering and "when was this raised" survive;
+     * the edit is recorded separately in edited_at.
+     */
+    this._app.patch('/cockpit/inbox/:id', requireScope('cockpit'), async (req, res) => {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!/^[0-9a-f]{16}$/.test(id)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+      const { text } = req.body as { text?: unknown };
+      if (typeof text !== 'string' || text.length === 0 || text.length > 2000) {
+        return res.status(400).json({ error: 'invalid text' });
+      }
+
+      const raw = await readCockpitJson('cockpit-inbox.json');
+      const inbox: Array<Record<string, unknown>> = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+      const entry = inbox.find((e) => e.id === id);
+      if (!entry) return res.status(404).json({ error: 'entry not found' });
+
+      entry.text = text;
+      entry.edited_at = new Date().toISOString();
+
+      try {
+        await writeCockpitJsonAtomic('cockpit-inbox.json', inbox);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      ServerLogService.writeLog(
+        LogLevel.Info,
+        `COCKPIT-INBOX-EDIT: id=${id} kind=${entry.kind} ref=${entry.ref ?? '-'} by=${req.principal?.name}`,
+      );
+      return res.json({ success: true, id });
+    });
+
+    /**
      * Drop a single queued inbox entry.
      *
      * ack/ only archives everything up to a position, which cannot undo one mistaken
