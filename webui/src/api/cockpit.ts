@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch } from './client';
+import { apiGet, apiPost, apiPatch, apiDelete } from './client';
 import type { CockpitData, CockpitConfig } from '@/types/cockpit';
 
 export type { CockpitData, CockpitConfig };
@@ -65,6 +65,14 @@ export interface InboxPost {
 
 export async function postCockpitInbox(entry: InboxPost): Promise<{ success: boolean; id: string }> {
   return apiPost<{ success: boolean; id: string }>('/cockpit/inbox', entry);
+}
+
+/**
+ * Drop a single queued entry. Unlike ack, which archives everything up to a
+ * position, this removes one mistaken note without touching the rest.
+ */
+export async function deleteCockpitInboxEntry(id: string): Promise<{ success: boolean; id: string }> {
+  return apiDelete<{ success: boolean; id: string }>(`/cockpit/inbox/${encodeURIComponent(id)}`);
 }
 
 export async function ackCockpitInbox(through_id: string): Promise<{ success: boolean; archived: number }> {

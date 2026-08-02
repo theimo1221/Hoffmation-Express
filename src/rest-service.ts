@@ -440,7 +440,7 @@ export class RestService {
       inbox.push(entry);
 
       try {
-        await writeCockpitJson('cockpit-inbox.json', inbox);
+        await writeCockpitJsonAtomic('cockpit-inbox.json', inbox);
       } catch {
         return res.status(503).json({ error: 'write failed' });
       }
@@ -470,12 +470,44 @@ export class RestService {
       archive.push(...toArchive);
 
       try {
-        await writeCockpitJson('cockpit-inbox-archive.json', archive);
-        await writeCockpitJson('cockpit-inbox.json', remaining);
+        await writeCockpitJsonAtomic('cockpit-inbox-archive.json', archive);
+        await writeCockpitJsonAtomic('cockpit-inbox.json', remaining);
       } catch {
         return res.status(503).json({ error: 'write failed' });
       }
       return res.json({ success: true, archived: toArchive.length });
+    });
+
+    /**
+     * Drop a single queued inbox entry.
+     *
+     * ack/ only archives everything up to a position, which cannot undo one mistaken
+     * note among many. Entries are removed outright rather than archived: they were
+     * never processed, so there is nothing for the digest to reconcile.
+     */
+    this._app.delete('/cockpit/inbox/:id', requireScope('cockpit'), async (req, res) => {
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      // Ids are crypto.randomBytes(8).toString('hex').
+      if (!/^[0-9a-f]{16}$/.test(id)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+
+      const raw = await readCockpitJson('cockpit-inbox.json');
+      const inbox: Array<Record<string, unknown>> = Array.isArray(raw) ? (raw as Array<Record<string, unknown>>) : [];
+      const idx = inbox.findIndex((e) => e.id === id);
+      if (idx === -1) return res.status(404).json({ error: 'entry not found' });
+
+      const [removed] = inbox.splice(idx, 1);
+      try {
+        await writeCockpitJsonAtomic('cockpit-inbox.json', inbox);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      ServerLogService.writeLog(
+        LogLevel.Info,
+        `COCKPIT-INBOX-DELETE: id=${id} kind=${removed.kind} ref=${removed.ref ?? '-'} by=${req.principal?.name}`,
+      );
+      return res.json({ success: true, id });
     });
 
     /**

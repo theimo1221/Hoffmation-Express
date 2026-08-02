@@ -17,8 +17,9 @@ import { FragenTab } from '@/components/cockpit/FragenTab';
 import { KanbanTab } from '@/components/cockpit/KanbanTab';
 import { ProjekteTab } from '@/components/cockpit/ProjekteTab';
 import { KalenderTab } from '@/components/cockpit/KalenderTab';
+import { InboxTab } from '@/components/cockpit/InboxTab';
 
-type Tab = 'overview' | 'todos' | 'fragen' | 'kanban' | 'projekte' | 'kalender';
+type Tab = 'overview' | 'todos' | 'fragen' | 'kanban' | 'projekte' | 'kalender' | 'inbox';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Übersicht' },
@@ -27,6 +28,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'kanban', label: 'Kanban' },
   { id: 'projekte', label: 'Projekte' },
   { id: 'kalender', label: 'Kalender' },
+  { id: 'inbox', label: 'Inbox' },
 ];
 
 export function CockpitView() {
@@ -98,6 +100,10 @@ export function CockpitView() {
     return m;
   }, [inbox]);
 
+  const reloadInbox = useCallback(() => {
+    getCockpitInbox().catch(() => [] as InboxEntry[]).then(setInbox);
+  }, []);
+
   const handleNoteSent = useCallback((newId: string) => {
     setSentToast(true);
     setTimeout(() => setSentToast(false), 3000);
@@ -159,6 +165,9 @@ export function CockpitView() {
             )}
           >
             {tab.label}
+            {tab.id === 'inbox' && inbox.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5">{inbox.length}</span>
+            )}
             {tab.id === 'fragen' && openQuestionCount > 0 && (
               <span className="ml-1.5 rounded-full bg-orange-500 text-white text-[10px] px-1.5 py-0.5">{openQuestionCount}</span>
             )}
@@ -181,6 +190,11 @@ export function CockpitView() {
         {activeTab === 'kanban' && <KanbanTab data={data} config={config} onItemClick={setDetailItem} />}
         {activeTab === 'projekte' && <div className="h-full overflow-y-auto"><ProjekteTab data={data} config={config} onItemClick={setDetailItem} onNoteSent={handleNoteSent} /></div>}
         {activeTab === 'kalender' && <div className="h-full overflow-hidden"><KalenderTab data={data} config={config} onItemClick={setDetailItem} /></div>}
+        {activeTab === 'inbox' && (
+          <div className="h-full overflow-y-auto">
+            <InboxTab inbox={inbox} items={data.items} onChanged={reloadInbox} onItemClick={setDetailItem} />
+          </div>
+        )}
       </div>
 
       {/* Item detail dialog */}
