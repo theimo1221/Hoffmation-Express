@@ -10,6 +10,8 @@ import { promisify } from 'util';
 import { PushNotificationService } from './push-notification-service';
 import {
   AcMode,
+  AcSetStateCommand,
+  AcWriteStateToDeviceCommand,
   ActuatorSetStateCommand,
   API,
   BlockAutomaticCommand,
@@ -85,7 +87,10 @@ export class RestService {
       const p = req.principal;
       if (!p) return res.status(401).json({ error: 'unauthorized' });
       if (!Array.isArray(p.scope) || !p.scope.includes(scope)) {
-        ServerLogService.writeLog(LogLevel.Warn, `SCOPE-DENY: principal=${p.name} required=${scope} has=${JSON.stringify(p.scope)}`);
+        ServerLogService.writeLog(
+          LogLevel.Warn,
+          `SCOPE-DENY: principal=${p.name} required=${scope} has=${JSON.stringify(p.scope)}`,
+        );
         return res.status(403).json({ error: 'forbidden-scope' });
       }
       return next();
@@ -355,15 +360,6 @@ export class RestService {
       }
     };
 
-    const writeCockpitJson = async (filename: string, data: unknown): Promise<void> => {
-      try {
-        await fs.promises.writeFile(path.join(COCKPIT_DIR, filename), JSON.stringify(data, null, 2), 'utf-8');
-      } catch (err) {
-        ServerLogService.writeLog(LogLevel.Warn, `COCKPIT-WRITE-ERR: ${filename}: ${err}`);
-        throw err;
-      }
-    };
-
     // Atomic write: write to .tmp then rename so a crash mid-write never corrupts the live file.
     const writeCockpitJsonAtomic = async (filename: string, data: unknown): Promise<void> => {
       const target = path.join(COCKPIT_DIR, filename);
@@ -444,7 +440,10 @@ export class RestService {
       } catch {
         return res.status(503).json({ error: 'write failed' });
       }
-      ServerLogService.writeLog(LogLevel.Info, `COCKPIT-INBOX: kind=${kind} ref=${ref ?? '-'} by=${req.principal?.name}`);
+      ServerLogService.writeLog(
+        LogLevel.Info,
+        `COCKPIT-INBOX: kind=${kind} ref=${ref ?? '-'} by=${req.principal?.name}`,
+      );
       return res.json({ success: true, id: entry.id });
     });
 
@@ -606,28 +605,24 @@ export class RestService {
       briefing: 'cockpit-briefing.json',
     };
 
-    this._app.put(
-      '/cockpit/snapshot/:name',
-      requireScope('cockpit:deploy'),
-      async (req, res) => {
-        const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
-        const filename = SNAPSHOT_FILES[name];
-        if (!filename) return res.status(400).json({ error: `unknown snapshot name: ${name}` });
+    this._app.put('/cockpit/snapshot/:name', requireScope('cockpit:deploy'), async (req, res) => {
+      const name = Array.isArray(req.params.name) ? req.params.name[0] : req.params.name;
+      const filename = SNAPSHOT_FILES[name];
+      if (!filename) return res.status(400).json({ error: `unknown snapshot name: ${name}` });
 
-        const body = req.body as Record<string, unknown>;
-        if (typeof body !== 'object' || body === null || !('schema_version' in body)) {
-          return res.status(400).json({ error: 'body must be JSON with schema_version' });
-        }
+      const body = req.body as Record<string, unknown>;
+      if (typeof body !== 'object' || body === null || !('schema_version' in body)) {
+        return res.status(400).json({ error: 'body must be JSON with schema_version' });
+      }
 
-        try {
-          await writeCockpitJsonAtomic(filename, body);
-        } catch {
-          return res.status(503).json({ error: 'write failed' });
-        }
-        ServerLogService.writeLog(LogLevel.Info, `COCKPIT-SNAPSHOT: name=${name} by=${req.principal?.name}`);
-        return res.json({ success: true, name });
-      },
-    );
+      try {
+        await writeCockpitJsonAtomic(filename, body);
+      } catch {
+        return res.status(503).json({ error: 'write failed' });
+      }
+      ServerLogService.writeLog(LogLevel.Info, `COCKPIT-SNAPSHOT: name=${name} by=${req.principal?.name}`);
+      return res.json({ success: true, name });
+    });
     // ── End cockpit endpoints ─────────────────────────────────────────────────
 
     if (!process.env.HOFFMATION_TESTMODE) {
@@ -687,19 +682,23 @@ export class RestService {
     });
 
     this._app.get('/ac/power/:state', requireAdmin, (req, res) => {
-      API.setAllAc(req.params.state === 'true');
+      // The command carries who asked, so the device log names the user rather than just "API".
+      API.setAllAc(
+        new AcWriteStateToDeviceCommand(CommandSource.API, req.params.state === 'true', this.getClientInfo(req)),
+      );
       res.status(200);
       return res.send();
     });
 
     this._app.get('/ac/:acId/power/:state', (req, res) => {
-      return res.send(API.setAc(req.params.acId, req.params.state === 'true'));
+      // Undefined mode means "just switch it on" - the device knows which mode that is.
+      const mode: AcMode | undefined = req.params.state === 'true' ? undefined : AcMode.Off;
+      return res.send(API.acSetState(req.params.acId, this.buildAcCommand(req, mode)));
     });
 
     this._app.get('/ac/:acId/power/:mode/:temp', (req, res) => {
-      return res.send(
-        API.setAc(req.params.acId, true, parseInt(req.params.mode) as AcMode, parseFloat(req.params.temp)),
-      );
+      const mode: AcMode = parseInt(req.params.mode) as AcMode;
+      return res.send(API.acSetState(req.params.acId, this.buildAcCommand(req, mode, parseFloat(req.params.temp))));
     });
 
     this._app.get('/camera/:cameraId/lastMotionImage', (req, res) => {
@@ -1339,6 +1338,20 @@ export class RestService {
       );
     }, 5000);
     return null;
+  }
+
+  /**
+   * Builds the AC command for a REST call, carrying who triggered it so the device log can
+   * name the user instead of a generic API source.
+   */
+  private static buildAcCommand(req: Request, mode: AcMode | undefined, temperature?: number): AcSetStateCommand {
+    return new AcSetStateCommand(
+      CommandSource.API,
+      mode,
+      temperature,
+      this.getClientInfo(req),
+      new BlockAutomaticCommand(CommandSource.API, 60 * 60 * 1000),
+    );
   }
 
   private static getClientInfo(req: Request): string {

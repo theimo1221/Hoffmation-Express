@@ -97,17 +97,23 @@ export async function bootCore(opts: BootOptions = {}): Promise<Harness> {
  * controller attached: a power write via turnOn/turnOff would be silently dropped and the device's
  * on-state would never change. We replace those two methods with observable state writes so that
  * /devices reflects the toggle - mirroring how the ioBroker connection is mocked for Zigbee devices.
- * setState() sets _mode before calling turnOn(), so the mode (and thus the icon colour) stays real.
+ * setAcState() resolves and sets the mode before the write, so the mode (and thus the icon colour)
+ * stays real.
+ *
+ * The stubs still log the write command, because that is what the real device does and what makes
+ * the intent -> write chain observable in the command log.
  */
 function installMockAcDevices(): void {
   const AC_CAPABILITY = 0;
   for (const device of Object.values(API.getDevices()) as unknown as Array<Record<string, unknown>>) {
     const caps = device.deviceCapabilities as number[] | undefined;
     if (!caps?.includes(AC_CAPABILITY)) continue;
-    device.turnOn = function (this: Record<string, unknown>): void {
+    device.turnOn = function (this: Record<string, unknown>, c: unknown): void {
+      (this.logCommand as (cmd: unknown) => void)?.call(this, c);
       this._on = true;
     };
-    device.turnOff = function (this: Record<string, unknown>): void {
+    device.turnOff = function (this: Record<string, unknown>, c: unknown): void {
+      (this.logCommand as (cmd: unknown) => void)?.call(this, c);
       this._on = false;
     };
   }
