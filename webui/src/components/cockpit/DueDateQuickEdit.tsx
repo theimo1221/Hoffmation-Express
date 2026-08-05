@@ -6,19 +6,34 @@ import { PendingDot } from './PendingDot';
 
 const NO_DUE = '9999-99-99';
 
-/** Shift presets, applied on a single click - no confirm step. */
-const PRESETS: { label: string; days: number | 'today' }[] = [
-  { label: 'Heute', days: 'today' },
-  { label: '+1 Tag', days: 1 },
-  { label: '+1 Woche', days: 7 },
-  { label: '+1 Monat', days: 30 },
-];
-
+/**
+ * Adds days to a date, counting from today whenever the date has already passed.
+ *
+ * Pushing an overdue item by a week has to mean a week from now - counting from its old date
+ * would just move it to another day in the past.
+ */
 function shift(from: string, days: number): string {
-  const base = from ? new Date(`${from}T00:00:00`) : new Date();
+  const base = new Date(`${from && from > TODAY ? from : TODAY}T00:00:00`);
   base.setDate(base.getDate() + days);
   return toLocalIsoDate(base);
 }
+
+/** The next occurrence of a weekday, always in the future - today does not count. */
+function nextWeekday(weekday: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + ((weekday - d.getDay() + 7) % 7 || 7));
+  return toLocalIsoDate(d);
+}
+
+const SATURDAY = 6;
+
+/** Shift presets, applied on a single click - no confirm step. */
+const PRESETS: { label: string; resolve: (from: string) => string }[] = [
+  { label: 'Morgen', resolve: () => shift('', 1) },
+  { label: 'Nächster Sa.', resolve: () => nextWeekday(SATURDAY) },
+  { label: '+1 Woche', resolve: (from) => shift(from, 7) },
+  { label: '+2 Wochen', resolve: (from) => shift(from, 14) },
+];
 
 /**
  * The due date of an item, rescheduled in place.
@@ -101,15 +116,19 @@ export function DueDateQuickEdit({
             {item.id} verschieben
           </div>
           <div className="grid grid-cols-2 gap-1">
-            {PRESETS.map((p) => (
-              <button
-                key={p.label}
-                onClick={() => apply(p.days === 'today' ? TODAY : shift(current, p.days))}
-                className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted"
-              >
-                {p.label}
-              </button>
-            ))}
+            {PRESETS.map((p) => {
+              const target = p.resolve(current);
+              return (
+                <button
+                  key={p.label}
+                  onClick={() => apply(target)}
+                  title={formatShortDate(target)}
+                  className="rounded-lg border border-border px-2 py-1 text-xs hover:bg-muted"
+                >
+                  {p.label}
+                </button>
+              );
+            })}
           </div>
           <input
             type="date"
