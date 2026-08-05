@@ -1,7 +1,19 @@
 import type { CockpitItem, CockpitQuestion } from '@/types/cockpit';
 import type { InboxEntry } from '@/api/cockpit';
 
-export const TODAY = new Date().toISOString().slice(0, 10);
+/**
+ * A date's local calendar day as YYYY-MM-DD.
+ *
+ * Not toISOString(): that serialises in UTC, so east of Greenwich a local date built at
+ * midnight lands on the previous day - which silently shifted every due date by one.
+ */
+export function toLocalIsoDate(d: Date): string {
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+export const TODAY = toLocalIsoDate(new Date());
 
 /** Leading 'DQnn:' - a digest question's own id, carried in its text. */
 export function extractDqId(text: string): string {
@@ -78,7 +90,13 @@ export function formatShortDate(iso: string | null): string {
 
 export function formatTs(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function parseBlockedByIds(raw: string): string[] {
@@ -111,7 +129,11 @@ function effortMinutes(e: string): number {
   return isNaN(n) ? Infinity : n;
 }
 
-export function sortItems(items: CockpitItem[], sortBy: SortKey = 'due_key', sortDir: 'asc' | 'desc' = 'asc'): CockpitItem[] {
+export function sortItems(
+  items: CockpitItem[],
+  sortBy: SortKey = 'due_key',
+  sortDir: 'asc' | 'desc' = 'asc',
+): CockpitItem[] {
   return [...items].sort((a, b) => {
     let cmp = 0;
     if (sortBy === 'importance_rank') {

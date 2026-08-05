@@ -1,7 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCockpitData, getCockpitConfig, getCockpitInbox, getCockpitBriefing } from '@/api/cockpit';
+import {
+  getCockpitData,
+  getCockpitConfig,
+  getCockpitInbox,
+  getCockpitBriefing,
+  postCockpitInbox,
+  rescheduleCockpitItem,
+} from '@/api/cockpit';
 import type { InboxEntry, CockpitBriefing } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -9,7 +16,6 @@ import { formatTs, isQuestionAnswered } from '@/components/cockpit/helpers';
 import type { TodoFilters } from '@/components/cockpit/helpers';
 import { ItemDetailDialog } from '@/components/cockpit/ItemDetailDialog';
 import { TodoDialog } from '@/components/cockpit/TodoDialog';
-import { RescheduleDialog } from '@/components/cockpit/RescheduleDialog';
 import type { TodoDialogMode } from '@/components/cockpit/TodoDialog';
 import { OverviewTab } from '@/components/cockpit/OverviewTab';
 import { TodosTab } from '@/components/cockpit/TodosTab';
@@ -45,7 +51,6 @@ export function CockpitView() {
   const [sentToast, setSentToast] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [todoDialog, setTodoDialog] = useState<TodoDialogMode | null>(null);
-  const [rescheduleItem, setRescheduleItem] = useState<CockpitItem | null>(null);
 
   const handleGoToTodos = useCallback((filters: Partial<TodoFilters>) => {
     setTodosFilters(filters);
@@ -65,15 +70,27 @@ export function CockpitView() {
       getCockpitBriefing().catch(() => null),
     ])
       .then(([d, c, ib, br]) => {
-        if (!cancelled) { setData(d); setConfig(c); setInbox(ib); setBriefing(br); setLoading(false); }
+        if (!cancelled) {
+          setData(d);
+          setConfig(c);
+          setInbox(ib);
+          setBriefing(br);
+          setLoading(false);
+        }
       })
       .catch((e: Error) => {
         if (!cancelled) {
-          setError(e.message.includes('403') || e.message.includes('forbidden') ? 'Kein Zugriff — Cockpit-Scope für dieses Token erforderlich.' : 'Daten nicht verfügbar, Stand unbekannt.');
+          setError(
+            e.message.includes('403') || e.message.includes('forbidden')
+              ? 'Kein Zugriff — Cockpit-Scope für dieses Token erforderlich.'
+              : 'Daten nicht verfügbar, Stand unbekannt.',
+          );
           setLoading(false);
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey]);
 
   const allPeople = useMemo(() => {
@@ -101,13 +118,65 @@ export function CockpitView() {
   }, [inbox]);
 
   const reloadInbox = useCallback(() => {
-    getCockpitInbox().catch(() => [] as InboxEntry[]).then(setInbox);
+    getCockpitInbox()
+      .catch(() => [] as InboxEntry[])
+      .then(setInbox);
+  }, []);
+
+  /**
+   * Moves an item's due date from the list itself.
+   *
+   * Applies the new date locally first so the row or tile updates on the spot, then files the
+   * inbox entry the nightly acts on and patches cockpit-data.json. The quiet refetch afterwards
+   * replaces the optimistic value with the server's - without the loading state, which would
+   * blank the list for what is meant to be a one-click edit.
+   */
+  const handleReschedule = useCallback(async (item: CockpitItem, due: string | null) => {
+    const before = item.due_key && item.due_key !== '9999-99-99' ? item.due_key.slice(0, 10) : '';
+    if (due === (before || null)) return;
+
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            items: prev.items.map((i) =>
+              i.id === item.id
+                ? {
+                    ...i,
+                    due,
+                    due_key: due ?? '9999-99-99',
+                    pending_change: { fields: ['due'], since: new Date().toISOString() },
+                  }
+                : i,
+            ),
+          }
+        : prev,
+    );
+
+    try {
+      await postCockpitInbox({
+        kind: 'note',
+        ref: item.id,
+        text: `Fälligkeit: ${before || '(keine)'} → ${due ?? '(keine)'}`,
+      });
+      await rescheduleCockpitItem(item.id, due);
+    } catch {
+      // Fall through: the refetch below restores whatever the server actually holds.
+    }
+    getCockpitData()
+      .then(setData)
+      .catch(() => undefined);
+    getCockpitInbox()
+      .catch(() => [] as InboxEntry[])
+      .then(setInbox);
   }, []);
 
   const handleNoteSent = useCallback((newId: string) => {
     setSentToast(true);
     setTimeout(() => setSentToast(false), 3000);
-    getCockpitInbox().catch(() => [] as InboxEntry[]).then(setInbox);
+    getCockpitInbox()
+      .catch(() => [] as InboxEntry[])
+      .then(setInbox);
     void newId;
   }, []);
 
@@ -153,26 +222,30 @@ export function CockpitView() {
           allows horizontal scrolling (with a reachable first tab) when they don't */}
       <div className="border-b border-border overflow-x-auto shrink-0 scrollbar-none">
         <div className="flex w-max mx-auto">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              'px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors',
-              activeTab === tab.id
-                ? 'border-primary text-foreground font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab.label}
-            {tab.id === 'inbox' && inbox.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5">{inbox.length}</span>
-            )}
-            {tab.id === 'fragen' && openQuestionCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-orange-500 text-white text-[10px] px-1.5 py-0.5">{openQuestionCount}</span>
-            )}
-          </button>
-        ))}
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'px-4 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors',
+                activeTab === tab.id
+                  ? 'border-primary text-foreground font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {tab.label}
+              {tab.id === 'inbox' && inbox.length > 0 && (
+                <span className="ml-1.5 rounded-full bg-muted text-muted-foreground text-[10px] px-1.5 py-0.5">
+                  {inbox.length}
+                </span>
+              )}
+              {tab.id === 'fragen' && openQuestionCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-orange-500 text-white text-[10px] px-1.5 py-0.5">
+                  {openQuestionCount}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -180,16 +253,49 @@ export function CockpitView() {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'overview' && (
           <div className="h-full overflow-y-auto">
-            <OverviewTab data={data} config={config} briefing={briefing} onGoToTodos={handleGoToTodos} onItemClick={setDetailItem} />
+            <OverviewTab
+              data={data}
+              config={config}
+              briefing={briefing}
+              onGoToTodos={handleGoToTodos}
+              onItemClick={setDetailItem}
+            />
           </div>
         )}
         {activeTab === 'todos' && (
-          <TodosTab key={todosTabKey} data={data} config={config} onItemClick={setDetailItem} onEditItem={(item) => setTodoDialog({ type: 'edit', item })} onReschedule={setRescheduleItem} initialFilters={todosFilters} inboxByRef={inboxByRef} />
+          <TodosTab
+            key={todosTabKey}
+            data={data}
+            config={config}
+            onItemClick={setDetailItem}
+            onEditItem={(item) => setTodoDialog({ type: 'edit', item })}
+            onReschedule={handleReschedule}
+            initialFilters={todosFilters}
+            inboxByRef={inboxByRef}
+          />
         )}
-        {activeTab === 'fragen' && <div className="h-full overflow-y-auto"><FragenTab questions={data.questions} config={config} inbox={inbox} items={data.items} onItemClick={setDetailItem} /></div>}
+        {activeTab === 'fragen' && (
+          <div className="h-full overflow-y-auto">
+            <FragenTab
+              questions={data.questions}
+              config={config}
+              inbox={inbox}
+              items={data.items}
+              onItemClick={setDetailItem}
+            />
+          </div>
+        )}
         {activeTab === 'kanban' && <KanbanTab data={data} config={config} onItemClick={setDetailItem} />}
-        {activeTab === 'projekte' && <div className="h-full overflow-y-auto"><ProjekteTab data={data} config={config} onItemClick={setDetailItem} onNoteSent={handleNoteSent} /></div>}
-        {activeTab === 'kalender' && <div className="h-full overflow-hidden"><KalenderTab data={data} config={config} onItemClick={setDetailItem} /></div>}
+        {activeTab === 'projekte' && (
+          <div className="h-full overflow-y-auto">
+            <ProjekteTab data={data} config={config} onItemClick={setDetailItem} onNoteSent={handleNoteSent} />
+          </div>
+        )}
+        {activeTab === 'kalender' && (
+          <div className="h-full overflow-hidden">
+            <KalenderTab data={data} config={config} onItemClick={setDetailItem} />
+          </div>
+        )}
         {activeTab === 'inbox' && (
           <div className="h-full overflow-y-auto">
             <InboxTab inbox={inbox} items={data.items} onChanged={reloadInbox} onItemClick={setDetailItem} />
@@ -214,15 +320,6 @@ export function CockpitView() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 rounded-xl bg-foreground text-background text-sm px-4 py-2 shadow-lg z-50">
           Gesendet — wird im nächsten Digest verarbeitet
         </div>
-      )}
-
-      {rescheduleItem && (
-        <RescheduleDialog
-          item={rescheduleItem}
-          // Re-read cockpit data so the new date and its pending marker show up.
-          onDone={() => setRefreshKey((k) => k + 1)}
-          onClose={() => setRescheduleItem(null)}
-        />
       )}
 
       {todoDialog && (

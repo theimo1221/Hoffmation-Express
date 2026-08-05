@@ -1,14 +1,21 @@
 import { useState, useMemo, useCallback } from 'react';
-import { AlertTriangle, Clock, MessageSquare, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
+import { AlertTriangle, Clock, MessageSquare, MessageSquarePlus, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { InboxEntry } from '@/api/cockpit';
 import type { CockpitData, CockpitConfig, CockpitItem } from '@/types/cockpit';
 import { DomainBadge } from './DomainBadge';
-import { PendingDot } from './PendingDot';
+import { DueDateQuickEdit } from './DueDateQuickEdit';
 import {
-  isOverdue, isDueToday, isGated, isDuePending, formatShortDate, parseBlockedByIds,
-  applyFilters, sortItems,
-  type QuickFilter, type TodoFilters, type SortKey,
+  isOverdue,
+  isDueToday,
+  isGated,
+  formatShortDate,
+  parseBlockedByIds,
+  applyFilters,
+  sortItems,
+  type QuickFilter,
+  type TodoFilters,
+  type SortKey,
 } from './helpers';
 
 const SORT_COLS: Array<{ key: SortKey | null; label: string }> = [
@@ -40,16 +47,17 @@ function TodoRow({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
-  onReschedule: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem, due: string | null) => void;
   onQuickFilter: (f: QuickFilter) => void;
   findItem: (id: string) => CockpitItem | undefined;
   hasComment?: boolean;
 }) {
-  const overdue = isOverdue(item);
-  const today = isDueToday(item);
   const gated = isGated(item);
 
-  const qf = (f: QuickFilter) => (e: React.MouseEvent) => { e.stopPropagation(); onQuickFilter(f); };
+  const qf = (f: QuickFilter) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onQuickFilter(f);
+  };
 
   const blockedByRaw = item.blocked_by?.raw ?? '';
   const blockedByIds = blockedByRaw ? parseBlockedByIds(blockedByRaw) : [];
@@ -58,11 +66,20 @@ function TodoRow({
     <tr className={cn('group border-b border-border text-xs hover:bg-muted/30', gated && 'opacity-50')}>
       <td className="px-2 py-2 font-mono font-medium whitespace-nowrap">
         <span className="flex items-center gap-1">
-          <span className="cursor-pointer hover:text-primary" onClick={() => onItemClick(item)}>{item.id}</span>
-          {hasComment && <span title="Kommentiert"><MessageSquare className="h-2.5 w-2.5 text-orange-400 shrink-0" /></span>}
+          <span className="cursor-pointer hover:text-primary" onClick={() => onItemClick(item)}>
+            {item.id}
+          </span>
+          {hasComment && (
+            <span title="Kommentiert">
+              <MessageSquare className="h-2.5 w-2.5 text-orange-400 shrink-0" />
+            </span>
+          )}
           <button
             title="Bearbeiten"
-            onClick={(e) => { e.stopPropagation(); onEditItem(item); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditItem(item);
+            }}
             className="opacity-0 group-hover:opacity-100 rounded p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-opacity"
           >
             <Pencil className="h-2.5 w-2.5" />
@@ -75,14 +92,24 @@ function TodoRow({
         <DomainBadge domain={item.domain} config={config} onClick={qf({ domain: item.domain })} />
       </td>
       <td className="px-2 py-2 text-muted-foreground max-w-[80px] truncate">
-        {item.project
-          ? <span className="cursor-pointer hover:underline" onClick={qf({ project: item.project.key })}>{item.project.key.replace('project_', '')}</span>
-          : '—'}
+        {item.project ? (
+          <span className="cursor-pointer hover:underline" onClick={qf({ project: item.project.key })}>
+            {item.project.key.replace('project_', '')}
+          </span>
+        ) : (
+          '—'
+        )}
       </td>
       <td className="px-2 py-2 max-w-xs">
         <span>{item.title}</span>
         {item.tags.map((t) => (
-          <span key={t} onClick={qf({ tag: t })} className="ml-1 inline-flex items-center rounded bg-muted px-1 py-0 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/60">{t}</span>
+          <span
+            key={t}
+            onClick={qf({ tag: t })}
+            className="ml-1 inline-flex items-center rounded bg-muted px-1 py-0 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/60"
+          >
+            {t}
+          </span>
         ))}
       </td>
       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">
@@ -90,18 +117,15 @@ function TodoRow({
           ? item.people.map((p, i) => (
               <span key={p.name}>
                 {i > 0 && ', '}
-                <span className="cursor-pointer hover:underline" onClick={qf({ person: p.name })}>{p.name}</span>
+                <span className="cursor-pointer hover:underline" onClick={qf({ person: p.name })}>
+                  {p.name}
+                </span>
               </span>
             ))
           : '—'}
       </td>
-      <td
-        className={cn('px-2 py-2 whitespace-nowrap font-medium cursor-pointer select-none', overdue && 'text-red-500', today && 'text-amber-600')}
-        onDoubleClick={() => onReschedule(item)}
-        title="Doppelklick: neu terminieren"
-      >
-        {formatShortDate(item.due_key)}
-        {isDuePending(item) && <PendingDot />}
+      <td className="px-2 py-2 whitespace-nowrap font-medium">
+        <DueDateQuickEdit item={item} onReschedule={onReschedule} />
       </td>
       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">
         {blockedByIds.length > 0 ? (
@@ -117,11 +141,15 @@ function TodoRow({
                   {refId}
                 </button>
               ) : (
-                <span key={refId} className="font-mono text-muted-foreground">{refId}</span>
+                <span key={refId} className="font-mono text-muted-foreground">
+                  {refId}
+                </span>
               );
             })}
           </span>
-        ) : (blockedByRaw || '—')}
+        ) : (
+          blockedByRaw || '—'
+        )}
       </td>
       <td className="px-2 py-2 text-muted-foreground max-w-[100px] truncate">{item.effort}</td>
       <td className="px-2 py-2 text-muted-foreground whitespace-nowrap">{formatShortDate(item.created)}</td>
@@ -143,30 +171,53 @@ function TodoCard({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
-  onReschedule: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem, due: string | null) => void;
   onQuickFilter: (f: QuickFilter) => void;
   hasComment?: boolean;
 }) {
-  const overdue = isOverdue(item);
-  const today = isDueToday(item);
-  const qf = (f: QuickFilter) => (e: React.MouseEvent) => { e.stopPropagation(); onQuickFilter(f); };
+  const qf = (f: QuickFilter) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onQuickFilter(f);
+  };
   return (
-    <div
-      className={cn('rounded-2xl bg-card p-3 shadow-sm border border-border', isGated(item) && 'opacity-50')}
-    >
+    <div className={cn('rounded-2xl bg-card p-3 shadow-sm border border-border', isGated(item) && 'opacity-50')}>
       <div className="flex items-center gap-1.5 mb-1.5">
-        <span className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-primary" onClick={() => onItemClick(item)}>{item.id}</span>
-        {hasComment && <span title="Kommentiert"><MessageSquare className="h-3 w-3 text-orange-400 shrink-0" /></span>}
+        <span
+          className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-primary"
+          onClick={() => onItemClick(item)}
+        >
+          {item.id}
+        </span>
+        {hasComment && (
+          <span title="Kommentiert">
+            <MessageSquare className="h-3 w-3 text-orange-400 shrink-0" />
+          </span>
+        )}
         <DomainBadge domain={item.domain} config={config} onClick={qf({ domain: item.domain })} />
         <span>{config.status[item.status]?.emoji}</span>
         <span>{config.importance[item.importance]?.emoji}</span>
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-0.5">
           <button
-            title="Bearbeiten"
-            onClick={(e) => { e.stopPropagation(); onEditItem(item); }}
+            title="Kommentieren"
+            aria-label={`${item.id} kommentieren`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onItemClick(item);
+            }}
             className="rounded-lg p-1 hover:bg-muted text-muted-foreground hover:text-foreground"
           >
-            <Pencil className="h-3 w-3" />
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            title="Bearbeiten"
+            aria-label={`${item.id} bearbeiten`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditItem(item);
+            }}
+            className="rounded-lg p-1 hover:bg-muted text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" />
           </button>
         </span>
       </div>
@@ -174,19 +225,21 @@ function TodoCard({
       {item.tags.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {item.tags.map((t) => (
-            <span key={t} onClick={qf({ tag: t })} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/60">{t}</span>
+            <span
+              key={t}
+              onClick={qf({ tag: t })}
+              className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground cursor-pointer hover:bg-muted/60"
+            >
+              {t}
+            </span>
           ))}
         </div>
       )}
       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
         {item.due_key !== '9999-99-99' && (
-          <span
-            className={cn('flex items-center gap-0.5 select-none', overdue && 'text-red-500', today && 'text-amber-600')}
-            onDoubleClick={(e) => { e.stopPropagation(); onReschedule(item); }}
-            title="Doppelklick: neu terminieren"
-          >
-            <Clock className="h-3 w-3" />{formatShortDate(item.due_key)}
-            {isDuePending(item) && <PendingDot />}
+          <span className="flex items-center gap-0.5">
+            <Clock className="h-3 w-3" />
+            <DueDateQuickEdit item={item} onReschedule={onReschedule} compact />
           </span>
         )}
         {item.people.length > 0 && (
@@ -194,7 +247,9 @@ function TodoCard({
             {item.people.map((p, i) => (
               <span key={p.name}>
                 {i > 0 && ', '}
-                <span className="cursor-pointer hover:underline" onClick={qf({ person: p.name })}>{p.name}</span>
+                <span className="cursor-pointer hover:underline" onClick={qf({ person: p.name })}>
+                  {p.name}
+                </span>
               </span>
             ))}
           </span>
@@ -218,12 +273,20 @@ export function TodosTab({
   config: CockpitConfig;
   onItemClick: (item: CockpitItem) => void;
   onEditItem: (item: CockpitItem) => void;
-  onReschedule: (item: CockpitItem) => void;
+  onReschedule: (item: CockpitItem, due: string | null) => void;
   initialFilters?: Partial<TodoFilters>;
   inboxByRef: Map<string, InboxEntry[]>;
 }) {
   const [filters, setFilters] = useState<TodoFilters>(() => ({
-    domain: '', status: '', importance: '', persons: [], project: '', text: '', fokus: false, showGated: false, tags: [],
+    domain: '',
+    status: '',
+    importance: '',
+    persons: [],
+    project: '',
+    text: '',
+    fokus: false,
+    showGated: false,
+    tags: [],
     ...initialFilters,
   }));
   const [personDropOpen, setPersonDropOpen] = useState(false);
@@ -232,7 +295,10 @@ export function TodosTab({
 
   const handleSort = (key: SortKey) => {
     if (sortBy === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortBy(key); setSortDir('asc'); }
+    else {
+      setSortBy(key);
+      setSortDir('asc');
+    }
   };
 
   const allPeople = useMemo(() => {
@@ -243,33 +309,50 @@ export function TodosTab({
 
   const allProjects = useMemo(() => {
     const s = new Set<string>();
-    data.items.forEach((i) => { if (i.project) s.add(i.project.key); });
+    data.items.forEach((i) => {
+      if (i.project) s.add(i.project.key);
+    });
     return [...s].sort();
   }, [data.items]);
 
   const findItem = useCallback((id: string) => data.items.find((i) => i.id === id), [data.items]);
 
-  const filtered = useMemo(() => sortItems(applyFilters(data.items, filters), sortBy, sortDir), [data.items, filters, sortBy, sortDir]);
+  const filtered = useMemo(
+    () => sortItems(applyFilters(data.items, filters), sortBy, sortDir),
+    [data.items, filters, sortBy, sortDir],
+  );
 
   const overdue = filtered.filter(isOverdue);
   const today = filtered.filter((i) => !isOverdue(i) && isDueToday(i));
   const rest = filtered.filter((i) => !isOverdue(i) && !isDueToday(i));
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 700;
-  const hasFilter = !!(filters.domain || filters.status || filters.importance || filters.persons.length > 0 || filters.project || filters.text || filters.tags.length > 0);
+  const hasFilter = !!(
+    filters.domain ||
+    filters.status ||
+    filters.importance ||
+    filters.persons.length > 0 ||
+    filters.project ||
+    filters.text ||
+    filters.tags.length > 0
+  );
 
   const setF = (patch: Partial<TodoFilters>) => setFilters((prev) => ({ ...prev, ...patch }));
 
   const togglePerson = (name: string) =>
-    setF({ persons: filters.persons.includes(name) ? filters.persons.filter((p) => p !== name) : [...filters.persons, name] });
+    setF({
+      persons: filters.persons.includes(name) ? filters.persons.filter((p) => p !== name) : [...filters.persons, name],
+    });
 
   const handleQuickFilter = (f: QuickFilter) => {
     setFilters((prev) => ({
       ...prev,
       ...(f.domain !== undefined ? { domain: f.domain } : {}),
-      ...(f.person !== undefined ? {
-        persons: prev.persons.includes(f.person) ? prev.persons : [...prev.persons, f.person],
-      } : {}),
+      ...(f.person !== undefined
+        ? {
+            persons: prev.persons.includes(f.person) ? prev.persons : [...prev.persons, f.person],
+          }
+        : {}),
       ...(f.project !== undefined ? { project: f.project } : {}),
       ...(f.tag !== undefined ? { tags: prev.tags.includes(f.tag!) ? prev.tags : [...prev.tags, f.tag!] } : {}),
     }));
@@ -280,17 +363,43 @@ export function TodosTab({
       {/* Filter bar */}
       <div className="border-b border-border bg-background/95 px-3 py-2 space-y-2">
         <div className="flex flex-wrap gap-2 items-center">
-          <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.domain} onChange={(e) => setF({ domain: e.target.value })}>
+          <select
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+            value={filters.domain}
+            onChange={(e) => setF({ domain: e.target.value })}
+          >
             <option value="">Kategorie (alle)</option>
-            {Object.entries(config.domain).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(config.domain).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.label}
+              </option>
+            ))}
           </select>
-          <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.status} onChange={(e) => setF({ status: e.target.value })}>
+          <select
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+            value={filters.status}
+            onChange={(e) => setF({ status: e.target.value })}
+          >
             <option value="">Status (alle)</option>
-            {Object.entries(config.status).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label_de}</option>)}
+            {Object.entries(config.status).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v.emoji} {v.label_de}
+              </option>
+            ))}
           </select>
-          <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.importance} onChange={(e) => setF({ importance: e.target.value })}>
+          <select
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+            value={filters.importance}
+            onChange={(e) => setF({ importance: e.target.value })}
+          >
             <option value="">Wichtigkeit (alle)</option>
-            {Object.entries(config.importance).sort(([, a], [, b]) => b.rank - a.rank).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label_de}</option>)}
+            {Object.entries(config.importance)
+              .sort(([, a], [, b]) => b.rank - a.rank)
+              .map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.emoji} {v.label_de}
+                </option>
+              ))}
           </select>
           <div className="relative">
             <button
@@ -326,9 +435,17 @@ export function TodosTab({
               </div>
             )}
           </div>
-          <select className="rounded-lg border border-border bg-background px-2 py-1 text-xs" value={filters.project} onChange={(e) => setF({ project: e.target.value })}>
+          <select
+            className="rounded-lg border border-border bg-background px-2 py-1 text-xs"
+            value={filters.project}
+            onChange={(e) => setF({ project: e.target.value })}
+          >
             <option value="">Projekt (alle)</option>
-            {allProjects.map((p) => <option key={p} value={p}>{p.replace('project_', '')}</option>)}
+            {allProjects.map((p) => (
+              <option key={p} value={p}>
+                {p.replace('project_', '')}
+              </option>
+            ))}
           </select>
           <input
             type="text"
@@ -339,30 +456,66 @@ export function TodosTab({
           />
           {hasFilter && (
             <button
-              onClick={() => setFilters({ domain: '', status: '', importance: '', persons: [], project: '', text: '', fokus: filters.fokus, showGated: filters.showGated, tags: [] })}
+              onClick={() =>
+                setFilters({
+                  domain: '',
+                  status: '',
+                  importance: '',
+                  persons: [],
+                  project: '',
+                  text: '',
+                  fokus: filters.fokus,
+                  showGated: filters.showGated,
+                  tags: [],
+                })
+              }
               className="rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
             >
               × Filter
             </button>
           )}
-          <span className="text-xs text-muted-foreground ml-auto">{filtered.length} von {data.items.length}</span>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {filtered.length} von {data.items.length}
+          </span>
         </div>
         {/* Fokus row */}
         <div className="flex items-center gap-2 flex-wrap">
           <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-            <input type="checkbox" checked={filters.fokus} onChange={(e) => setF({ fokus: e.target.checked })} className="h-3.5 w-3.5" />
-            <span>🎯 Fokus: was kann ich <strong>jetzt</strong> tun?</span>
+            <input
+              type="checkbox"
+              checked={filters.fokus}
+              onChange={(e) => setF({ fokus: e.target.checked })}
+              className="h-3.5 w-3.5"
+            />
+            <span>
+              🎯 Fokus: was kann ich <strong>jetzt</strong> tun?
+            </span>
           </label>
           {filters.fokus && (
             <>
               {config.tags.map((t) => (
-                <button key={t} onClick={() => setF({ tags: filters.tags.includes(t) ? filters.tags.filter((x) => x !== t) : [...filters.tags, t] })}
-                  className={cn('rounded px-2 py-0.5 text-xs', filters.tags.includes(t) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+                <button
+                  key={t}
+                  onClick={() =>
+                    setF({
+                      tags: filters.tags.includes(t) ? filters.tags.filter((x) => x !== t) : [...filters.tags, t],
+                    })
+                  }
+                  className={cn(
+                    'rounded px-2 py-0.5 text-xs',
+                    filters.tags.includes(t) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                  )}
+                >
                   {t}
                 </button>
               ))}
               <label className="flex items-center gap-1 text-xs cursor-pointer ml-2">
-                <input type="checkbox" checked={filters.showGated} onChange={(e) => setF({ showGated: e.target.checked })} className="h-3.5 w-3.5" />
+                <input
+                  type="checkbox"
+                  checked={filters.showGated}
+                  onChange={(e) => setF({ showGated: e.target.checked })}
+                  className="h-3.5 w-3.5"
+                />
                 💤 Schlummernde
               </label>
             </>
@@ -372,13 +525,19 @@ export function TodosTab({
 
       {/* Severity banners */}
       {overdue.length > 0 && (
-        <div className="px-3 py-2 flex items-center gap-2 text-sm font-medium" style={{ backgroundColor: '#A32D2D', color: 'white' }}>
+        <div
+          className="px-3 py-2 flex items-center gap-2 text-sm font-medium"
+          style={{ backgroundColor: '#A32D2D', color: 'white' }}
+        >
           <AlertTriangle className="h-5 w-5 shrink-0" />
           {overdue.length} überfällige{overdue.length === 1 ? 's' : ''} Item{overdue.length === 1 ? '' : 's'}
         </div>
       )}
       {today.length > 0 && (
-        <div className="px-3 py-2 flex items-center gap-2 text-sm font-medium" style={{ backgroundColor: '#854F0B', color: 'white' }}>
+        <div
+          className="px-3 py-2 flex items-center gap-2 text-sm font-medium"
+          style={{ backgroundColor: '#854F0B', color: 'white' }}
+        >
           <Clock className="h-5 w-5 shrink-0" />
           {today.length} heute fällig
         </div>
@@ -389,7 +548,16 @@ export function TodosTab({
         {isMobile ? (
           <div className="p-3 space-y-2">
             {[...overdue, ...today, ...rest].map((item) => (
-              <TodoCard key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onReschedule={onReschedule} onQuickFilter={handleQuickFilter} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+              <TodoCard
+                key={item.id}
+                item={item}
+                config={config}
+                onItemClick={onItemClick}
+                onEditItem={onEditItem}
+                onReschedule={onReschedule}
+                onQuickFilter={handleQuickFilter}
+                hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0}
+              />
             ))}
           </div>
         ) : (
@@ -400,16 +568,21 @@ export function TodosTab({
                   {SORT_COLS.map((col) => (
                     <th
                       key={col.label}
-                      className={cn('px-2 py-2 text-left font-medium text-muted-foreground whitespace-nowrap', col.key && 'cursor-pointer hover:text-foreground select-none')}
+                      className={cn(
+                        'px-2 py-2 text-left font-medium text-muted-foreground whitespace-nowrap',
+                        col.key && 'cursor-pointer hover:text-foreground select-none',
+                      )}
                       onClick={col.key ? () => handleSort(col.key!) : undefined}
                     >
                       <span className="inline-flex items-center gap-0.5">
                         {col.label}
-                        {col.key && sortBy === col.key && (
-                          sortDir === 'asc'
-                            ? <ChevronUp className="h-3 w-3 shrink-0" />
-                            : <ChevronDown className="h-3 w-3 shrink-0" />
-                        )}
+                        {col.key &&
+                          sortBy === col.key &&
+                          (sortDir === 'asc' ? (
+                            <ChevronUp className="h-3 w-3 shrink-0" />
+                          ) : (
+                            <ChevronDown className="h-3 w-3 shrink-0" />
+                          ))}
                       </span>
                     </th>
                   ))}
@@ -417,7 +590,17 @@ export function TodosTab({
               </thead>
               <tbody>
                 {[...overdue, ...today, ...rest].map((item) => (
-                  <TodoRow key={item.id} item={item} config={config} onItemClick={onItemClick} onEditItem={onEditItem} onReschedule={onReschedule} onQuickFilter={handleQuickFilter} findItem={findItem} hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0} />
+                  <TodoRow
+                    key={item.id}
+                    item={item}
+                    config={config}
+                    onItemClick={onItemClick}
+                    onEditItem={onEditItem}
+                    onReschedule={onReschedule}
+                    onQuickFilter={handleQuickFilter}
+                    findItem={findItem}
+                    hasComment={(inboxByRef.get(item.id)?.length ?? 0) > 0}
+                  />
                 ))}
               </tbody>
             </table>
