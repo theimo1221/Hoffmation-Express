@@ -244,6 +244,20 @@ export interface SpeakerSettings {
   skipInHomebridge?: boolean;
 }
 
+/** Victron energy manager. The AC battery levels gate whether ACs may run at all. */
+export interface VictronSettings {
+  minimumNightTimeAcBatteryLevel?: number;
+  minimumTransientTimeAcBatteryLevel?: number;
+  minimumDayTimeAcBatteryLevel?: number;
+  minimumMorningSunnyDayAcBatteryLevel?: number;
+  excessEnergyTurnOnThreshold?: number;
+  excessEnergyTurnOffThreshold?: number;
+  maxBatteryLoadWattage?: number;
+  maximumBatteryDischargeWattage?: number;
+  normalBaseConsumptionWattage?: number;
+  batteryReportingInterval?: number;
+}
+
 export interface DachsSettings {
   refreshIntervalTime?: number;
   disableHeatingRod?: boolean;
@@ -272,6 +286,7 @@ export interface DeviceSettings {
   sceneSettings?: SceneSettings;
   speakerSettings?: SpeakerSettings;
   dachsSettings?: DachsSettings;
+  victronSettings?: VictronSettings;
   energySettings?: EnergySettings;
   // Trilateration position in room
   trilaterationRoomPosition?: { x: number; y: number; z: number };

@@ -1,6 +1,6 @@
 /**
  * Central Store Exports
- * 
+ *
  * This file provides a single import point for all store-related functionality.
  * Import from '@/stores' instead of individual store files.
  */
@@ -13,7 +13,7 @@ export type {
   Device,
   Room,
   TrilaterationPoint,
-  
+
   // Room types
   RoomInfo,
   GroupType,
@@ -21,11 +21,11 @@ export type {
   RoomWebUISettings,
   FloorDefinition,
   RoomSettings,
-  
+
   // Device types
   DeviceInfo,
   DeviceSettings,
-  
+
   // Settings types
   ActuatorSettings,
   DimmerSettings,
@@ -39,7 +39,8 @@ export type {
   SceneSettings,
   SpeakerSettings,
   DachsSettings,
-  
+  VictronSettings,
+
   // Sensor types
   TemperatureSensor,
   HumiditySensor,
@@ -68,7 +69,7 @@ export {
   isButtonSwitchDevice,
   isToggleableDevice,
   getDeviceToggleAction,
-  
+
   // State getters
   getDeviceRoom,
   getDeviceName,
@@ -89,19 +90,19 @@ export {
   getDeviceLinkQuality,
   isDeviceAvailable,
   getAutomaticBlockedUntil,
-  
+
   // Capability
   DeviceCapability,
   hasCapability,
-  
+
   // Unreachability
   getDeviceStaleThresholdMinutes,
   isDeviceUnreachable,
-  
+
   // Expert mode
   isDeviceComplex,
   filterDevicesForExpertMode,
-  
+
   // Capability names
   getCapabilityName,
   getCapabilityNames,
@@ -127,10 +128,4 @@ export {
 // ============================================================================
 // Data Store (Zustand)
 // ============================================================================
-export {
-  useDataStore,
-  type Floor,
-  getFloorsForRoom,
-  isMultiFloorRoom,
-  getRoomCoords,
-} from './dataStore';
+export { useDataStore, type Floor, getFloorsForRoom, isMultiFloorRoom, getRoomCoords } from './dataStore';
