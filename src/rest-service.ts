@@ -214,8 +214,13 @@ export class RestService {
     });
 
     // Open endpoint — tells the UI whether it needs to show the onboarding form or a guest button.
-    this._app.get('/auth/status', (_req, res) => {
-      return res.json({ needsBootstrap: AuthService.needsBootstrap, mode: AuthService.mode });
+    this._app.get('/auth/status', (req, res) => {
+      // This path is open, so the auth middleware skipped principal resolution - do it here.
+      // Sessions are held in memory, so a restart leaves clients holding a cookie for a session
+      // that no longer exists. Reporting the real state lets them recover instead of assuming
+      // they are still signed in.
+      const authenticated = req.cookies?.hf_sid ? AuthService.resolveSession(req.cookies.hf_sid) !== null : false;
+      return res.json({ needsBootstrap: AuthService.needsBootstrap, mode: AuthService.mode, authenticated });
     });
 
     // Self-service password change: any authenticated non-webhook user, currentPassword required.

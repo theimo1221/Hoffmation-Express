@@ -1,3 +1,5 @@
+const MOBILE_TOKEN_KEY = 'hf_mobile_token';
+
 function getBaseUrl(): string {
   // API endpoints are always at root (e.g., /rooms, /devices)
   // Allow overriding the full base URL (e.g., 'https://hoffmation.com' or empty for same origin)
@@ -9,81 +11,103 @@ function getBaseUrl(): string {
   return window.location.origin;
 }
 
-function handle401(_url: string): void {
-  // Global 401 handler: redirect to login
+/** In-flight recovery, so a burst of parallel 401s exchanges the token once, not once each. */
+let recovery: Promise<boolean> | null = null;
+
+/**
+ * Trades the stored mobile token for a fresh session.
+ *
+ * Server sessions live in memory, so every restart invalidates them while the client still
+ * holds a valid-looking cookie. Without this the next request just bounced to the login
+ * screen and the token had to be typed in again.
+ */
+async function tryMobileTokenRecovery(): Promise<boolean> {
+  const token = localStorage.getItem(MOBILE_TOKEN_KEY);
+  if (!token) return false;
+
+  recovery ??= (async () => {
+    try {
+      const res = await fetch(`${getBaseUrl()}/auth/mobile-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token }),
+      });
+      // 401 means the token itself is gone or revoked - nothing left to recover with.
+      if (res.status === 401) localStorage.removeItem(MOBILE_TOKEN_KEY);
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      recovery = null;
+    }
+  })();
+
+  return recovery;
+}
+
+function redirectToLogin(): void {
   if (window.location.pathname !== '/login' && window.location.pathname !== '/ui/login') {
     window.location.href = '/ui/login';
   }
 }
 
-export async function apiGet<T>(endpoint: string): Promise<T> {
+/**
+ * Performs a request, recovering a dropped session once before giving up.
+ *
+ * Every API call goes through here so the retry cannot be forgotten at a call site.
+ */
+async function request(endpoint: string, init: RequestInit): Promise<Response> {
   const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, { credentials: 'include' });
+  const options: RequestInit = { credentials: 'include', ...init };
+
+  let response = await fetch(url, options);
+  if (response.status === 401 && (await tryMobileTokenRecovery())) {
+    response = await fetch(url, options);
+  }
   if (response.status === 401) {
-    handle401(url);
+    redirectToLogin();
     throw new Error('Unauthorized');
   }
+  return response;
+}
+
+function jsonInit(method: string, body: unknown): RequestInit {
+  return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+function assertOk(response: Response, url: string): void {
   if (!response.ok) {
     throw new Error(`API error: ${response.status} ${response.statusText} for ${url}`);
   }
+}
+
+export async function apiGet<T>(endpoint: string): Promise<T> {
+  const response = await request(endpoint, {});
+  assertOk(response, endpoint);
   return response.json();
 }
 
 export async function apiGetNoResponse(endpoint: string): Promise<void> {
-  const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, { credentials: 'include' });
-  if (response.status === 401) {
-    handle401(url);
-    throw new Error('Unauthorized');
-  }
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText} for ${url}`);
-  }
+  const response = await request(endpoint, {});
+  assertOk(response, endpoint);
   // Don't try to parse response body
 }
 
 export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
-  const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  if (response.status === 401) {
-    handle401(url);
-    throw new Error('Unauthorized');
-  }
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText} for ${url}`);
-  }
+  const response = await request(endpoint, jsonInit('POST', body));
+  assertOk(response, endpoint);
   return response.json();
 }
 
 export async function apiPostNoResponse(endpoint: string, body: unknown): Promise<void> {
-  const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  if (response.status === 401) {
-    handle401(url);
-    throw new Error('Unauthorized');
-  }
+  const response = await request(endpoint, jsonInit('POST', body));
   if (!response.ok) {
-    // Try to get error message from response body
-    let errorMessage = `API error: ${response.status} ${response.statusText} for ${url}`;
+    // Surface the body: these endpoints answer with a plain-text reason.
+    let errorMessage = `API error: ${response.status} ${response.statusText} for ${endpoint}`;
     try {
       const text = await response.text();
-      if (text) {
-        errorMessage += `: ${text}`;
-      }
+      if (text) errorMessage += `: ${text}`;
     } catch {
       // Ignore parse errors
     }
@@ -93,33 +117,14 @@ export async function apiPostNoResponse(endpoint: string, body: unknown): Promis
 }
 
 export async function apiPatch<T>(endpoint: string, body: unknown): Promise<T> {
-  const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  if (response.status === 401) {
-    handle401(url);
-    throw new Error('Unauthorized');
-  }
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText} for ${url}`);
-  }
+  const response = await request(endpoint, jsonInit('PATCH', body));
+  assertOk(response, endpoint);
   return response.json();
 }
 
 export async function apiDelete<T>(endpoint: string): Promise<T> {
-  const url = `${getBaseUrl()}${endpoint}`;
-  const response = await fetch(url, { method: 'DELETE', credentials: 'include' });
-  if (response.status === 401) {
-    handle401(url);
-    throw new Error('Unauthorized');
-  }
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText} for ${url}`);
-  }
+  const response = await request(endpoint, { method: 'DELETE' });
+  assertOk(response, endpoint);
   return response.json();
 }
 

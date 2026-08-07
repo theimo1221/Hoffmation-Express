@@ -13,9 +13,32 @@ export function LoginView() {
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [showTokenForm, setShowTokenForm] = useState(false);
   const [redeemStatus, setRedeemStatus] = useState<'idle' | 'redeeming' | 'error'>('idle');
-  const { login, loginWithToken, isLoading, error, clearError, needsBootstrap, serverMode, checkAuthStatus } = useAuthStore();
+  const {
+    login,
+    loginWithToken,
+    isLoading,
+    error,
+    clearError,
+    needsBootstrap,
+    serverMode,
+    checkAuthStatus,
+    hasMobileToken,
+    retryStoredToken,
+    clearMobileToken,
+  } = useAuthStore();
+  const [retrying, setRetrying] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // The token is already on this device; re-entering it should never be necessary just because
+  // the session dropped or the server was briefly away.
+  const handleRetry = async () => {
+    setRetrying(true);
+    setTokenError(null);
+    const ok = await retryStoredToken();
+    setRetrying(false);
+    if (ok) navigate('/');
+  };
 
   // Auto-redeem one-time registration token from QR link
   useEffect(() => {
@@ -37,7 +60,7 @@ export function LoginView() {
         setRedeemStatus('error');
         setTokenError(err instanceof Error ? err.message : 'QR-Code ungültig');
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,7 +114,10 @@ export function LoginView() {
     e.preventDefault();
     setTokenError(null);
     const t = tokenInput.trim();
-    if (!t) { setTokenError('Token eingeben'); return; }
+    if (!t) {
+      setTokenError('Token eingeben');
+      return;
+    }
     try {
       await loginWithToken(t);
       navigate('/');
@@ -300,10 +326,36 @@ export function LoginView() {
             </div>
           )}
 
+          {hasMobileToken && (
+            <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-600 p-3 space-y-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Auf diesem Gerät ist ein Geräte-Token gespeichert.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleRetry()}
+                disabled={retrying || isLoading}
+                className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 px-4 py-2.5 text-white text-sm font-medium transition-all duration-200 disabled:cursor-not-allowed"
+              >
+                {retrying ? 'Melde an…' : 'Erneut anmelden'}
+              </button>
+              <button
+                type="button"
+                onClick={clearMobileToken}
+                className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              >
+                Gespeicherten Token verwerfen
+              </button>
+            </div>
+          )}
+
           <div className="mt-4">
             <button
               type="button"
-              onClick={() => { setShowTokenForm((v) => !v); setTokenError(null); }}
+              onClick={() => {
+                setShowTokenForm((v) => !v);
+                setTokenError(null);
+              }}
               className="flex w-full items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
             >
               <Key className="h-4 w-4" />
@@ -318,9 +370,7 @@ export function LoginView() {
                   placeholder="Token hier einfügen…"
                   className="block w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs text-gray-900 dark:text-white font-mono placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
-                {tokenError && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{tokenError}</p>
-                )}
+                {tokenError && <p className="text-sm text-red-600 dark:text-red-400">{tokenError}</p>}
                 <button
                   type="submit"
                   disabled={isLoading}
